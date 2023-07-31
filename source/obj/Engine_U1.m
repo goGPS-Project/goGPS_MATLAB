@@ -16,10 +16,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Giulio Tagliaferro
 %  Contributors:      Giulio Tagliaferro, Andrea Gatti
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -209,7 +209,7 @@ classdef Engine_U1 < Exportable
             %    cut_off : cut off angle [optional]
             %
             % SYNTAX
-            %   id_sync_out = this.setUpSA(rec, sys_list, id_sync_in, obs_type('C'/'L'/'CL'), cut_off, custom_obs_set, <dynamic>, <pos_idx_vec>)
+            %   id_sync_out = this.setUpSA(rec, sys_list, id_sync_in, obs_type('C'/'L'/'CL'), cut_off, custom_obs_set, <dynamic>, <pos_idx_vec>, <tropo_rate>)
 
             if isempty(sys_list)
                 sys_list = rec.getActiveSys;
@@ -392,83 +392,87 @@ classdef Engine_U1 < Exportable
                 idx_empty_ep = sum(diff_obs ~= 0,2) <= 1;
                 obs_set.remEpochs(idx_empty_ep);
                 obs_set.sanitizeEmpty();
-                if dynamic
-                    pos_idx_vec = 1:obs_set.time.length;
-                end
-                [A, A_idx, ep, sat, p_flag, p_class, y, variance, amb_set_jmp, id_sync_out] = this.getObsEq( rec, obs_set, pos_idx_vec, tropo_rate);
-                this.true_epoch = id_sync_out;
-                this.A_ep = A;
-                this.A_idx = A_idx;
-                this.variance = variance;
-                this.y = y;
-                this.receiver_id = ones(size(y));
-                this.epoch = ep;
-                %             sat2progsat = zeors(max(obs_set.go_id));
-                %             sat2progsat(obs_set.go_id) = 1: length(unique(obs_set.go_id));
-                %             this.sat = sat2progsat(sat);
-                this.sat = sat;
-                if dynamic
-                    p_flag(p_class == this.PAR_X | p_class == this.PAR_Y  | p_class == this.PAR_Z ) = 1;
-                end
-                this.param_flag = p_flag;
-                this.param_class = p_class;
-                if not(obs_set.isEmpty)
-                    this.amb_idx = obs_set.getAmbIdx();
-                end
-                this.go_id_amb = obs_set.go_id;
-                this.sat_go_id = obs_set.go_id;
-                n_epochs = size(obs_set.obs, 1);
-                this.n_epochs = n_epochs;
-                phase_s = find(obs_set.wl ~=  -1);
-                this.phase_idx = phase_s;
-                
-                
-                %---- Set up the constraint to solve the rank deficeny problem --------------
-                if phase_present
-                    % Ambiguity set
-                    %G = [zeros(1, n_coo + n_iob) (amb_obs_count) -sum(~isnan(this.amb_idx), 2)'];
-                    %                 if ~flag_amb_fix
-                    %                     G = [zeros(1, n_coo + n_iob + n_apc)  ones(1,n_amb)  -ones(1,n_clocks)]; % <- This is the right one !!!
-                    %                 else % in case of ambiugty fixing with cnes orbit the partial trace minimization condition gives problems
-                    % setting the first clock of each connected set of arc to 0
-                    %system_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2));
-                    %amb_set_jmp_bnd = [0; amb_set_jmp; this.n_epochs];
-                    amb_set_jmp_bnd = [0; amb_set_jmp; this.n_epochs];
-                    %                 clock_const = zeros(1,n_clocks);
-                    %                 amb_const = zeros(1,n_amb);
-                    %                 amb_const(1) = 1;
-                    G = [];% [zeros(1, n_coo + n_iob + n_apc)  amb_const  clock_const];
-                    amb_par = this.A_idx(:,this.param_class == this.PAR_AMB);
-                    min_amb = min(amb_par);
-                    max_amb = max(amb_par);
-                    max_par = max(this.A_idx(:,end));
-                    n_amb = max_amb - min_amb +1;
-                    amb_idx = this.amb_idx;
-                    clock_const = zeros(1,this.n_epochs);
-                    for i = 1: (length(amb_set_jmp_bnd)-1)
-                        %clock_const(amb_set_jmp_bnd(i)+1) = 1;
-                        amb_const = zeros(1,n_amb);
-                        amb_idx_const = noZero(amb_idx((amb_set_jmp_bnd(i)+1):amb_set_jmp_bnd(i+1),:));
-                        amb_idx_const = mode(amb_idx_const);
-                        if amb_idx_const ~= 0
-                            amb_const(amb_idx_const) = 1;
-                            G = [G ;[zeros(1, min_amb-1) amb_const clock_const]];
-                        end
-                    end
-                    
-                    G = [G zeros(size(G,1),max_par - (max_amb + this.n_epochs) +1 )];
-                    
-                    D = zeros(size(G,1),1);
-                    this.G = G;
-                    this.D = D;
-                end
-                if phase_present
-                    % fprintf('#### DEBUG #### \n');
-                    lim = [[1; amb_set_jmp + 1] [amb_set_jmp; max(ep)]];
-                    Core.getLogger.addMessage(Core.getLogger.indent(sprintf('Dataset is splitted in this way:\n%s', sprintf('%6d -> %6d\n', lim'))))
-                    this.system_split = [[1; amb_set_jmp + 1] [amb_set_jmp; max(ep)]];
+                if obs_set.isEmpty
+                    Core.getLogger.addError(sprintf('No good observations have been found for %s', rec.parent.getMarkerName4Ch));
+                    id_sync_out = [];
                 else
-                    this.system_split = [1 max(ep)];
+                    if dynamic
+                        pos_idx_vec = 1:obs_set.time.length;
+                    end
+                    [A, A_idx, ep, sat, p_flag, p_class, y, variance, amb_set_jmp, id_sync_out] = this.getObsEq( rec, obs_set, pos_idx_vec, tropo_rate);
+                    this.true_epoch = id_sync_out;
+                    this.A_ep = A;
+                    this.A_idx = A_idx;
+                    this.variance = variance;
+                    this.y = y;
+                    this.receiver_id = ones(size(y));
+                    this.epoch = ep;
+                    %             sat2progsat = zeors(max(obs_set.go_id));
+                    %             sat2progsat(obs_set.go_id) = 1: length(unique(obs_set.go_id));
+                    %             this.sat = sat2progsat(sat);
+                    this.sat = sat;
+                    if dynamic
+                        p_flag(p_class == this.PAR_X | p_class == this.PAR_Y  | p_class == this.PAR_Z ) = 1;
+                    end
+                    this.param_flag = p_flag;
+                    this.param_class = p_class;
+                    if not(obs_set.isEmpty)
+                        this.amb_idx = obs_set.getAmbIdx();
+                    end
+                    this.go_id_amb = obs_set.go_id;
+                    this.sat_go_id = obs_set.go_id;
+                    n_epochs = size(obs_set.obs, 1);
+                    this.n_epochs = n_epochs;
+                    phase_s = find(obs_set.wl ~=  -1);
+                    this.phase_idx = phase_s;
+
+                    %---- Set up the constraint to solve the rank deficeny problem --------------
+                    if phase_present
+                        % Ambiguity set
+                        %G = [zeros(1, n_coo + n_iob) (amb_obs_count) -sum(~isnan(this.amb_idx), 2)'];
+                        %                 if ~flag_amb_fix
+                        %                     G = [zeros(1, n_coo + n_iob + n_apc)  ones(1,n_amb)  -ones(1,n_clocks)]; % <- This is the right one !!!
+                        %                 else % in case of ambiugty fixing with cnes orbit the partial trace minimization condition gives problems
+                        % setting the first clock of each connected set of arc to 0
+                        %system_jmp = find([sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(1 : end - 1, :)),2) | [sum(nan2zero(diff(amb_idx)),2)] == sum(~isnan(amb_idx(2 : end, :)),2));
+                        %amb_set_jmp_bnd = [0; amb_set_jmp; this.n_epochs];
+                        amb_set_jmp_bnd = [0; amb_set_jmp; this.n_epochs];
+                        %                 clock_const = zeros(1,n_clocks);
+                        %                 amb_const = zeros(1,n_amb);
+                        %                 amb_const(1) = 1;
+                        G = [];% [zeros(1, n_coo + n_iob + n_apc)  amb_const  clock_const];
+                        amb_par = this.A_idx(:,this.param_class == this.PAR_AMB);
+                        min_amb = min(amb_par);
+                        max_amb = max(amb_par);
+                        max_par = max(this.A_idx(:,end));
+                        n_amb = max_amb - min_amb +1;
+                        amb_idx = this.amb_idx;
+                        clock_const = zeros(1,this.n_epochs);
+                        for i = 1: (length(amb_set_jmp_bnd)-1)
+                            %clock_const(amb_set_jmp_bnd(i)+1) = 1;
+                            amb_const = zeros(1,n_amb);
+                            amb_idx_const = noZero(amb_idx((amb_set_jmp_bnd(i)+1):amb_set_jmp_bnd(i+1),:));
+                            amb_idx_const = mode(amb_idx_const);
+                            if amb_idx_const ~= 0
+                                amb_const(amb_idx_const) = 1;
+                                G = [G ;[zeros(1, min_amb-1) amb_const clock_const]];
+                            end
+                        end
+
+                        G = [G zeros(size(G,1),max_par - (max_amb + this.n_epochs) +1 )];
+
+                        D = zeros(size(G,1),1);
+                        this.G = G;
+                        this.D = D;
+                    end
+                    if phase_present
+                        % fprintf('#### DEBUG #### \n');
+                        lim = [[1; amb_set_jmp + 1] [amb_set_jmp; max(ep)]];
+                        Core.getLogger.addMessage(Core.getLogger.indent(sprintf('Dataset is splitted in this way:\n%s', sprintf('%6d -> %6d\n', lim'))))
+                        this.system_split = [[1; amb_set_jmp + 1] [amb_set_jmp; max(ep)]];
+                    else
+                        this.system_split = [1 max(ep)];
+                    end
                 end
             end
         end
@@ -635,7 +639,7 @@ classdef Engine_U1 < Exportable
                 end
                 
                 tropo_idx = discretize(id_sync_out-1+delta_tropo_time_sart,edges);
-                if isempty(this.tropo_time_start);
+                if isempty(this.tropo_time_start)
                     tropo_idx = tropo_idx - tropo_idx(1) +1;
                 end
                 this.tropo_idx = tropo_idx;
@@ -685,12 +689,14 @@ classdef Engine_U1 < Exportable
                 obs(lines_stream) = ep_p_idx(id_ok_stream);
                 sat(lines_stream) = s;
                 y(lines_stream) = obs_stream;
+                % In the following weights 1/3 applied to the sigma is a sort of normalization for numerical
+                % purposes, it should be different between sin and sin^2, but it was never computed
                 if (this.state.getWeigthingStrategy == 1) || ~any(el_stream)
                     variance(lines_stream) =  obs_set.sigma(s)^2;
                 elseif this.state.getWeigthingStrategy == 2
                     variance(lines_stream) =  (obs_set.sigma(s)./3./sin(el_stream)).^2;
                 elseif this.state.getWeigthingStrategy == 3
-                    variance(lines_stream) =  (obs_set.sigma(s)./3./sin(el_stream)).^4;
+                    variance(lines_stream) =  (obs_set.sigma(s)./3./(sin(el_stream).^2)).^2;
                 else
                     variance(lines_stream) =  obs_set.sigma(s)^2;
                 end
@@ -769,7 +775,6 @@ classdef Engine_U1 < Exportable
                 end
                 % ----------- ZTD gradients ------------------
                 if tropo_g
-                    %cotan_term = cot(el_stream) .* mfw_stream;
                     % The cotan term is computed in grad_term
                     
                     if isempty(tropo_rate) || tropo_rate(2) == 0
@@ -795,10 +800,11 @@ classdef Engine_U1 < Exportable
                     
                 end
                 if tropo_v_g
-                       prog_p_col = prog_p_col + 1;
-                        A(lines_stream, prog_p_col) = mfw_stream*rec.h_ellips;
-                        A_idx(lines_stream, prog_p_col) = n_coo + n_clocks + n_tropo + 2*n_tropo_g + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
+                    prog_p_col = prog_p_col + 1;
+                    A(lines_stream, prog_p_col) = mfw_stream*rec.h_ellips;
+                    A_idx(lines_stream, prog_p_col) =n_coo + n_clocks + n_tropo + 2*n_tropo_g + n_iob + n_apc + n_amb + ep_p_idx(id_ok_stream);
                 end
+                
                 obs_count = obs_count + n_obs_stream;
             end
             % ---- Suppress weighting until solution is more stable/tested
@@ -1509,7 +1515,7 @@ classdef Engine_U1 < Exportable
                         end
                     end
                     %                 5) remove one ambiguity per each set of disjunt set of arcs of each receiver to resolve the ambiguity-receiver clock rank deficency
-                    %                 first recievr does not have clocks any more so no rank defricency
+                    %                 first receiver does not have clocks any more so no rank defricency
                     if true
                         for i = 2 : n_rec
                             jmps = this.amb_set_jmp{i}';
@@ -1660,172 +1666,82 @@ classdef Engine_U1 < Exportable
                     Cxx = Cxx(idx_amb_par,:);
                     this.Cxx_amb = Cxx;
                 end
-                if ~is_network
-                    if (this.state.getAmbFixPPP && ~isempty(x(x_class == this.PAR_AMB,1)))
-                        amb = x(x_class == this.PAR_AMB,1);
-                        amb_wl_fixed = false(size(amb));
-                        amb_n1 = nan(size(amb));
-                        amb_wl = nan(size(amb));
-                        n_ep_wl = zeros(size(amb));
-                        n_amb = max(max(this.amb_idx));
-                        n_ep = size(this.wl_amb,1);
-                        if sum(this.param_class == this.PAR_X) >0
-                            n_coo = max(this.A_idx(:,3));
-                        else
-                            n_coo = 0;
+                if (this.state.getAmbFixPPP && ~isempty(x(x_class == this.PAR_AMB,1)))
+                    amb = x(x_class == this.PAR_AMB,1);
+                    amb_wl_fixed = false(size(amb));
+                    amb_n1 = nan(size(amb));
+                    amb_wl = nan(size(amb));
+                    n_ep_wl = zeros(size(amb));
+                    n_amb = max(max(this.amb_idx));
+                    n_ep = size(this.wl_amb,1);
+                    if sum(this.param_class == this.PAR_X) >0
+                        n_coo = max(this.A_idx(:,3));
+                    else
+                        n_coo = 0;
+                    end
+                    for i = 1 : n_amb
+                        sat = this.sat_go_id(this.sat(this.A_idx(:,this.param_class == this.PAR_AMB) == i+n_coo));
+                        idx = n_ep*(sat(1)-1) +  this.true_epoch(this.epoch(this.A_idx(:,this.param_class == this.PAR_AMB)== i+n_coo));
+                        if ~isempty( this.wl_fixed) % case local single frequency PPP
+                            amb_wl(i) = this.wl_amb(idx(1));
+                            amb_wl_fixed(i)=  this.wl_fixed(idx(1));
                         end
-                        for i = 1 : n_amb
-                            sat = this.sat_go_id(this.sat(this.A_idx(:,this.param_class == this.PAR_AMB) == i+n_coo));
-                            idx = n_ep*(sat(1)-1) +  this.true_epoch(this.epoch(this.A_idx(:,this.param_class == this.PAR_AMB)== i+n_coo));
-                            if ~isempty( this.wl_fixed) % case local single frequency PPP
-                                amb_wl(i) = this.wl_amb(idx(1));
-                                amb_wl_fixed(i)=  this.wl_fixed(idx(1));
-                            end
-                            n_ep_wl(i) = length(idx);
-                            amb_n1(i) = amb(i); %(amb(i)- 0*f_vec(2)^2*l_vec(2)/(f_vec(1)^2 - f_vec(2)^2)* wl_amb);  % Blewitt 1989 eq(23)
-                            
-                        end
-                        
-                        weight = min(n_ep_wl(amb_wl_fixed),100); % <- downweight too short arc
-                        weight = weight / sum(weight);
-                        
-                        
-                        idx_amb = find(x_class == this.PAR_AMB);
-                        % get thc cxx of the ambiguities
-                        n_amb  = length(idx_amb);
-                        b_eye = zeros(length(B),n_amb);
-                        idx = sub2ind(size(b_eye),idx_amb,[1:n_amb]');
-                        b_eye(idx) = 1;
-                        b_eye = sparse(b_eye);
-                        Cxx_amb = N\b_eye;
-                        Cxx_amb = Cxx_amb(idx_amb,:);
-                        idx_constarined = abs(amb_n1) < 1e-5;
-                        l_fixed = false(size(amb_n1,1),1);
-                        amb_fixed = zeros(size(amb_n1,1),1);
-                        % ILS shrinking, method 1
-                        [af, is_fixed,lf] = Fixer.fix(amb_n1(~idx_constarined), Cxx_amb(~idx_constarined,~idx_constarined), 'sequential_best_integer_equivariant');
-                        
-                        if is_fixed
-                            amb_fixed(~idx_constarined,:) = af;
-                            l_fixed(~idx_constarined,:) = lf;
-                            % FIXED!!!!
-                            idx_est = true(size(x,1),1);
-                            amb_fix = amb_fixed(:, 1);
-                            
-                            for i = 1 : n_amb
-                                Ni = N(:, idx_amb(i));
-                                if l_fixed(i)
-                                    B = B - Ni * amb_fix(i);
-                                end
-                            end
-                            
-                            % remove fixed ambiguity from B and N
-                            B(idx_amb(l_fixed(:,1))) = [];
-                            N(idx_amb(l_fixed(:,1)), :) = [];
-                            N(:, idx_amb(l_fixed(:,1))) = [];
-                            
-                            % recompute the solution
-                            idx_nf = true(sum(idx_est,1),1);
-                            idx_nf(idx_amb(l_fixed(:,1))) = false;
-                            xf = zeros(size(idx_nf));
-                            
-                            xf(idx_nf) = N \ B;
-                            xf(~idx_nf) = amb_fix(l_fixed(:,1));
-                            
-                            x(idx_est) = xf;
-                        else
-                            this.log.addWarning('The ambiguities cannot be fixed!!!');
-                        end
+                        n_ep_wl(i) = length(idx);
+                        amb_n1(i) = amb(i); %(amb(i)- 0*f_vec(2)^2*l_vec(2)/(f_vec(1)^2 - f_vec(2)^2)* wl_amb);  % Blewitt 1989 eq(23)
                         
                     end
-                else
-                    if ((this.state.getAmbFixNET > 1) && ~isempty(x(x_class == 5,1)))
+                    
+                    weight = min(n_ep_wl(amb_wl_fixed),100); % <- downweight too short arc
+                    weight = weight / sum(weight);
+                    
+                    
+                    idx_amb = find(x_class == this.PAR_AMB);
+                    % get thc cxx of the ambiguities
+                    n_amb  = length(idx_amb);
+                    b_eye = zeros(length(B),n_amb);
+                    idx = sub2ind(size(b_eye),idx_amb,[1:n_amb]');
+                    b_eye(idx) = 1;
+                    b_eye = sparse(b_eye);
+                    Cxx_amb = N\b_eye;
+                    Cxx_amb = Cxx_amb(idx_amb,:);
+                    idx_constarined = abs(amb_n1) < 1e-5;
+                    l_fixed = false(size(amb_n1,1),1);
+                    amb_fixed = zeros(size(amb_n1,1),1);
+                    % ILS shrinking, method 1
+                    [af, is_fixed,lf] = Fixer.fix(amb_n1(~idx_constarined), Cxx_amb(~idx_constarined,~idx_constarined), 'sequential_best_integer_equivariant');
+                    
+                    if is_fixed
+                        amb_fixed(~idx_constarined,:) = af;
+                        l_fixed(~idx_constarined,:) = lf;
+                        % FIXED!!!!
+                        idx_est = true(size(x,1),1);
+                        amb_fix = amb_fixed(:, 1);
                         
-                        % Ambiguity fixing
-                        
-                        % Get ambiguity array
-                        
-                        xe = x(idx_est);
-                        % get some information about the ambiguty (receiver,
-                        % satellite, and number of epoch used in the
-                        % compesation)
-                        amb = xe(idx_amb_par, 1);
-                        amb_rec = x_rec(idx_est);
-                        amb_rec = amb_rec(idx_amb_par);
-                        n_ep_amb = zeros(size(amb));
-                        amb_sat = zeros(size(amb));
-                        idx_amb_par_tot = find(idx_est); idx_amb_par_tot = idx_amb_par_tot(idx_amb_par);% <- amb indices in the A matrix
                         for i = 1 : n_amb
-                            idx = this.A_idx(:,this.param_class == this.PAR_AMB)== idx_amb_par_tot(i);
-                            n_ep_amb(i) = sum(idx);
-                            idx_first = find(idx,1,'first');
-                            amb_sat(i) = this.sat(idx_first);
-                        end
-                        
-                        % Getting tht VCV matrix for the ambiguities
-                        b_eye = zeros(length(B), n_amb);
-                        idx_t_amb_par = find(x_class(idx_est) == this.PAR_AMB);
-                        idx = sub2ind(size(b_eye),idx_t_amb_par, [1:n_amb]');
-                        b_eye(idx) = 1;
-                        b_eye = sparse(b_eye);
-                        C_amb_amb = N \ b_eye;
-                        C_amb_amb = C_amb_amb(idx_t_amb_par, :);
-                        C_amb_amb = (C_amb_amb + C_amb_amb') ./ 2; % make it symmetric (sometimes it is not due to precion loss)
-                        Cxx = C_amb_amb;
-                        present_sat = unique(this.sat);
-                        a_id = this.cc.getAntennaId(1:max(present_sat)); % sat in network are equals to go_id
-                        s2syc_c = a_id(:,1);
-                        sys_c = unique(s2syc_c);
-                        
-                        %                     if ~isempty(this.wl_amb) && (n_rec > 2 || numel(sys_c > 1));
-                        %                         % estimate narrowlanes phase delays and remove them
-                        %                         % from abiguity vector and from observations
-                        %                         for r = 2 : n_rec
-                        %                             for j = 1:numel(sys_c)
-                        %                                 s = sys_c(j);
-                        %                             id_amb_r = amb_rec == r & s2syc_c(amb_sat) == sys_c(j);
-                        %                             if sum(id_amb_r) > 0
-                        %                                 weigth = min(n_ep_amb(id_amb_r),100)./100;
-                        %                                 weigth = weigth./sum(weigth);
-                        %                                 [~, frac_bias] = Core_Utils.getFracBias(amb(id_amb_r), weigth);
-                        %                                 amb(id_amb_r) = amb(id_amb_r) - frac_bias;
-                        %                             end
-                        %                             end
-                        %                         end
-                        %                     end
-                        
-                        
-                        % ILS shrinking, method 1
-                        [amb_fixed, is_fixed, l_fixed] = Fixer.fix(amb, C_amb_amb, Prj_Settings.NET_AMB_FIX_FIXER_APPROACH{this.state.getAmbFixNET});
-                        
-                        if is_fixed
-                            % FIXED!!!!
-                            amb_fix = amb_fixed(:, 1);
-                            
-                            for i = 1 : n_amb
-                                Ni = N(:, idx_amb_par(i));
-                                if l_fixed(i)
-                                    B = B - Ni * amb_fix(i);
-                                end
+                            Ni = N(:, idx_amb(i));
+                            if l_fixed(i)
+                                B = B - Ni * amb_fix(i);
                             end
-                            
-                            % remove fixed ambiguity from B and N
-                            B(idx_amb_par(l_fixed(:,1))) = [];
-                            N(idx_amb_par(l_fixed(:,1)), :) = [];
-                            N(:, idx_amb_par(l_fixed(:,1))) = [];
-                            
-                            % recompute the solution
-                            idx_nf = true(sum(idx_est,1),1);
-                            idx_nf(idx_amb_par(l_fixed(:,1))) = false;
-                            xf = zeros(size(idx_nf));
-                            
-                            xf(idx_nf) = N \ B;
-                            xf(~idx_nf) = amb_fix(l_fixed(:,1));
-                            x(idx_est) = xf;
-                        else
-                            this.log.addWarning('The ambiguities cannot be fixed!!!');
                         end
+                        
+                        % remove fixed ambiguity from B and N
+                        B(idx_amb(l_fixed(:,1))) = [];
+                        N(idx_amb(l_fixed(:,1)), :) = [];
+                        N(:, idx_amb(l_fixed(:,1))) = [];
+                        
+                        % recompute the solution
+                        idx_nf = true(sum(idx_est,1),1);
+                        idx_nf(idx_amb(l_fixed(:,1))) = false;
+                        xf = zeros(size(idx_nf));
+                        
+                        xf(idx_nf) = N \ B;
+                        xf(~idx_nf) = amb_fix(l_fixed(:,1));
+                        
+                        x(idx_est) = xf;
+                    else
+                        this.log.addWarning('The ambiguities cannot be fixed!!!');
                     end
+                    
                 end
                 
                 if nargout > 1

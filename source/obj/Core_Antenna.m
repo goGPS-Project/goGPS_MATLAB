@@ -15,10 +15,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti, Giulio Tagliaferro ...
 %  Contributors:      Andrea Gatti, Giulio Tagliaferro ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -93,17 +93,30 @@ classdef Core_Antenna < handle
             this.serial = '';
             this.list = [];
             if nargin == 2
-                % Load custom files:
+                % Load custom files from station ATX custom:
+                log = Core.getLogger;
+                log.addMessage(sprintf('Searching for custom antennas in "%s"', fullfile(Core.getState.getHomeDir, 'station', 'ATX', 'custom')));
                 file_list = dir(fullfile(Core.getState.getHomeDir, 'station', 'ATX', 'custom', '*.ATX'));
                 file_list = [file_list; dir(fullfile(Core.getState.getHomeDir, 'station', 'ATX', 'custom', '*.atx'))];
                 file_name = {};
-                log = Logger.getInstance();
                 for f = 1 : numel(file_list)
                     file_name{f} = fullfile(Core.getState.getHomeDir, 'station', 'ATX', 'custom', file_list(f).name); %#ok<AGROW>
-                    log.addMessage('Custom ANTEX file found in "%s"\n Loading...', file_name{f});
+                    log.addMessage(sprintf('Custom ANTEX file found in "%s"\n Loading...', file_name{f}));
                     this.importAntex(file_name{f});
                 end
-                
+
+                % Load custom files from antenna custom:
+                log.addMessage(sprintf('Searching for custom antennas in "%s"', fullfile(Core.getState.getHomeDir, 'antenna', 'custom')));
+                file_list = dir(fullfile(Core.getState.getHomeDir, 'antenna', 'custom', '*.ATX'));
+                file_list = [file_list; dir(fullfile(Core.getState.getHomeDir, 'antenna', 'custom', '*.atx'))];
+                file_name = {};
+                for f = 1 : numel(file_list)
+                    file_name{f} = fullfile(Core.getState.getHomeDir, 'antenna', 'custom', file_list(f).name); %#ok<AGROW>
+                    log.addMessage(sprintf('Custom ANTEX file found in "%s"\n Loading...', file_name{f}));
+                    this.importAntex(file_name{f});
+                end
+
+                log.addMessage(sprintf('Loading antenna file "%s"', atx_file_name));
                 % Load UI defined file
                 this.importAntex(atx_file_name);
             end

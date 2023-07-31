@@ -15,10 +15,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti
 %  Contributors:      Andrea Gatti, Giulio Tagliaferro, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -55,6 +55,7 @@ classdef Logger < handle
         
         ORANGE = [1 0.65 0];
         ERROR_ON_CONSOLE = true;
+        MAX_AGE = 10;
     end
 
     properties (GetAccess = 'private', SetAccess = 'protected')
@@ -306,42 +307,45 @@ classdef Logger < handle
             %
             % NOTES
             %   ${NOW} when present in the name is substituted with the current date_time yyyymmdd HH:MM:SS
-            if this.isFileOut % File                
-                if nargin < 3 || isempty(file_out_mode)
-                    file_out_mode = this.file_out_mode;
-                end
-                
-                if nargin < 2 || isempty(out_file_path)
-                    % Set default name
-                    if isunix
-                        if ismac % is Mac
-                            this.out_file_path = '~/Library/Logs/goGPS/go_gps_${NOW}.log';
-                        else     % is Linux
-                            this.out_file_path = './logs/go_gps_${NOW}.log';
-                        end
-                    elseif ispc  % is Windows
+            if nargin < 3 || isempty(file_out_mode)
+                file_out_mode = this.file_out_mode;
+            end
+
+            if nargin < 2 || isempty(out_file_path)
+                % Set default name
+                if isunix
+                    if ismac % is Mac
+                        this.out_file_path = '~/Library/Logs/goGPS/go_gps_${NOW}.log';
+                    else     % is Linux
                         this.out_file_path = './logs/go_gps_${NOW}.log';
                     end
-                    
-                    out_file_path = this.out_file_path;
+                elseif ispc  % is Windows
+                    this.out_file_path = './logs/go_gps_${NOW}.log';
                 end
-                
-                % Test out file path
-                [f_dir, ~, ~] = fileparts(out_file_path);
-                if ~isempty(f_dir) && ~(exist(f_dir, 'file') == 7) % if it is not an existing folder
-                    mkdir(f_dir); % create the missing folder
-                end
-                
+
+                out_file_path = this.out_file_path;
+            end
+
+            % Test out file path
+            [f_dir, ~, ~] = fileparts(out_file_path);
+            if ~isempty(f_dir) && ~(exist(f_dir, 'file') == 7) % if it is not an existing folder
+                mkdir(f_dir); % create the missing folder
+            end
+
+            out_file_path = strrep(out_file_path, '${NOW}', datestr(now, 'yyyymmdd_HHMMSS'));
+            if this.isFileOut % File
                 try fclose(this.fid); catch; end % if is not open do nothing
-                
-                out_file_path = strrep(out_file_path, '${NOW}', datestr(now, 'yyyymmdd_HHMMSS'));
+
                 this.fid = fopen(out_file_path, file_out_mode);
                 if this.fid <= 0
-                    this.fid = 0;                    
+                    this.fid = 0;
                     error('Unable to open logging at %s, check file permissions', out_file_path);
                 else
                     this.out_file_path = out_file_path;
                 end
+            else
+                % Even if I cannot write out now, save the logging position
+                this.out_file_path = out_file_path;
             end
         end
         
@@ -369,6 +373,11 @@ classdef Logger < handle
                 resp = ftell(this.fid); % Test if the file is open    
                 if resp == -1
                      throw(MException('FileNotOpen', 'The log file is not open'));
+                end
+                cur_file_path = fopen(this.fid);
+                if ~strcmp(out_file_path, cur_file_path)
+                    close(this.fid);
+                    throw(MException('WrongFileOpen', 'The log file is open on the wrong file'));
                 end
             catch % file is not open => try to create it or open it
                 out_file_path = this.out_file_path;
@@ -511,8 +520,8 @@ classdef Logger < handle
             end
             if (verbosity_level <= this.verbosity)
                 if this.isGUIOut % file
-                    gui_text = strrep(text, char(10), '</br>');
-                    gui_text = strrep(gui_text, '\n', '</br>');
+                    gui_text = strrep(text, char(10), '<br>');
+                    gui_text = strrep(gui_text, '\n', '<br>');
                     
                     msg = Core.getMsgGUI();
                     msg.addMessage(gui_text, 'm');

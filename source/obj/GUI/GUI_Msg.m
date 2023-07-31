@@ -15,10 +15,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti
 %  Contributors:      Andrea Gatti, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -173,6 +173,7 @@ classdef GUI_Msg < GUI_Unique_Win
                 image(logo_ax, ones(size(logo)), 'AlphaData', transparency);
                 logo_ax.XTickLabel = [];
                 logo_ax.YTickLabel = [];
+                axis equal;
                 axis off;
                 
                 Core_UI.insertEmpty(left_tbv, logo_GUI_Msg.BG_COLOR);
@@ -193,7 +194,7 @@ classdef GUI_Msg < GUI_Unique_Win
                 title_l = uix.VBox('Parent', title, 'BackgroundColor', GUI_Msg.BG_COLOR);
                 title.Widths = [60 -1];
                 Core_UI.insertEmpty(title_l, logo_GUI_Msg.BG_COLOR)
-                txt = this.insertBoldText(title_l, ['- software V' Core.GO_GPS_VERSION], 9, [], 'left');
+                txt = this.insertBoldText(title_l, ['- software V' Core.APP_VERSION], 9, [], 'left');
                 txt.BackgroundColor = logo_GUI_Msg.BG_COLOR;
                 title_l.Heights = [2, -1];
                 

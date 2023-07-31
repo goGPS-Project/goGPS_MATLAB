@@ -14,10 +14,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti
 %  Contributors:      Andrea Gatti, Giulio Tagliaferro
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -55,10 +55,11 @@ classdef File_Rinex < Exportable
 
         is_composed = false;                         % when this flag is set, it means that the file_name depends on variables such as DOY DOW YYYY SSSS MM ecc...
         
-        trck_availability                            % boolean to get tracking availabilty the tracking are in Core_sky.group_delays_flags
+        trk_availability_pr                          % boolean to get tracking availabilty the tracking are in Core_sky.GROUP_DELAYS_FLAGS
+        trk_availability_ph                          % boolean to get tracking availabilty the tracking are in Core_sky.CARRIER_PHASES_FLAGS
 
         marker_name = {};                            % marker name of the files
-        coo = Coordinates.fromXYZ([0 0 0])           % receiver coordinates
+        coo = Coordinates()                          % receiver coordinates
         first_epoch = GPS_Time();                    % first epoch stored in the RINEX (updated after checkValidity)
         last_epoch = GPS_Time();                     % last epoch stored in the RINEX (updated after checkValidity)
 
@@ -99,6 +100,7 @@ classdef File_Rinex < Exportable
                     file_name = {file_name};
                 end
                 this.file_name_list = {};
+                this.coo = Coordinates.fromXYZ([0 0 0]);
                 this.ext = {};
                 if nargin == 1 || isempty(verbosity_lev)
                     verbosity_lev = 100;
@@ -153,6 +155,9 @@ classdef File_Rinex < Exportable
             this.file_name_list = file_rinex.file_name_list(id);
             this.ext            = file_rinex.ext(id);
             this.is_valid_list  = file_rinex.is_valid_list(id);
+            this.trk_availability_pr = file_rinex.trk_availability_pr;
+            this.trk_availability_ph = file_rinex.trk_availability_ph;
+            this.marker_name    = file_rinex.marker_name;
             this.is_composed    = file_rinex.is_composed;
             this.first_epoch    = file_rinex.first_epoch.getEpoch(valid_id);
             this.last_epoch     = file_rinex.last_epoch.getEpoch(valid_id);
@@ -192,7 +197,11 @@ classdef File_Rinex < Exportable
                         this.is_valid_list(f) = false;
                     else
                         buf = fread(fid, 1e4, '*char')';
-                        if length(buf) > 65 && strcmp(buf(61:64), 'CRIN')
+                        if isempty(buf)
+                            log.addError(sprintf('Check the following file "%s", it seems empty', full_path));
+                            this.is_valid_list(f) = false;
+                            fclose(fid);
+                        elseif length(buf) > 65 && strcmp(buf(61:64), 'CRIN')
                             log.addError(sprintf('Check the following file, it seems to be hatanaka compressed\nDecompress "%s"', full_path));
                             this.is_valid_list(f) = false;
                             fclose(fid);
@@ -213,6 +222,7 @@ classdef File_Rinex < Exportable
                             if nl(end) <  (numel(buf) - double(has_cr))
                                 nl = [nl; numel(buf)];
                             end
+                            
                             lim = [[1; nl(1 : end - 1) + 1] (nl - 1 - double(has_cr))];
                             lim = [lim lim(:,2) - lim(:,1)];
                             while lim(end,3) < 3
@@ -224,9 +234,12 @@ classdef File_Rinex < Exportable
                             
                             line = buf(lim(l,1) : lim(l,2));
                             date_start = '';
-                            trck_name = Core_Sky.group_delays_flags;
-                            trck_availability = false(size(trck_name,1),1);
-                            cur_trck_sys = '';
+                            trk_name_pr = Core_Sky.GROUP_DELAYS_FLAGS;
+                            trk_availability_pr = false(size(trk_name_pr,1),1);
+                            trk_name_ph = Core_Sky.CARRIER_PHASES_FLAGS;
+                            trk_availability_ph = false(size(trk_name_ph,1),1);
+                            
+                            cur_trk_sys = '';
                             date_stop = '';
                             coo = '';
                             eof = false;
@@ -255,7 +268,7 @@ classdef File_Rinex < Exportable
                                 else
                                     line = buf(lim(l,1) : lim(l,2));
                                     if par_to_find > 0
-                                        if numel(line) >= 70 && isempty(marker_name) && line(64) == 'K' % read marker_name
+                                        if numel(line) >= 70 && isempty(marker_name) && line(64) == 'K' &&  line(69) == 'A' % read marker_name
                                             marker_name = strtrim(regexp(line, '.*(?=MARKER NAME)', 'match', 'once'));
                                             par_to_find = par_to_find - 1;
                                         end
@@ -272,25 +285,32 @@ classdef File_Rinex < Exportable
                                                 end
                                             elseif line(76) == 'Y' || (numel(line) >= 79 && line(79) == 'V') %  SYS / # / OBS TYPES || # / TYPES OF OBSERV
                                                 if line(1) ~= ' '
-                                                    cur_trck_sys = line(1);
-                                                else
-                                                    cur_trck_sys = ' ';
+                                                    cur_trk_sys = line(1);
+                                                end
+                                                if isempty(cur_trk_sys)
+                                                    cur_trk_sys = 'G';
                                                 end
                                                 trcks = strsplit(line(8:60),' ');
                                                 for t = trcks
                                                     if ~isempty(t{1})
                                                         t = t{1};
                                                         t = [t repmat(' ',1,3-length(t))];
-                                                        idx = trck_name(:,1) == cur_trck_sys & trck_name(:,2) == t(1) & trck_name(:,3) == t(2) & trck_name(:,4) == t(3);
-                                                        trck_availability(idx) = true;
-                                                        if strcmp(t,'P1 ')% rinex 2 codes does not specify contellation, assuming GPS
-                                                            trck_availability(strLineMatch(trck_name,'GC1W')) = true;
+                                                        idx_pr = trk_name_pr(:,1) == cur_trk_sys & trk_name_pr(:,2) == t(1) & trk_name_pr(:,3) == t(2) & trk_name_pr(:,4) == t(3);
+                                                        trk_availability_pr(idx_pr) = true;
+                                                        idx_ph = trk_name_ph(:,1) == cur_trk_sys & trk_name_ph(:,2) == t(1) & trk_name_ph(:,3) == t(2) & trk_name_ph(:,4) == t(3);
+                                                        trk_availability_ph(idx_ph) = true;
+                                                        if strcmp(t,'P1 ')% rinex 2 codes does not specify constellation, assuming GPS
+                                                            trk_availability_pr(strLineMatch(trk_name_pr,'GC1W')) = true;
                                                         elseif strcmp(t,'P2 ')
-                                                            trck_availability(strLineMatch(trck_name,'GC2W')) = true;
+                                                            trk_availability_pr(strLineMatch(trk_name_pr,'GC2W')) = true;
                                                         elseif strcmp(t,'C1 ')
-                                                            trck_availability(strLineMatch(trck_name,'GC1C')) = true;
+                                                            trk_availability_pr(strLineMatch(trk_name_pr,'GC1C')) = true;
                                                         elseif strcmp(t,'C2 ')
-                                                            trck_availability(strLineMatch(trck_name,'GC2C')) = true;
+                                                            trk_availability_pr(strLineMatch(trk_name_pr,'GC2C')) = true;
+                                                        elseif strcmp(t,'L1 ')
+                                                            trk_availability_ph(strLineMatch(trk_name_pr,'GL1C')) = true;
+                                                        elseif strcmp(t,'L2 ')
+                                                            trk_availability_ph(strLineMatch(trk_name_pr,'GL2C')) = true;
                                                         end
                                                     end
                                                 end
@@ -298,7 +318,7 @@ classdef File_Rinex < Exportable
                                                 % temporary solution for RINEX 2
                                                 % to be improved
                                                 trcks = strsplit(line(8:60),' ');
-                                                for cur_trck_sys = Core.getConstellationCollector.getActiveSysChar
+                                                for cur_trk_sys = Core.getConstellationCollector.getActiveSysChar
                                                     for t = trcks
                                                         if ~isempty(t{1})
                                                             t = t{1};
@@ -308,8 +328,23 @@ classdef File_Rinex < Exportable
                                                                 % GPS C2 -> C2C
                                                                 t = [t 'C'];
                                                             end
-                                                            idx = trck_name(:,1) == cur_trck_sys & trck_name(:,2) == t(1) & trck_name(:,3) == t(2) & trck_name(:,4) == t(3);
-                                                            trck_availability(idx) = true;
+                                                            idx_pr = trk_name_pr(:,1) == cur_trk_sys & trk_name_pr(:,2) == t(1) & trk_name_pr(:,3) == t(2) & trk_name_pr(:,4) == t(3);
+                                                            trk_availability_pr(idx_pr) = true;
+                                                        end
+                                                    end
+                                                end
+                                                for cur_trk_sys = Core.getConstellationCollector.getActiveSysChar
+                                                    for t = trcks
+                                                        if ~isempty(t{1})
+                                                            t = t{1};
+                                                            if numel(t) == 2 % correct missing character for RINEX 2
+                                                                % It should be done multi constellation
+                                                                % GPS C1 -> C1C
+                                                                % GPS C2 -> C2C
+                                                                t = [t 'L'];
+                                                            end
+                                                            idx_pr = trk_name_ph(:,1) == cur_trk_sys & trk_name_ph(:,2) == t(1) & trk_name_ph(:,3) == t(2) & trk_name_ph(:,4) == t(3);
+                                                            trk_availability_ph(idx_ph) = true;
                                                         end
                                                     end
                                                 end
@@ -329,8 +364,11 @@ classdef File_Rinex < Exportable
                             end
                             
                             eoh = l; %end of header
-                            if ~isempty(trck_availability)
-                                this.trck_availability = trck_availability;
+                            if ~isempty(trk_availability_pr)
+                                this.trk_availability_pr = trk_availability_pr;
+                            end
+                            if ~isempty(trk_availability_ph)
+                                this.trk_availability_ph = trk_availability_ph;
                             end
                             
                             % If I did not found date of start and date of end in the file header
@@ -362,7 +400,7 @@ classdef File_Rinex < Exportable
                                     this.id_date = id_start(1) : id_stop(6); % save first and last char limits of the date in the line -> suppose it composed by 6 fields
                                     this.first_epoch.addEpoch(epoch_line(this.id_date), [], true);
                                 else
-                                    error(sprintf('"%s" seems corrupted', full_path));
+                                    error('"%s" seems corrupted', full_path);                                    
                                 end
                             end
                             log.addStatusOk(['"' this.file_name_list{f} this.ext{f} '" appears to be a valid RINEX'], this.verbosity_lev);
@@ -444,9 +482,9 @@ classdef File_Rinex < Exportable
                             
                             if this.is_valid_list(f)
                                 if ~isempty(coo)
-                                    this.coo.append(Coordinates.fromStringXYZ(coo));
+                                    this.coo.append(Coordinates.fromStringXYZ(coo, this.first_epoch.last));
                                 else
-                                    this.coo.append(Coordinates.fromXYZ([0 0 0]));
+                                    this.coo.append(Coordinates.fromXYZ([0 0 0], GPS_Time.now));
                                 end
                                 this.eoh(f) = eoh;
                             end
@@ -456,7 +494,7 @@ classdef File_Rinex < Exportable
                     end
                 catch ex
                     log.addWarning(['"' this.file_name_list{f} this.ext{f} '" appears to be a corrupted RINEX file or missing'], this.verbosity_lev);
-                    %Core_Utils.printEx(ex);
+                    % Core_Utils.printEx(ex);
                     this.is_valid_list(f) = false;
                     fclose(fid);
                 end
@@ -464,7 +502,7 @@ classdef File_Rinex < Exportable
                 if isempty(marker_name)
                     this.marker_name{f} = upper(this.file_name_list{f}(1:min(4, numel(this.file_name_list{f}))));
                 else
-                    this.marker_name{f} = marker_name;
+                    this.marker_name{f} = upper(marker_name);
                 end
             end
             this.is_valid = all(this.is_valid_list);
@@ -620,7 +658,7 @@ classdef File_Rinex < Exportable
                 if isempty(marker_name)
                     this.marker_name{f} = upper(this.file_name_list{f}(1:min(4, numel(this.file_name_list{f}))));
                 else
-                    this.marker_name{f} = marker_name;
+                    this.marker_name{f} = upper(marker_name);
                 end
             end
             this.is_valid = all(this.is_valid_list);
@@ -678,6 +716,35 @@ classdef File_Rinex < Exportable
             end
             file_name = fullfile(this.base_dir{file_number}, [this.file_name_list{file_number} this.ext{file_number}]);
         end
+
+        function [marker_name, all_markers] = getMarkerName4Ch(sta_list)
+            % Get the Marker name as specified in the file name
+            % (first four characters)
+            %
+            % SYNTAX
+            %   marker_name = getMarkerName4Ch(this)
+            marker_name = cell(numel(sta_list), 1);
+            for s = 1 : numel(sta_list)
+                if ~isempty(sta_list(s).marker_name)
+                    marker_name{s} = sta_list(s).marker_name;
+                else
+                    marker_name{s}{1} = 'NONE';
+                end
+                for i = 1:numel(marker_name{s})
+                    marker_name{s}{i} = marker_name{s}{i}(1 : min(4, length(marker_name{s}{i})));
+                end
+            end
+            if nargout == 2
+                all_markers = {};
+                for i = 1:numel(marker_name)
+                    all_markers = [all_markers marker_name{i}];
+                end
+            end
+            if numel(sta_list) == 1
+                marker_name = marker_name{1};
+            end
+        end
+
         
         function first_epoch = getFirstEpoch(this, session)
             % Get the first epoch of a session
@@ -781,18 +848,42 @@ classdef File_Rinex < Exportable
             end
         end
         
-        function keep(this,id)
+        function keep(rin_list, id)
             % keep only element specified by id
             %
             % SYNTAX
-            % this.keep(id)
-            this.base_dir = this.base_dir(id);
-            this.file_name_list = this.file_name_list(id);
-            this.ext = this.ext(id);
-            this.eoh = this.eoh(id);
-            this.first_epoch = this.first_epoch.getEpoch(id(this.is_valid_list));
-            this.last_epoch  = this.last_epoch.getEpoch(id(this.is_valid_list));
-            this.is_valid_list = this.is_valid_list(id);
+            % rin_list.keep(id)
+            for this = rin_list(:)'
+                this.base_dir = this.base_dir(id);
+                this.file_name_list = this.file_name_list(id);
+                this.ext = this.ext(id);
+                this.marker_name = this.marker_name(id);
+                this.eoh = this.eoh(id);
+                this.first_epoch = this.first_epoch.getEpoch(id(this.is_valid_list));
+                this.last_epoch  = this.last_epoch.getEpoch(id(this.is_valid_list));
+                this.is_valid_list = this.is_valid_list(id);
+            end
+        end
+
+        function  keepValid(rin_list)
+            % Delete invalid file
+            % this makes this object lighter
+            % WARNING: if all the files are missing delete everything but one file (empty)
+            %
+            % SYNTAX
+            %   this.keepValid();
+            for this = rin_list(:)'
+                id_ok = this.is_valid_list == 1;
+                if ~isempty(id_ok)
+                    %if all(~id_ok)
+                    %    % Keep at least one missing file 
+                    %    % (it rin_list contains also the marke name to be assigned to GNSS_Station,
+                    %    %  I don't want to loose it)
+                    %    id_ok(1) = true;
+                    %end
+                    this.keep(id_ok);
+                end
+            end
         end
        
         function printMissingFiles(rin_list, flag_download)
@@ -815,7 +906,7 @@ classdef File_Rinex < Exportable
                         year = 2000 + str2double(file_name(end-2:end-1));
                         doy = str2double(file_name(5:7));
                         if flag_download
-                            str_cmd = sprintf('/usr/bin/python3 /home/gred/Repositories/goget/goGet.py download -m %s --year-doy %04d %03d -o %s --no-wait', rin_list(r).marker_name{i}, year, doy, [rin_list(r).base_dir{i} filesep]);
+                            str_cmd = sprintf('%s year %04d doy %03d in %s --no-wait', rin_list(r).marker_name{i}, year, doy, [rin_list(r).base_dir{i} filesep]);
                             fprintf('%s\n', str_cmd);
                         end
                     end

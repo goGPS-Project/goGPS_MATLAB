@@ -11,10 +11,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti
 %  Contributors:      Andrea Gatti, Giulio Tagliaferro ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -74,6 +74,7 @@ classdef Satellite_System < Settings_Interface
 
         % flag defining the status of activation of the constellation
         flag_enable = false;
+        weight = 1;
 
         % Satellites unique id numbers in goGPS
         go_ids
@@ -102,24 +103,88 @@ classdef Satellite_System < Settings_Interface
             iono_free.N = this.F_VEC(f_id(2))/gcd_f;
         end
         
-        function [mask_north, mask_south] = getPolarMask(this, rec_lat, rec_lon, offset)
+        function [mask_north, mask_south, out_mask] = getPolarMask(this, rec_lat, rec_lon, offset, step)
             % Get the mask of the two palar caps due to the orbital inclination of the satellites
             %
             % INPUT
             %   rec_lat   receiver latitude  [rad]
             %   rec_lon   receiver_longitude [rad]
             %   <offset>  add this to the orbit inclination [deg]
+            %   <step>    [el az] grid step [deg] default = 0.5
             %
             % OUTPUT
             %   mask_north     [n x 2] az, el of the sky limits (north)
             %   mask_south     [n x 2] az, el of the sky limits (south)
             %
             % SYNTAX
-            %    [mask_north, mask_south] = getPolarMask(this, rec_lat, rec_lon, <offset = 0>)
+            %    [mask_north, mask_south, out_mask] = getPolarMask(this, rec_lat, rec_lon, <offset = 0>, <step>)
             if nargin < 4 || isempty(offset)
                 offset = 0;
             end
-            [mask_north, mask_south] = Satellite_System.generatePolarMask((this.ORBITAL_INC + offset) / 180 * pi, this.ORBITAL_RADIUS, rec_lat, rec_lon);            
+            
+            % Elevation resolution
+            if nargin < 5 && nargout == 3
+                az_step = 0.5;
+                el_step = 0.5;
+            else
+                el_step = step(1);
+                az_step=  step(end);
+            end
+            if nargout == 3
+                az_grid = linspace(0, 360-az_step, round(360/az_step))' + az_step/2;
+                out_mask = false(round(90/el_step), numel(az_grid));
+            end
+            
+            [mask_north, mask_south] = Satellite_System.generatePolarMask((this.ORBITAL_INC + offset) / 180 * pi, this.ORBITAL_RADIUS, rec_lat, rec_lon);        
+            if nargout == 3
+                mask_tmp = mask_north;
+                for m = 1:2
+                    if not(isempty(mask_tmp))
+                        mask_tmp(:,1) = mod(mask_tmp(:,1)+pi,2*pi)-pi; % mask az north from -pi to pi
+                        id_pos = find(mask_tmp(:,1) >= 0);
+                        mask_tmp(:,1) = mod(mask_tmp(:,1),2*pi); % mask az north from 0 to 2*pi
+                        
+                        [~, id_min] = min(abs(mask_tmp(id_pos,1)));
+                        
+                        id_min = id_pos(id_min); % norhtern point in a polar plot
+                        % making az monothonic
+                        mask_tmp = [mask_tmp(id_min:end,:); mask_tmp(1:id_min-1,:)];
+                        if diff(mask_tmp(1:2,1)) > pi
+                            % the azimuth is going counter clockwise, I want it clockwise with no
+                            mask_tmp = [mask_tmp(1,:); mask_tmp(end:-1:2,:)];
+                        end
+                        flag_zenith = length(unique(sign(diff(mask_tmp(:,1))))) == 1; % the azimuth is monothonic crescent, meaning the mask cover zenith
+                        az = mask_tmp(:,1) * 180 / pi;
+                        mask = mask_tmp(:,2);
+                        
+                        % Case 2 patch crossing zenith
+                        if flag_zenith
+                            n_border = min(10, numel(az));
+                            az = [az(end-n_border+1:end)-360; az; az(1:n_border)+360];
+                            mask = [mask(end-n_border+1:end); mask; mask(1:n_border)];
+                            % figure; plot(az_grid,interp1q(az, mask, az_grid));
+                            % recompute mask_north
+                            mask = interp1q(az, mask, az_grid) / pi * 180;
+                            
+                            for i = 1 : numel(az_grid)
+                                out_mask(min(round(((90 - mask(i)) / el_step) + 1), size(out_mask,1)):-1:1, i) = true;
+                            end
+                        else
+                            % Search the two minima
+                            
+                            for i = 1 : numel(az_grid)
+                                id_ok = find(islocalmin(min(abs(az - az_grid(i)), 20)));
+                                if numel(id_ok) == 2
+                                    lim = sort(min(size(out_mask,1), round((pi/2 - mask(id_ok)) * 180/pi / el_step) + 1));
+                                    out_mask(lim(1):lim(2), i) = true;
+                                end
+                            end
+                        end
+                    end
+                    mask_tmp = mask_south;
+                end
+            end
+            
         end
     end
 
@@ -232,12 +297,44 @@ classdef Satellite_System < Settings_Interface
             this.flag_f(idx) = values;
         end
 
-        function flag = isActive(this)
+        function [flag, weight] = isActive(this)
             % Get the status of activation of the constellation
             %
             % SYNTAX
-            %   flag = isActive(this)
+            %   [flag weight] = isActive(this)
             flag = this.flag_enable;
+            weight = this.weight;
+        end
+
+        function [weight] = getWeight(this)
+            % Get the weight of the constellation
+            %
+            % SYNTAX
+            %   [weight] = getWeight(this)
+            weight = this.weight;
+        end
+
+        function setWeight(this, weight)
+            % Set the weight of the constellation
+            %
+            % SYNTAX
+            %   [weight] = setWeight(this)
+            if not(isnumeric(weight)) || isempty(weight)
+                Core.getLogger.addWarning(sprintf('Constellation weight for %s is not a valid number [0.0001 .. 100], using 1.0', this.SYS_NAME));
+                weight = 1.0;
+            elseif (weight < 0)
+                Core.getLogger.addWarning(sprintf('Constellation weight for %s cannot be negative, using %.2f', this.SYS_NAME, weight));
+                weight = abs(weight);
+            end
+            if (weight < 0.0001)
+                Core.getLogger.addWarning(sprintf('Minimum weight for %s is 0.0001', this.SYS_NAME));
+                weight = 0.0001;
+            end
+            if (weight > 100)
+                Core.getLogger.addWarning(sprintf('Maximum weight for %s is 100', this.SYS_NAME));
+                weight = 100;
+            end
+            this.weight = weight;
         end
 
         function enable(this, status)
@@ -282,6 +379,7 @@ classdef Satellite_System < Settings_Interface
             %   this.import(settings)
             if isa(settings, 'Ini_Manager')
                 this.enable(settings.getData(sprintf('%s_is_active', this.SYS_NAME)));
+                this.setWeight(settings.getData(sprintf('%s_weight', this.SYS_NAME)));
                 name = this.getFreqName();
                 tmp = true(numel(name),1);
                 for i = 1 : numel(name)
@@ -295,6 +393,7 @@ classdef Satellite_System < Settings_Interface
                 this.flag_f = settings.flag_f;
                 this.enable(settings.flag_enable);
                 this.go_ids = settings.go_ids;
+                this.setWeight(settings.getWeight());
             end
         end
 
@@ -325,6 +424,7 @@ classdef Satellite_System < Settings_Interface
             name = this.getFreqName();
             str_cell = Ini_Manager.toIniStringComment(sprintf('%s satellite system', this.SYS_EXT_NAME), str_cell);
             str_cell = Ini_Manager.toIniString(sprintf('%s_is_active', this.SYS_NAME), this.isActive(), str_cell);
+            str_cell = Ini_Manager.toIniString(sprintf('%s_weight', this.SYS_NAME), this.weight, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Frequencies to be used when this constellation is active', str_cell);
             for f = 1 : numel(name)
                 str_cell = Ini_Manager.toIniString(sprintf('%s_%s', this.SYS_NAME, name{f}), this.isActive() && this.flag_f(f), str_cell);
@@ -366,11 +466,14 @@ classdef Satellite_System < Settings_Interface
             xyz_circle(:,2) = xyz_circle(:,2) - oy;
             xyz_circle(:,3) = xyz_circle(:,3) - oz;
             [circle_loc] = Coordinates.cart2local([ox,oy,oz], xyz_circle);
-            circle_loc(circle_loc(:,3) < 0,:) = []; % below horizon
             hor_len = sqrt(circle_loc(:,1).^2 + circle_loc(:,2).^2);
             el = atan2(circle_loc(:,3),hor_len);
+            el(circle_loc(:,3) < 0,:) = 0; % below horizon
             az = atan2(circle_loc(:,2),circle_loc(:,1)) - pi/2;
             mask_north = [az,el];
+            if not(any(mask_north(:,2)))
+                mask_north = [];
+            end
             % mask south pole
             xyz_circle = [B*sin(alpha) B*cos(alpha) -Z*ones(size(alpha))];
             [ox,oy,oz] = geod2cart(lat, lon, 0, GPS_SS.ELL_A, GPS_SS.ELL_F);
@@ -378,11 +481,14 @@ classdef Satellite_System < Settings_Interface
             xyz_circle(:,2) = xyz_circle(:,2) - oy;
             xyz_circle(:,3) = xyz_circle(:,3) - oz;
             [circle_loc] = Coordinates.cart2local([ox,oy,oz], xyz_circle);
-            circle_loc(circle_loc(:,3) < 0,:) = []; % below horizon
             hor_len = sqrt(circle_loc(:,1).^2 + circle_loc(:,2).^2);
             el = atan2(circle_loc(:,3),hor_len);
+            el(circle_loc(:,3) < 0,:) = 0; % below horizon
             az = atan2(circle_loc(:,2),circle_loc(:,1)) - pi/2;
-            mask_south = [az,el];            
+            mask_south = [az,el]; 
+            if not(any(mask_south(:,2)))
+                mask_south = [];
+            end
         end
     end
 end

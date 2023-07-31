@@ -14,10 +14,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti, Giulio Tagliaferro ...
 %  Contributors:      Andrea Gatti, Giulio Tagliaferro ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -299,7 +299,72 @@ classdef Constellation_Collector < Settings_Interface
             % SYNTAX
             %   active_list = this.getActiveSysChar();
             active_list = this.SYS_C(this.getActive);
-        end        
+        end       
+
+        function setProperty(this, prop_name, value)
+            % Get a property that might also be hidden in sub objects
+            % At the moment used only to get GNSS weights
+            %
+            % SYNTAX
+            %   value = this.getProperty(prop_name)
+
+            try
+                if strcmp(prop_name(end-5:end), 'weight')
+                    this.(lower(this.sysCToAbb(prop_name(1)))).setWeight(str2double(value));
+                else
+                    if this.isfield(prop_name)
+                        this.(prop_name) = value;
+                    end
+                end
+            catch
+                % unsupported properties
+            end
+        end
+
+        function value = getProperty(this, prop_name)
+            % Get a property that might also be hidden in sub objects
+            % At the moment used only to get GNSS weights
+            %
+            % SYNTAX
+            %   value = this.getProperty(prop_name)
+
+            try
+                if strcmp(prop_name(end-5:end), 'weight')
+                    value = num2str(this.(lower(this.sysCToAbb(prop_name(1)))).getWeight());
+                    if isempty(value)
+                        value = 1.0;
+                    end
+                else
+                    value = '';
+                end
+            catch
+                value = '';
+            end
+        end
+
+        function weight = getWeight(this, sys_c)
+            % Get the list of weight given a single constellation characters (or none)
+            %
+            % SYNTAX
+            %   weight = this.getWeight();
+            % 
+            % EXAMPLE
+            %   weight = cc.getWeight('G');    % single value
+            %   weight_list = cc.getWeight();  % list of weights
+            
+            if nargin == 2 && not(isempty(sys_c))
+                ss_3ch = Constellation_Collector.sysCToAbb(sys_c);
+                weight = this.(lower(ss_3ch)).getWeight();
+            else
+                weight = [this.gps.getWeight, ...
+                    this.gps.getWeight, ...
+                    this.glo.getWeight, ...
+                    this.gal.getWeight, ...
+                    this.bds.getWeight, ...
+                    this.irn.getWeight, ...
+                    this.sbs.getWeight];
+            end
+        end
         
         function sys_c = getAvailableSys(this)
             sys_c = this.SYS_C(this.getActive());
@@ -309,7 +374,7 @@ classdef Constellation_Collector < Settings_Interface
             % Equivalent to the old function sat_antenna_ID
             % return the "name" of the antennas of each active satellite
             % SYNTAX:
-            %   ant_mod = getAntennaId(this)
+            %   ant_mod = this.getAntennaId(id)
             % SEE ALSO:
             %   sat_antenna_ID
             prn = this.prn;
@@ -417,7 +482,10 @@ classdef Constellation_Collector < Settings_Interface
         end
         
         function band = getBand(this, sys, freq)
-            %DESCRIPTION: get band for given frequency and system
+            % get band for given frequency and system
+            %
+            % SYNTAX
+            %  band = this.getBand(sys, freq)
             if isnumeric(freq)
                 freq = num2str(freq);
             end
@@ -426,7 +494,7 @@ classdef Constellation_Collector < Settings_Interface
         end
         
         function go_ids = getGoIds(this, sys_c)
-            % gte the go ids for the desidered constellation
+            % get the go ids for the desidered constellation
             %
             % SYNTAX:
             %  go_ids = this.getGoIds(sys_c)
@@ -781,10 +849,14 @@ classdef Constellation_Collector < Settings_Interface
         
         function name = getSysName(this, sys_c)
             % get the 3 chars name of a constellation
-            if sys_c == 'A'
-                name = 'ALL';
+            if isempty(sys_c)
+                name = 'NONE';
             else
-                name = this.SYS_NAME{this.SYS_C == sys_c};
+                if sys_c == 'A'
+                    name = 'ALL';
+                else
+                    name = this.SYS_NAME{this.SYS_C == sys_c};
+                end
             end
         end
         
@@ -1005,7 +1077,7 @@ classdef Constellation_Collector < Settings_Interface
         end
         
         function sys_c = abbToSysC(abb)
-            % give 3 char abbreviation return the sysstem character
+            % give 3 char abbreviation return the system character
             abb = upper(abb);
             if strcmp(abb,'GPS')
                 sys_c = 'G';
@@ -1025,7 +1097,7 @@ classdef Constellation_Collector < Settings_Interface
         end
         
         function abb = sysCToAbb(sys_c)
-            % give sys_c return the 3 char abbrevaiatio
+            % give sys_c return the 3 char abbreviation
             sys_c = upper(sys_c);
             if strcmp(sys_c,'G')
                 abb = 'GPS';
@@ -1045,7 +1117,7 @@ classdef Constellation_Collector < Settings_Interface
         end
         
         function band = rin3ToBand(rin32ch, sys_c)
-            % give 3 char abbreviation return the sysstem character
+            % give 3 char abbreviation return the system character
             ocode = [sys_c rin32ch];
             if strcmp(ocode,'GL1')
                 band = 'L1';

@@ -15,10 +15,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti
 %  Contributors:      Andrea Gatti, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -144,6 +144,7 @@ classdef GUI_Chalmers < handle
             image(logo_ax, ones(size(logo)), 'AlphaData', transparency);
             logo_ax.XTickLabel = [];
             logo_ax.YTickLabel = [];
+            axis equal;
             axis off;
             
             Core_UI.insertEmpty(left_tbv, logo_GUI.BG_COLOR);
@@ -164,7 +165,7 @@ classdef GUI_Chalmers < handle
             title_l = uix.VBox('Parent', title, 'BackgroundColor', GUI_Chalmers.BG_COLOR);
             title.Widths = [54 -1];
             Core_UI.insertEmpty(title_l, logo_GUI.BG_COLOR)
-            txt = this.insertBoldText(title_l, ['- software V' Core.GO_GPS_VERSION], 8, [], 'left');
+            txt = this.insertBoldText(title_l, ['- software V' Core.APP_VERSION], 8, [], 'left');
             txt.BackgroundColor = logo_GUI.BG_COLOR;
             title_l.Heights = [2, -1];
             
@@ -190,6 +191,7 @@ classdef GUI_Chalmers < handle
             %Core_UI.insertEmpty(string_bh);
             
             j_chalmers = this.insertChalmersBox(string_bh);
+            j_chalmers.setText('Getting coordinates from files... please wait!');
             j_chalmers.setText(this.getChalmersString);
             
             txt = this.insertText(string_bh, {'Save the ocean loading parameter values into a BLQ file and pass it to goGPS'},  9, [], 'left');
@@ -225,27 +227,41 @@ classdef GUI_Chalmers < handle
                 has_blq = false;
             end
             
+            rf = Core.getReferenceFrame;
             switch mode
                 case {'rinex', 'RINEX'}
                     rec_path = Core.getState.getRecPath();
                     for r = 1 : numel(rec_path)
+                        Core.getLogger.addMessage(Core.getLogger.indent(sprintf('Checking receiver %d/%d', r, numel(rec_path))));
                         file_list = rec_path{r};
                         i = 0;
                         has_no_coo = true;
                         while (i < numel(file_list) && has_no_coo)
                             i = i + 1;
                             fr = File_Rinex(file_list(i), 100, true);
-                            has_no_coo = isempty(fr.coo.getXYZ) || all(fr.coo.getXYZ == 0);
+                            xyz = median(fr.coo.getXYZ,1,'omitnan');
+                            if fr.isValid && isempty(xyz) || all(xyz == 0)
+                                xyz = rf.getCoo(fr.marker_name{1}(1:min(numel(fr.marker_name{1}),4)));
+                            end
+                            has_no_coo = not(fr.isValid) || isempty(xyz) || all(fr.coo.getXYZ == 0);
                         end
                         if fr.isValid()
-                            name = fr.marker_name{1};
+                            if isempty(fr.marker_name) || isempty(fr.marker_name{1})
+                                name = 'UNKN';
+                            else
+                                name = fr.marker_name{1};
+                            end
+                            name = [name char(ones(max(0,4-numel(name)), 1, 'uint8') * 32)];
                             name = upper(name(1:min(4, numel(name))));
                             
                             if new_only
                                 has_blq = ~isempty(find(station_code == Core_Utils.code4Char2Num(name), 1, 'first'));
                             end
                             if ~has_blq
-                                xyz = median(fr.coo.getXYZ,1,'omitnan');
+                                xyz = median(fr.coo.getXYZ,1,'omitnan'); 
+                                if isempty(xyz) || all(xyz == 0)
+                                    xyz = rf.getCoo(fr.marker_name{1}(1:min(numel(fr.marker_name{1}),4)));
+                                end
                                 if ~isempty(xyz)
                                     str = sprintf('%s\n%s', str, sprintf('%-24s %16.4f%16.4f%16.4f', name, xyz(1), xyz(2),xyz(3)));
                                 end
@@ -384,10 +400,10 @@ classdef GUI_Chalmers < handle
                     end
                     lim = [[1; nl(1 : end - 1) + 1] (nl - 1 - double(has_cr))];
                     lim = [lim (lim(:,2) - lim(:,1) + 1)];
-                    while lim(end,3) < 3
-                        lim(end,:) = [];
-                    end
                     
+                    lim(lim(:,3) < 3,:) = [];
+                    lim(lim(:,3) > 30,:) = [];
+
                     % removing empty lines at end of file
                     min_line_width = 6;
                     lim(lim(1:end,3) < min_line_width,:) = [];

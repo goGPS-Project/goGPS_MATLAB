@@ -14,10 +14,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti, Giulio Tagliaferro
 %  Contributors:      Andrea Gatti, Giulio Tagliaferro, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -38,7 +38,6 @@
 %--------------------------------------------------------------------------
 classdef Receiver_Output < Receiver_Commons
     % ==================================================================================================================================================
-    
     %% PROPERTIES POSITION
     % ==================================================================================================================================================
     
@@ -73,6 +72,8 @@ classdef Receiver_Output < Receiver_Commons
     end
     % ==================================================================================================================================================
     %% METHODS MANIPULATION
+    % ==================================================================================================================================================
+    
     methods
         function applyRemAntennaOffset(sta_list, sgn)            
             % Add/Rem antennna offset stored in parent
@@ -94,6 +95,7 @@ classdef Receiver_Output < Receiver_Commons
         end
     end
     
+    % ==================================================================================================================================================
     %% METHODS INIT - CLEAN - RESET - REM -IMPORT
     % ==================================================================================================================================================
     
@@ -180,7 +182,11 @@ classdef Receiver_Output < Receiver_Commons
             % SYNTAX
             %   xyz = this.getTimePositions()
             
-            time = this(1).time_pos.getCopy();
+            if isempty(this(1).time_pos)
+                time = GPS_Time();
+            else
+                time = this(1).time_pos.getCopy();
+            end
         end
         
         function [P,T,H] = getPTH(this)
@@ -349,50 +355,63 @@ classdef Receiver_Output < Receiver_Commons
             if strcmpi(mode,'daily')
                 data_dir = fullfile(Core.getInstallDir, '..' , 'data');
                 fnp = File_Name_Processor();
-                for e = 1: this.time_pos.length
-                    c_time = this.time_pos.getEpoch(e);
-                    filename = fnp.dateKeyRep(sprintf('%s/station/IGS_solutions/COO/${WWWW}/igs${YY}P${WWWWD}.ssc', data_dir), c_time);
-                    if exist(filename, 'file') ~= 2                        
-                        remote_file_name = fnp.dateKeyRep('pub/igs/products/${WWWW}/IGS${YY}P${WWWWD}.ssc.Z',c_time);
-                        ftp_dw = FTP_Downloader('igs.ensg.ign.fr',21);
-                        %remote_file_name = fnp.dateKeyRep('gnss/products/${WWWW}/igs${YY}P${WWWWD}.ssc.Z',c_time);
-                        %ftp_dw = FTP_Downloader('cddis.nasa.gov',21);
-                        [pathstr, name, ext] = fileparts(filename);
-                        ftp_dw.downloadUncompress(remote_file_name, pathstr);
-                    end
-                    
-                    % Multiplatform
-                    if exist(filename, 'file') == 2
-                        fid = fopen(filename, 'rt');
-                        txt = fread(fid, '*char')';
-                        fclose(fid);
-                        cmdout = regexp(txt, sprintf('STAX   %s[^\n]*(?=\n)', upper(this.parent.getMarkerName4Ch)), 'match');
-                        if ~isempty(cmdout)
-                            x = sscanf(cmdout{2}(40:61),'%f');
-                            cmdout = regexp(txt, sprintf('STAY   %s[^\n]*(?=\n)', upper(this.parent.getMarkerName4Ch)), 'match');
-                            y = sscanf(cmdout{2}(40:61),'%f');
-                            cmdout = regexp(txt, sprintf('STAZ   %s[^\n]*(?=\n)', upper(this.parent.getMarkerName4Ch)), 'match');
-                            z = sscanf(cmdout{2}(40:61),'%f');
-                            xyz(e,:) =[x y z];
-                        end
-                        % % UNIX only
-                        % if exist(filename, 'file') == 2
-                        %     [status,cmdout] = system(sprintf('grep ''STAX   %s'' %s',upper(this.parent.getMarkerName4Ch),filename));
-                        %     if ~isempty(cmdout)
-                        %         nl_id = find(cmdout==char(10));
-                        %         x = sscanf(cmdout(nl_id(1)+(48:68)),'%f');
-                        %         [status,cmdout] = system(sprintf('grep ''STAY   %s'' %s',upper(this.parent.getMarkerName4Ch),filename));
-                        %         nl_id = find(cmdout==char(10));
-                        %         y = sscanf(cmdout(nl_id(1)+(48:68)),'%f');
-                        %         [status,cmdout] = system(sprintf('grep ''STAZ   %s'' %s',upper(this.parent.getMarkerName4Ch),filename));
-                        %         nl_id = find(cmdout==char(10));
-                        %         z = sscanf(cmdout(nl_id(1)+(48:68)),'%f');
-                        %         xyz(e,:) =[x y z];
-                        %     end
+                if isempty(this.time_pos) && isempty(this.time)
+                    Core.getLogger.addWarning(sprintf('Receiver "%s" has no stored data, IGS Validation is not possible', this.parent.getMarkerNameV3));
+                else
+                    if isempty(this.time_pos)
+                        time = this.time;
                     else
-                        [pathstr, name, ext] = fileparts(remote_file_name);
-                        
-                        this.log.addWarning(sprintf(' File %s not found',[name, ext]));
+                        time = this.time_pos;
+                    end
+                    filename_old = '';
+                    for e = 1:time.length
+                        c_time = time.getEpoch(e);
+                        filename = fnp.dateKeyRep(sprintf('%s/station/IGS_solutions/COO/${WWWW}/igs${YY}P${WWWWD}.ssc', data_dir), c_time);
+                        if ~strcmp(filename, filename_old)
+                            filename_old = filename;
+                            if exist(filename, 'file') ~= 2
+                                remote_file_name = fnp.dateKeyRep('pub/igs/products/${WWWW}/IGS${YY}P${WWWWD}.ssc.Z',c_time);
+                                ftp_dw = FTP_Downloader('igs.ensg.ign.fr',21);
+                                %remote_file_name = fnp.dateKeyRep('gnss/products/${WWWW}/igs${YY}P${WWWWD}.ssc.Z',c_time);
+                                %ftp_dw = FTP_Downloader('cddis.nasa.gov',21);
+                                [pathstr, name, ext] = fileparts(filename);
+                                ftp_dw.downloadUncompress(remote_file_name, pathstr);
+                            end
+                            
+                            % Multiplatform
+                            if exist(filename, 'file') == 2
+                                fid = fopen(filename, 'rt');
+                                txt = fread(fid, '*char')';
+                                fclose(fid);
+                                cmdout = regexp(txt, sprintf('STAX   %s[^\n]*(?=\n)', upper(this.parent.getMarkerName4Ch)), 'match');
+                                if ~isempty(cmdout)
+                                    x = sscanf(cmdout{2}(40:61),'%f');
+                                    cmdout = regexp(txt, sprintf('STAY   %s[^\n]*(?=\n)', upper(this.parent.getMarkerName4Ch)), 'match');
+                                    y = sscanf(cmdout{2}(40:61),'%f');
+                                    cmdout = regexp(txt, sprintf('STAZ   %s[^\n]*(?=\n)', upper(this.parent.getMarkerName4Ch)), 'match');
+                                    z = sscanf(cmdout{2}(40:61),'%f');
+                                    xyz(e,:) =[x y z];
+                                end
+                                % % UNIX only
+                                % if exist(filename, 'file') == 2
+                                %     [status,cmdout] = system(sprintf('grep ''STAX   %s'' %s',upper(this.parent.getMarkerName4Ch),filename));
+                                %     if ~isempty(cmdout)
+                                %         nl_id = find(cmdout==char(10));
+                                %         x = sscanf(cmdout(nl_id(1)+(48:68)),'%f');
+                                %         [status,cmdout] = system(sprintf('grep ''STAY   %s'' %s',upper(this.parent.getMarkerName4Ch),filename));
+                                %         nl_id = find(cmdout==char(10));
+                                %         y = sscanf(cmdout(nl_id(1)+(48:68)),'%f');
+                                %         [status,cmdout] = system(sprintf('grep ''STAZ   %s'' %s',upper(this.parent.getMarkerName4Ch),filename));
+                                %         nl_id = find(cmdout==char(10));
+                                %         z = sscanf(cmdout(nl_id(1)+(48:68)),'%f');
+                                %         xyz(e,:) =[x y z];
+                                %     end
+                            else
+                                [pathstr, name, ext] = fileparts(remote_file_name);
+                                
+                                this.log.addWarning(sprintf(' File %s not found',[name, ext]));
+                            end
+                        end
                     end
                 end
             end
@@ -438,77 +457,93 @@ classdef Receiver_Output < Receiver_Commons
             end
         end
         
+        function remEpochTime(rec_list, time_start, time_stop)
+            % remove epochs from the results
+            %
+            % SYNTAX
+            %   rec_list.remEpochTime(time_start, time_stop);
+            %
+            % EXAMPLE
+            %   rec_list.remEpochTime(GPS_Time('2019-08-06 7:00'), GPS_Time('2019-08-06 21:00'));
+            
+            rec_list = rec_list(not(rec_list.isEmpty_mr));
+            for r = 1 : numel(rec_list)
+                rec = rec_list(r);
+                ep_ko = find(rec.time < time_start | rec.time > time_stop);
+                rec.remEpoch(ep_ko);
+            end
+        end
         
-        function remEpoch(this, ep_idx)
+        function remEpoch(this, ep_ko)
             % remove epochs from the results
             %
             % SYNTAX
             % this.remEpoch(ep_idx)
             
-            this.time.remEpoch(ep_idx);
+            this.time.remEpoch(ep_ko);
             if ~isempty(this.zwd)
-                this.zwd(ep_idx) = [];
+                this.zwd(ep_ko) = [];
             end
             if ~isempty(this.pressure)
-                this.pressure(ep_idx) = [];
+                this.pressure(ep_ko) = [];
             end
             if ~isempty(this.temperature)
-                this.temperature(ep_idx) = [];
+                this.temperature(ep_ko) = [];
             end
             if ~isempty(this.humidity)
-                this.humidity(ep_idx) = [];
+                this.humidity(ep_ko) = [];
             end
             if ~isempty(this.desync)
-                this.desync(ep_idx) = [];
+                this.desync(ep_ko) = [];
             end
             if ~isempty(this.dt_ip)
-                this.dt_ip(ep_idx) = [];
+                this.dt_ip(ep_ko) = [];
             end
             if ~isempty(this.dt)
-                this.dt(ep_idx) = [];
+                this.dt(ep_ko) = [];
             end
             if ~isempty(this.apr_zhd)
-                this.apr_zhd(ep_idx) = [];
+                this.apr_zhd(ep_ko) = [];
             end
             if ~isempty(this.ztd)
-                this.ztd(ep_idx) = [];
+                this.ztd(ep_ko) = [];
             end
             if ~isempty(this.apr_zwd)
-                this.apr_zwd(ep_idx) = [];
+                this.apr_zwd(ep_ko) = [];
             end
             if ~isempty(this.pwv)
-                this.pwv(ep_idx) = [];
+                this.pwv(ep_ko) = [];
             end
             if ~isempty(this.tgn)
-                this.tgn(ep_idx) = [];
+                this.tgn(ep_ko) = [];
             end
             if ~isempty(this.tge)
-                this.tge(ep_idx) = [];
+                this.tge(ep_ko) = [];
             end
             if ~isempty(this.n_sat_ep)
-                this.n_sat_ep(ep_idx) = [];
+                this.n_sat_ep(ep_ko) = [];
             end
             % remove from sat struct
             if ~isempty(this.sat.outliers)
-                this.sat.outliers(ep_idx,:) = [];
+                this.sat.outliers(ep_ko,:) = [];
             end
             if ~isempty(this.sat.cycle_slip)
-                this.sat.cycle_slip(ep_idx,:) = [];
+                this.sat.cycle_slip(ep_ko,:) = [];
             end
             if ~isempty(this.sat.quality)
-                this.sat.quality(ep_idx,:) = [];
+                this.sat.quality(ep_ko,:) = [];
             end
             if ~isempty(this.sat.az)
-                this.sat.az(ep_idx,:) = [];
+                this.sat.az(ep_ko,:) = [];
             end
             if ~isempty(this.sat.el)
-                this.sat.el(ep_idx,:) = [];
+                this.sat.el(ep_ko,:) = [];
             end
             if ~isempty(this.sat.mfw)
-                this.sat.mfw(ep_idx,:) = [];
+                this.sat.mfw(ep_ko,:) = [];
             end
             if ~isempty(this.sat.mfh)
-                this.sat.mfh(ep_idx,:) = [];
+                this.sat.mfh(ep_ko,:) = [];
             end
         end
         
@@ -544,7 +579,7 @@ classdef Receiver_Output < Receiver_Commons
                 if isnan(n_epochs)
                     n_epochs = rec_work.time.length;
                 end
-                flag_ok = rec_work.isEmpty || (numel(rec_work.id_sync) / n_epochs) >= state.getMinAvailEpochs;
+                flag_ok = rec_work.isEmpty || (numel(rec_work.id_sync) / n_epochs) >= state.getMinAvailEpochs || (~isempty(rec_work.coo) && any(rec_work.coo.reflectometry.n_obs));
                 if not(flag_ok)
                     log.addWarning(sprintf('Receiver "%s" will not be imported in this session.\nIt does not have enough valid epochs %.1f%% below %.1f%% thr', ...
                         this.parent.getMarkerName4Ch(), ...
@@ -553,14 +588,14 @@ classdef Receiver_Output < Receiver_Commons
                 end
             catch ex
                 % Something was wrong, maybe the receiver is empty.
-                flag_ok = true;
+                flag_ok = false;
             end
             
             if nargin < 4 || isempty(flag_force)
                 flag_force = false;
             end
-            if flag_ok && rec_work.isPreProcessed && rec_work.quality_info.s0_ip > 10
-                log.addError(sprintf('Receiver "%s" pre-processing sigma0 is above 10m, this means that it probably failed, not importing results as output', this.parent.getMarkerName4Ch()));
+            if flag_ok && rec_work.isPreProcessed && rec_work.quality_info.s0_ip > state.getMaxErrPP
+                log.addError(sprintf('Receiver "%s" pre-processing sigma0 is above %dm, this means that it probably failed, not importing results as output', this.parent.getMarkerName4Ch(), state.getMaxErrPP));
                 flag_ok = false;
             end
             if flag_ok && ~isempty(rec_work.quality_info.s0) && ~isnan(rec_work.quality_info.s0) && rec_work.quality_info.s0 > 0.25
@@ -612,17 +647,18 @@ classdef Receiver_Output < Receiver_Commons
                                 idx1 = 1;
                                 idx2 = 0;
                                 this.time = work_time;
+                                time_old = this.time.getCopy();
                             else
-                                if state.isSmoothTropoOut()
-                                    time_old = this.time.getCopy();
+                                time_old = this.time.getCopy();
+                                if state.isSmoothTropoOut()                                    
                                     re_time_bf = time_old.getNominalTime(min(1, time_old.getRate));
                                     smt_buf_rgt = re_time_bf.last;
                                 end
                                 [this.time, idx1, idx2] = this.time.injectBatch(work_time); % WARNING for tropo smoothing: the epoch before the end of the previous window will keep the their own epochs, the one after will keep the epoch of the work time
                                 if state.isSmoothTropoOut()
-                                    smt_buf_lft = rec_work.time.getNominalTime(min(1, rec_work.time.getRate)).first();
+                                    smt_buf_lft = rec_work.time.first().round(min(1, rec_work.time.getRate));
                                     idx_smt1 = re_time_bf >= smt_buf_lft;
-                                    idx_smt2 = rec_work.time.getEpoch(id_sync_old).getNominalTime(min(1, rec_work.time.getRate)) <= smt_buf_rgt;
+                                    idx_smt2 = rec_work.time.getEpoch(id_sync_old).round(min(1, rec_work.time.getRate)) <= smt_buf_rgt;
                                     time_1 = time_old.getEpoch(idx_smt1);
                                     time_2 = rec_work.time.getEpoch(id_sync_old(idx_smt2));
                                 end
@@ -678,6 +714,25 @@ classdef Receiver_Output < Receiver_Commons
                                         end
                                     end
                                 end
+            
+                                %######################################################
+                                % Inject DOPs
+                                %------------------------------------------------------
+                                % FOR TESTING PURPOSES ONLY
+                                % rec_work.getDop();
+                                %------------------------------------------------------
+                                if isempty(this.quality_info.dop)
+                                    this.quality_info.dop = struct('pdop', [], 'tdop', [], 'gdop', [], 'hdop', [], 'vdop', []);
+                                end
+                                if not(isempty(rec_work.quality_info.dop))
+                                    this.quality_info.dop.pdop = Core_Utils.injectData(this.quality_info.dop.pdop, rec_work.quality_info.dop.pdop(rec_work.getIdSync), idx1, idx2);
+                                    this.quality_info.dop.tdop = Core_Utils.injectData(this.quality_info.dop.tdop, rec_work.quality_info.dop.tdop(rec_work.getIdSync), idx1, idx2);
+                                    this.quality_info.dop.gdop = Core_Utils.injectData(this.quality_info.dop.gdop, rec_work.quality_info.dop.gdop(rec_work.getIdSync), idx1, idx2);
+                                    this.quality_info.dop.hdop = Core_Utils.injectData(this.quality_info.dop.hdop, rec_work.quality_info.dop.hdop(rec_work.getIdSync), idx1, idx2);
+                                    this.quality_info.dop.vdop = Core_Utils.injectData(this.quality_info.dop.vdop, rec_work.quality_info.dop.vdop(rec_work.getIdSync), idx1, idx2); 
+                                end
+                                %######################################################
+                                % Inject TROPO
                                 
                                 if ~state.isSmoothTropoOut() || is_this_empty
                                     % Inject tropo related parameters
@@ -697,9 +752,6 @@ classdef Receiver_Output < Receiver_Commons
                                     end
                                 else
                                     % there is probably smoothing
-                                    % save idx, they might be useful
-                                    bk_idx1 = idx1;
-                                    bk_idx2 = idx2;
                                 end
                             end
                             
@@ -717,6 +769,9 @@ classdef Receiver_Output < Receiver_Commons
                             
                             % reset the old  complete id_sync
                             rec_work.id_sync = id_sync_old;
+                            if isempty(id_sync_old)
+                                this.time = time_old;
+                            end
                         end
                     end
                     
@@ -775,7 +830,7 @@ classdef Receiver_Output < Receiver_Commons
                     
                     this.quality_info.n_sat_max = Core_Utils.injectData(this.quality_info.n_sat_max, rec_work.quality_info.n_sat_max, idx1, idx2, [data_len, 1]);
                     this.quality_info.fixing_ratio = Core_Utils.injectData(this.quality_info.fixing_ratio, rec_work.quality_info.fixing_ratio, idx1, idx2, [data_len, 1]);
-                    
+
                     % inject with smoothing
                     if ~basic_export && ~is_this_empty && state.isSmoothTropoOut()
                         rec_work.cropIdSync4out(false, is_last_session); % if this is the last session cut the right part of the data
@@ -814,22 +869,24 @@ classdef Receiver_Output < Receiver_Commons
                             end
                         else
                             % Inject tropo related parameters
+                            t_tmp = [this.getTime.round(1e-4); rec_work.getTime.round(1e-4)]; [~, id_tsync] = t_tmp.getSyncedTime();
+                            id_in_out = (noNaN(id_tsync(:,2) .* ~isnan(id_tsync(:,1))) > 0);
                             if state.flag_out_ztd
                                 tmp = rec_work.getZtd();
-                                this.ztd     = [this.ztd; tmp(~idx_smt2)];
+                                this.ztd     = [this.ztd; tmp(~idx_smt2 & id_in_out)];
                             end
                             if state.flag_out_zwd
                                 tmp = rec_work.getZwd();
-                                this.zwd     = [this.zwd; tmp(~idx_smt2)];
+                                this.zwd     = [this.zwd; tmp(~idx_smt2 & id_in_out)];
                             end
                             if state.flag_out_pwv
                                 tmp = rec_work.getPwv();
-                                this.pwv     = [this.pwv; tmp(~idx_smt2)];
+                                this.pwv     = [this.pwv; tmp(~idx_smt2 & id_in_out)];
                             end
                             if state.flag_out_tropo_g
                                 [gn, ge]     = rec_work.getGradient();
-                                this.tgn     = [this.tgn; gn(~idx_smt2)];
-                                this.tge     = [this.tge; ge(~idx_smt2)];
+                                this.tgn     = [this.tgn; gn(~idx_smt2 & id_in_out)];
+                                this.tge     = [this.tge; ge(~idx_smt2 & id_in_out)];
                             end
                         end
                         rec_work.id_sync = id_sync_old; % restore id_sync_old
@@ -870,14 +927,20 @@ classdef Receiver_Output < Receiver_Commons
                     end
                     
                     % insert coo computed using new
+                    state = Core.getState;
+                    [~, discard_time] = state.getSessionLimits;
+                    idx_rem = coo_work.time < discard_time.first | coo_work.time > discard_time.last;
+                    if any(idx_rem)
+                        coo_work.rem(idx_rem);
+                    end
                     if isempty(this.coo)
                         this.coo = coo_work;
                     else
                         try
-                            state = Core.getState;
-                            [~, discard_time] = state.getSessionLimits;
                             idx_rem = this.coo.time >= discard_time.first & this.coo.time <= discard_time.last;
-                            this.coo.rem(idx_rem);
+                            if any(idx_rem)
+                                this.coo.rem(idx_rem);
+                            end
                         catch ex
                             Core_Utils.printEx(ex);
                         end
@@ -893,11 +956,10 @@ classdef Receiver_Output < Receiver_Commons
                     rec_work.id_sync = id_sync_bk;
                 end
             end
-            
-            
         end
     end
     
+    % ==================================================================================================================================================
     %% METHODS PLOTTING FUNCTIONS
     % ==================================================================================================================================================
     
@@ -926,7 +988,7 @@ classdef Receiver_Output < Receiver_Commons
             if ~isempty(rec)
                 t = rec.time.getMatlabTime();
                 if isempty(t)
-                    Core.getLogger.addError('No clock found in Receiver Output object\n');
+                    Core.getLogger.addError(sprintf('No clock found in "%s" Receiver Output object\n', this.parent.getMarkerNameV3));
                 else
                     f = figure('Visible', 'off'); f.Name = sprintf('%03d: Dt Err', f.Number); f.NumberTitle = 'off';
                     
@@ -957,7 +1019,7 @@ classdef Receiver_Output < Receiver_Commons
                         Core_Utils.plotSep(t, data * Core_Utils.V_LIGHT, '-', 'LineWidth', 2);
                     end
                     if isempty(l_list)
-                        Core.getLogger.addError('No clock found in Receiver Output object\n');
+                        Core.getLogger.addError(sprintf('No clock found in "%s" Receiver Output object\n', this.parent.getMarkerNameV3));
                         close(f);
                     else
                         legend(l_list, 'Location', 'NorthEastOutside');
@@ -1188,7 +1250,6 @@ classdef Receiver_Output < Receiver_Commons
                     end
                 end
             end
-            
-        end        
+        end
     end
 end

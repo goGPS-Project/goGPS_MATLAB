@@ -17,10 +17,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Giulio Tagliaferro
 %  Contributors:      Giulio Tagliaferro, Andrea Gatti ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -66,7 +66,7 @@ classdef LS_Parametrization < handle
         MULTI_SAT = 2;
         ALL_SAT = 3;
         
-        % track paramterization paramterization
+        % track parametrization
         SING_TRACK = 1;
         SING_FREQ = 2;
         FREQ_CONST = 6;
@@ -99,6 +99,7 @@ classdef LS_Parametrization < handle
         sat_ebfr = [LS_Parametrization.SPLINE_CUB LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.SING_BAND];
         
         amb  = [LS_Parametrization.STEP_CONST LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.SING_TRACK];
+        ss_pr_eb  = [LS_Parametrization.CONST LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.SING_TRACK];
 
         rec_clk = [LS_Parametrization.EP_WISE LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT  LS_Parametrization.ALL_FREQ];
         sat_clk = [LS_Parametrization.EP_WISE LS_Parametrization.ALL_REC  LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
@@ -115,9 +116,11 @@ classdef LS_Parametrization < handle
         tropo_v = [LS_Parametrization.CONST      LS_Parametrization.ALL_REC  LS_Parametrization.ALL_SAT  LS_Parametrization.ALL_FREQ];
         tropo_z = [LS_Parametrization.SPLINE_CUB LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT  LS_Parametrization.ALL_FREQ];
 
-        
+              
         iono =    [LS_Parametrization.EP_WISE    LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
+        
         geom =    [LS_Parametrization.EP_WISE    LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
+              
         ant_mp =  [LS_Parametrization.CONST      LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT  LS_Parametrization.SING_FREQ];
         
         % options to keep track of spline rate, rule based distinction,
@@ -137,6 +140,7 @@ classdef LS_Parametrization < handle
         rec_eb_opt_lin = struct('rule',1);
 
         amb_opt;
+        ss_pr_eb_opt;
         rec_clk_opt;
         tropo_opt;
         tropo_n_opt;
@@ -302,12 +306,13 @@ classdef LS_Parametrization < handle
         end
         
        
-        function [parametriz, option] = getParametrization(this, par_class, obs_code)
+        function [parametriz, option, name] = getParametrization(this, par_class, obs_code)
             % get the parametrization and the options for the paramter
             % class p
+            % parametrization [(time parametrization) (rec parametrization) (sat parametrization) (tracking parametrization)]
             %
             % SYNTAX:
-            %    [parametriz, option] = getParametrization(this, par_class)
+            %    [parametriz, option, name] = getParametrization(this, par_class)
             switch par_class
                 case Engine_U2.PAR_REC_X
                     parametriz = this.rec_x;
@@ -396,7 +401,11 @@ classdef LS_Parametrization < handle
                 case Engine_U2.PAR_GEOM
                     parametriz = this.geom;
                     option = this.geom_opt;
+                case Engine_U2.PAR_SS_PR_EB
+                    parametriz = this.ss_pr_eb;
+                    option = this.ss_pr_eb_opt;
             end
+            name = Engine_U2.CLASS_NAME(par_class);
             
             if nargin > 2 && parametriz(4) == this.RULE % if an obseravtion code is specified give the paramterization for thata specific obsservation code
                 rule = option.rule;

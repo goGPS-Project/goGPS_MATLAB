@@ -23,10 +23,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti, Giulio Tagliaferro ...
 %  Contributors:      Andrea Gatti, Giulio Tagliaferro ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -86,6 +86,8 @@ classdef GPS_SS < Satellite_System
         ELL_E2 = (1 - (1 - GPS_SS.ELL_F) ^ 2);
         % GPS (WGS84) Ellipsoid Eccentricity
         ELL_E = sqrt(GPS_SS.ELL_E2);
+        % MEAN SQUARE RADIUS
+        R_EARTH = 6373044.737;
     end
 
     properties (Constant, Access = 'public')

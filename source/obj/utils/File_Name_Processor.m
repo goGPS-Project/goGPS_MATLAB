@@ -21,10 +21,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti
 %  Contributors:      Andrea Gatti, Giulio Tagliaferro
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -67,6 +67,8 @@ classdef File_Name_Processor < handle
         GPS_1D = '${1D}';
         GPS_QQ = '${QQ}';
         GPS_5M = '${5M}';
+        GPS_MIN = '${mm}';
+        GPS_SEC = '${ss}';
         VMF_RES = '${VMFR}';
         VMF_SOURCE = '${VMFS}';
     end
@@ -86,12 +88,15 @@ classdef File_Name_Processor < handle
             % Constructor
         end
 
-        function file_name_out = dateKeyRep(this, file_name, date, session,vmf_res,vmf_source)
+        function file_name_out = dateKeyRep(this, file_name, date, session, vmf_res, vmf_source)
             % substitute time placeholder with the proper format
-            % SYNTAX: file_name = this.dateKeyRep(file_name, date, session)
+            %
+            % SYNTAX: 
+            %     file_name = this.dateKeyRep(file_name, date, session)
+            
             narginchk(3,6)
             if (nargin < 4)
-                session = '0';
+                session = '';
             end
             if (nargin < 5)
                 vmf_res = '';
@@ -102,13 +107,16 @@ classdef File_Name_Processor < handle
             file_name_out = file_name;
             if any(file_name_out == '$') && ~isempty(regexp(file_name_out, '\$\{Y|(DOY)', 'once'))
                 [year, doy] = date.getDOY();
-                file_name_out = strrep(file_name_out, this.GPS_DOY, sprintf('%03d', doy));
+                year = sprintf('%04d', year);
+                doy  = sprintf('%03d', doy);
+                file_name_out = strrep(file_name_out, this.GPS_DOY, doy);
                 file_name_out = strrep(file_name_out, this.GPS_FIRST_DOY_TRIMESTER, sprintf('%03d', GPS_Time.doy2fdoytr(doy,year)));
-                file_name_out = strrep(file_name_out, this.GPS_YY, sprintf('%02d', mod(year,100)));
-                file_name_out = strrep(file_name_out, this.GPS_YYYY, sprintf('%04d', year));
-                file_name_out = strrep(file_name_out, this.GPS_YYDOY, sprintf('%02d%03d', mod(year,100), doy));
+                
+                file_name_out = strrep(file_name_out, this.GPS_YY, year(3:4));
+                file_name_out = strrep(file_name_out, this.GPS_YYYY, year);
+                file_name_out = strrep(file_name_out, this.GPS_YYDOY, [year(3:4) doy]);
             end
-            if any(file_name_out == '$') && ~isempty(regexp(file_name_out, '\$\{(WWWW)|(WD)|(DOW)|(3H)|(6H)|(HH)|(QQ)|(5M)\}', 'once'))
+            if any(file_name_out == '$') && ~isempty(regexp(file_name_out, '\$\{(WWWW)|(WD)|(DOW)|(3H)|(6H)|(HH)|(QQ)|(5M)|(mm)|(ss)\}', 'once'))
                 [gps_week, gps_sow, gps_dow] = date.getGpsWeek();
                 file_name_out = strrep(file_name_out, this.GPS_WEEK, sprintf('%04d', gps_week(1)));
                 if any(file_name_out == '$')
@@ -122,6 +130,10 @@ classdef File_Name_Processor < handle
                     file_name_out = strrep(file_name_out, this.GPS_QQ, sprintf('%02d', mod(15 * fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(900)), 60)));
                     file_name_out = strrep(file_name_out, this.GPS_5M, sprintf('%02d', mod(5 * fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(300)), 60)));
                 end
+                if any(file_name_out == '$')
+                    file_name_out = strrep(file_name_out, this.GPS_MIN, sprintf('%02d', mod(fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(60)), 60)));
+                    file_name_out = strrep(file_name_out, this.GPS_SEC, sprintf('%02d', mod(fix((gps_sow(1) - double(gps_dow(1)) * 86400)), 60)));
+                end
             end
             if any(file_name_out == '$') && ~isempty(regexp(file_name_out, '\$\{(MM)|DD)|(1D)\}', 'once'))
                 [date] = datevec(date.getMatlabTime());
@@ -129,13 +141,13 @@ classdef File_Name_Processor < handle
                 file_name_out = strrep(file_name_out, this.GPS_DD, sprintf('%02d', date(3)));
                 file_name_out = strrep(file_name_out, this.GPS_1D, sprintf('%d', date(3)));
             end            
-            if any(file_name_out == '$')
+            if any(file_name_out == '$') && ~isempty(session)
                 file_name_out = strrep(file_name_out, this.GPS_SESSION, sprintf('%01d', session));
             end
-            if any(file_name_out == '$')
+            if any(file_name_out == '$') && ~isempty(vmf_res)
                 file_name_out = strrep(file_name_out, this.VMF_RES, char(vmf_res));
             end
-            if any(file_name_out == '$')
+            if any(file_name_out == '$') && ~isempty(vmf_source)
                 file_name_out = strrep(file_name_out, this.VMF_SOURCE, char(vmf_source));
             end
         end
@@ -145,7 +157,11 @@ classdef File_Name_Processor < handle
             % SYNTEX: step_sec = this.getStepSec(file_name);
             % Check for GPS time placeholders
             step_sec = 0;
-            if ~isempty(strfind(file_name, this.GPS_5M))
+            if ~isempty(strfind(file_name, this.GPS_SEC))
+                step_sec = 1;
+            elseif ~isempty(strfind(file_name, this.GPS_MIN))
+                step_sec = 60;
+            elseif ~isempty(strfind(file_name, this.GPS_5M))
                 step_sec = 300;
             elseif ~isempty(strfind(file_name, this.GPS_QQ))
                 step_sec = 900;
@@ -168,7 +184,8 @@ classdef File_Name_Processor < handle
 
         function [file_name_lst, date_list] = dateKeyRepBatch(this, file_name, date_start, date_stop, session_list, session_start, session_stop, vmf_res, vmf_source)
             % substitute time placeholder with the proper format
-            % SYNTAX: file_name = this.dateKeyRepBatch(file_name, date_start, date_stop)
+            % SYNTAX: 
+            %   file_name = this.dateKeyRepBatch(file_name, date_start, date_stop)
             % NOTE: I consider only two possible file formats:
             %         - dependend on UTC time (year, doy)
             %         - dependent on GPS time (week, day of week, h of the day)
@@ -198,23 +215,23 @@ classdef File_Name_Processor < handle
                     date0 = date_start.getCopy();
                 end
                 date0 = date0.getNominalTime(60);
-                date1 = date_stop.getNominalTime(1);
+                date1 = date_stop.round(1);
                 
                 date_list.toUnixTime(); % keep an higher precision
                 
                 i = 1;
                 % Find all the file in the interval of dates
                 while (date0.getMatlabTime() <= date1.getMatlabTime())
+                    tmp = this.dateKeyRep(file_name, date0,'',vmf_res,vmf_source);
                     if session
                         % run over session
                         for s = sss_start : length(session_list)
-                            file_name_lst{i} = this.keyRep(file_name, this.GPS_SESSION, session_list(s)); %#ok<AGROW>
-                            file_name_lst{i} = this.dateKeyRep(file_name_lst{i}, date0, '0',vmf_res,vmf_source); %#ok<AGROW>
+                            file_name_lst{i} = this.keyRep(tmp, this.GPS_SESSION, session_list(s)); %#ok<AGROW>
                             i = i + 1;
                         end
                         sss_start = 1;
                     else
-                        file_name_lst{i} = this.dateKeyRep(file_name, date0, '0', vmf_res,vmf_source); %#ok<AGROW>
+                        file_name_lst{i} = tmp; %#ok<AGROW>
                         i = i + 1;
                     end
                     date0.addIntSeconds(step_sec);

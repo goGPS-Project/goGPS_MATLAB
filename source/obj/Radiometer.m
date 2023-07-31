@@ -5,10 +5,10 @@ classdef Radiometer < handle
     %     __ _ ___ / __| _ | __|
     %    / _` / _ \ (_ |  _|__ \
     %    \__, \___/\___|_| |___/
-    %    |___/                    v 1.0RC1
+    %    |___/                    v 1.0
     %
     %--------------------------------------------------------------------------
-    %  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+    %  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
     %  Written by:       Andrea Gatti, Alice Bonfiglio
     %  Contributors:     Andrea Gatti, Alice Bonfiglio
     %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -53,7 +53,7 @@ classdef Radiometer < handle
         zbright_314   % equivalent zenith brightness at 31.4 GHz [K]        double   [n_epoch x 1]
         sigma_zbr_314 % sigma error of eq zenith brightness at 31.4 GHz [K] double   [n_epoch x 1]
         lwc           % liquid water content in zenith direction [mm]       double   [n_epoch x 1]
-        sigma_lwc     % sigma error of liquid water content [mm]            double   [n_epoch x 1]        
+        sigma_lwc     % sigma error of liquid water content [mm]            double   [n_epoch x 1]
     end
     
     properties (Access = private)
@@ -86,7 +86,7 @@ classdef Radiometer < handle
                 end
             end
         end
-             
+        
     end
     
     % =========================================================================
@@ -159,7 +159,7 @@ classdef Radiometer < handle
             else
                 this.time.append6ColDate(data(:,1:6));
             end
-                        
+            
             zwd = data(:,7) * 1e-2;
             sigma_zwd = data(:,8) * 1e-2;
             zwd_21 = data(:,9) * 1e-2;
@@ -171,7 +171,7 @@ classdef Radiometer < handle
             az = az + 180 * ((90-el) < 0);
             for i = 1 : length(az)
                 if az(i) > 360
-                az(i) = mod(az(i),360);
+                    az(i) = mod(az(i),360);
                 end
             end
             el = 90 - abs(90-el);
@@ -187,7 +187,7 @@ classdef Radiometer < handle
             lwc = data(:,23);
             sigma_lwc = data(:,24);
             
-           % Append in obj
+            % Append in obj
             this.zwd = [this.zwd; zwd];
             this.sigma_zwd = [this.sigma_zwd; sigma_zwd];
             this.zwd_21 = [this.zwd_21; zwd_21];

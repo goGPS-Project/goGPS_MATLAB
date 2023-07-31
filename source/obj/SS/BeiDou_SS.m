@@ -21,10 +21,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti, Giulio Tagliaferro ...
 %  Contributors:      Andrea Gatti, Giulio Tagliaferro ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -67,12 +67,12 @@ classdef BeiDou_SS < Satellite_System
         % Array of the corresponding wavelength - lambda => wavelengths
         L_VEC = 299792458 ./ BeiDou_SS.F_VEC;
 
-        N_SAT = 37;       % Maximum number of satellite in the constellation
-        PRN = (1 : 37)';  % Satellites id numbers as defined in the constellation
+        N_SAT = 60;       % Maximum number of satellite in the constellation
+        PRN = (1 : 60)';  % Satellites id numbers as defined in the constellation
 
         % CODE2DATA ftp://igs.org/pub/data/format/rinex303.pdf
-        CODE_RIN3_ATTRIB  = {'XIQ F' 'XPDZLS' 'XPD' 'XIQZPD F', 'ZPD' 'XIQZPD F'}; % last letter of the observation code
-        CODE_RIN3_DEFAULT_ATTRIB  = {'Q' 'P' 'Q' 'Q'}; % last letter of the observation code
+        CODE_RIN3_ATTRIB  = {'XIQ F' 'XPDZLS F' 'XIQZPD F' 'XIQZPD F', 'ZPD F' 'XIQZPD F'}; % last letter of the observation code
+        CODE_RIN3_DEFAULT_ATTRIB  = {'Q' 'P' 'P' 'Q' 'P' 'Q'}; % last letter of the observation code
         CODE_RIN3_2BAND  = '215786';                % id for the freq as stored in F_VEC
         IONO_FREE_PREF  = ['27';'26';'67'];  % to be evaluated which combination is really better
     end

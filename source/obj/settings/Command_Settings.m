@@ -14,10 +14,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti
 %  Contributors:      Andrea Gatti
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -99,7 +99,7 @@ classdef Command_Settings < Settings_Interface
                         cmd_keys(l) = [];
                         l = l - 1;
                     else
-                        this.cmd_list{l} = settings.getData(this.CMD_SECTION, cmd_keys{l});
+                        this.cmd_list{l} = strrep(settings.getData(this.CMD_SECTION, cmd_keys{l}),'''', '"');
                         if iscell(this.cmd_list{l}) && (numel(this.cmd_list{l}) > 1)
                             this.cmd_list{l} = [this.cmd_list{l}{1} '"' this.cmd_list{l}{2:end} '"'];
                         end
@@ -156,7 +156,7 @@ classdef Command_Settings < Settings_Interface
             % To be moved in the manual in the future
             str_cell = Ini_Manager.toIniStringComment(cmd.getHelp, str_cell);
             for l = 1 : numel(this.cmd_list)
-                str_cell = Ini_Manager.toIniString(sprintf('cmd_%03d', l), strrep(this.cmd_list{l}, Command_Interpreter.SUB_KEY, ' '), str_cell);
+                str_cell = Ini_Manager.toIniString(sprintf('cmd_%03d', l), strrep(strrep(this.cmd_list{l}, Command_Interpreter.SUB_KEY, ' '), '"', ''''), str_cell);
             end
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
         end
@@ -204,7 +204,11 @@ classdef Command_Settings < Settings_Interface
             cmd = Core.getCommandInterpreter();
             [cmd_list, ~, loop_lev] = cmd.fastCheck(this.cmd_list);
             % find how to indent commands:
-            loop_lev = loop_lev - (diff([0 loop_lev]) > 0);
+            if isempty(loop_lev)
+                loop_lev = 0;
+            else
+                loop_lev = loop_lev - (diff([0 loop_lev]) > 0);
+            end
             this.cmd_list = cmd_list;
             % To be moved in the manual in the future            
             for l = 1 : numel(this.cmd_list)

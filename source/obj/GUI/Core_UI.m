@@ -15,10 +15,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti
 %  Contributors:      Andrea Gatti, Giulio Tagliaferro, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -52,12 +52,13 @@ classdef Core_UI < Logos
         LIGHT_GREY_BG = 0.85 * ones(3, 1);
         DARK_GREY_BG = [0.2431372549 0.2470588235 0.2509803922];
         DARKER_GREY_BG = [0.1529411765 0.1529411765 0.1568627451];
-        WHITE = ones(3, 1);
-        BLACK = zeros(3, 1);
+        WHITE = ones(1, 3);
+        BLACK = zeros(1, 3);
         GREY = [0.6 0.6 0.6];
         BLUE = [0 0 1];
         RED  = [1 0 0];
         GREEN = [0 1 0];
+        YELLOW = [0.929 0.694 0.125];
         ORANGE = [1 0.6 0];
         LBLUE = [0 163 222]/255;
         
@@ -163,20 +164,21 @@ classdef Core_UI < Logos
         end
         
         function showTextHeader()
-            % Display as a text the Header containing goGPS ASCII title and version
+            % Display as a text the Header containing Breva ASCII title and version
             %
             % SYNTAX:
             %   Core_UI.showTextHeader();
+            
             log = Core.getLogger();
             if log.getColorMode()
-                %cprintf([241 160 38]/255,'\n               ___ ___ ___\n     __ _ ___ / __| _ | __|\n    / _` / _ \\ (_ |  _|__ \\\n    \\__, \\___/\\___|_| |___/\n    |___/                    '); cprintf('text','v '); cprintf('text', Core.GO_GPS_VERSION); fprintf('\n');
-                %cprintf([0 163 222]/255,'\n               ___ ___ ___\n     __ _ ___ / __| _ | __|\n    / _` / _ \\ (_ |  _|__ \\\n    \\__, \\___/\\___|_| |___/\n    |___/                    '); cprintf('text','v '); cprintf('text', Core.GO_GPS_VERSION); fprintf('\n');
-                cprintf([0 163 222]/255,'\n               ___ ___ ___\n     __ _ ___ / __| _ | __|\n    / _` / _ \\ (_ |  _|__ \\\n    \\__, \\___/\\___|_| |___/\n    |___/   '); cprintf('text',[iif(Core.isReserved, 'GReD', 'OPEN') ' EDITION     v ']); cprintf('text', Core.GO_GPS_VERSION); fprintf('\n');
+                %cprintf([241 160 38]/255,'\n               ___ ___ ___\n     __ _ ___ / __| _ | __|\n    / _` / _ \\ (_ |  _|__ \\\n    \\__, \\___/\\___|_| |___/\n    |___/                    '); cprintf('text','v '); cprintf('text', Core.APP_VERSION); fprintf('\n');
+                %cprintf([0 163 222]/255,'\n               ___ ___ ___\n     __ _ ___ / __| _ | __|\n    / _` / _ \\ (_ |  _|__ \\\n    \\__, \\___/\\___|_| |___/\n    |___/                    '); cprintf('text','v '); cprintf('text', Core.APP_VERSION); fprintf('\n');
+                cprintf([0 163 222]/255,'\n               ___ ___ ___\n     __ _ ___ / __| _ | __|\n    / _` / _ \\ (_ |  _|__ \\\n    \\__, \\___/\\___|_| |___/\n    |___/   '); cprintf('text',[iif(Core.isReserved, 'GReD', 'OPEN') ' EDITION     v ']); cprintf('text', Core.APP_VERSION); fprintf('\n');
                 fprintf('\n--------------------------------------------------------------------------\n');
                 fprintf('    GNSS data processing powered by GReD\n');
             else
-                %fprintf('\n               ___ ___ ___\n     __ _ ___ / __| _ | __|\n    / _` / _ \\ (_ |  _|__ \\\n    \\__, \\___/\\___|_| |___/\n    |___/                    v %s\n', Core.GO_GPS_VERSION);
-                fprintf(['\n               ___ ___ ___\n     __ _ ___ / __| _ | __|\n    / _` / _ \\ (_ |  _|__ \\\n    \\__, \\___/\\___|_| |___/\n    |___/   ' iif(Core.isReserved, 'GReD', 'OPEN') ' EDITION     v %s\n'], Core.GO_GPS_VERSION);
+                %fprintf('\n               ___ ___ ___\n     __ _ ___ / __| _ | __|\n    / _` / _ \\ (_ |  _|__ \\\n    \\__, \\___/\\___|_| |___/\n    |___/                    v %s\n', Core.APP_VERSION);
+                fprintf(['\n               ___ ___ ___\n     __ _ ___ / __| _ | __|\n    / _` / _ \\ (_ |  _|__ \\\n    \\__, \\___/\\___|_| |___/\n    |___/   ' iif(Core.isReserved, 'GReD', 'OPEN') ' EDITION     v %s\n'], Core.APP_VERSION);
                 fprintf('\n');
                 fprintf('\n--------------------------------------------------------------------------\n');
                 fprintf('    GNSS data processing powered by GReD\n');
@@ -194,13 +196,159 @@ classdef Core_UI < Logos
             % SYNTAX:
             %   str_out = Core_UI.getTextHeader();
             
-            str_out = sprintf('\n               ___ ___ ___\n     __ _ ___ / __| _ | __|\n    / _` / _ \\ (_ |  _|__ \\\n    \\__, \\___/\\___|_| |___/\n    |___/                    v %s\n', Core.GO_GPS_VERSION);
+            str_out = sprintf('\n               ___ ___ ___\n     __ _ ___ / __| _ | __|\n    / _` / _ \\ (_ |  _|__ \\\n    \\__, \\___/\\___|_| |___/\n    |___/                    v %s\n', Core.APP_VERSION);
             str_out = sprintf('%s\n--------------------------------------------------------------------------\n',str_out);
         end        
     end
     
     %% METHODS FIGURE MODIFIER
     methods (Static, Access = public)
+
+        function addLineMenu(fig_handle)
+            assert(ishghandle(fig_handle, 'figure'), 'Input handle must be a figure');
+
+            m = uimenu(fig_handle, 'Text', 'Lines');
+            all_axes = findall(fig_handle, 'Type', 'axes');
+            menu_items = [];
+
+            all_item = uimenu(m, 'Text', 'All', 'MenuSelectedFcn', {@toggleAll, fig_handle, 'on', menu_items});
+            none_item = uimenu(m, 'Text', 'None', 'MenuSelectedFcn', {@toggleAll, fig_handle, 'off', menu_items});
+
+            if length(all_axes) > 1 && areAxesLinked(all_axes) && areNumLinesSame(all_axes)
+                graphic_objects_in_axes = findall(all_axes(1), 'Type', 'line', '-or', 'Type', 'patch');
+                for i = 1:length(graphic_objects_in_axes)
+                    if strcmp(graphic_objects_in_axes(i).LineStyle, '-') || strcmp(graphic_objects_in_axes(i).LineStyle, '-.') || strcmp(graphic_objects_in_axes(i).LineStyle, 'none')
+                        menu_item = uimenu(m, 'Text', ['Graphic Group ', num2str(i)], 'MenuSelectedFcn', {@toggleVisibilityGroup, i});
+                        if strcmp(graphic_objects_in_axes(i).Visible, 'on')
+                            menu_item.Checked = 'on';
+                        else
+                            menu_item.Checked = 'off';
+                        end
+                        if strcmp(graphic_objects_in_axes(i).Type, 'line')
+                            menu_item.ForegroundColor = graphic_objects_in_axes(i).Color;
+                        else % 'patch'
+                            menu_item.ForegroundColor = graphic_objects_in_axes(i).FaceColor;
+                        end
+                        if strcmp(graphic_objects_in_axes(i).Type, 'line')
+                            if ~isempty(graphic_objects_in_axes(i).DisplayName)
+                                menu_item.Text = graphic_objects_in_axes(i).DisplayName;
+                            else
+                                menu_item.Text = ['Line Group ', num2str(i)];
+                            end
+                        else % 'patch'
+                            if ~isempty(graphic_objects_in_axes(i).DisplayName)
+                                menu_item.Text = graphic_objects_in_axes(i).DisplayName;
+                            else
+                                menu_item.Text = ['Patch Group ', num2str(i)];
+                            end
+                        end
+
+                        menu_items = [menu_items, menu_item];
+                    end
+                end
+            else
+                for i = 1:length(all_axes)
+                    all_graphic_objects = findall(all_axes(i), 'Type', 'line', '-or', 'Type', 'patch');
+                    for j = 1:length(all_graphic_objects)
+                        if strcmp(all_graphic_objects(j).LineStyle, '-') || strcmp(all_graphic_objects(j).LineStyle, '-.') || strcmp(all_graphic_objects(j).LineStyle, 'none')
+                            menu_item = uimenu(m, 'Text', ['Axis ', num2str(i), ' - Graphic Object ', num2str(j)], 'MenuSelectedFcn', {@toggleVisibility, all_graphic_objects(j)});
+                            if strcmp(all_graphic_objects(j).Visible, 'on')
+                                menu_item.Checked = 'on';
+                            else
+                                menu_item.Checked = 'off';
+                            end
+                            if strcmp(all_graphic_objects(j).Type, 'line')
+                                menu_item.ForegroundColor = all_graphic_objects(j).Color;
+                            else % 'patch'
+                                menu_item.ForegroundColor = all_graphic_objects(j).EdgeColor;
+                            end
+                            if strcmp(all_graphic_objects(j).Type, 'line')
+                                if ~isempty(all_graphic_objects(j).DisplayName)
+                                    menu_item.Text = all_graphic_objects(j).DisplayName;
+                                else
+                                    menu_item.Text = ['Line Group ', num2str(j)];
+                                end
+                            else % 'patch'
+                                if ~isempty(all_graphic_objects(j).DisplayName)
+                                    menu_item.Text = all_graphic_objects(j).DisplayName;
+                                else
+                                    menu_item.Text = ['Patch Group ', num2str(j)];
+                                end
+                            end
+
+                            menu_items = [menu_items, menu_item];
+                        end
+                    end
+                end
+            end
+
+            % Update the MenuSelectedFcn of "All" and "None" items
+            all_item.MenuSelectedFcn = {@toggleAll, fig_handle, 'on', menu_items};
+            none_item.MenuSelectedFcn = {@toggleAll, fig_handle, 'off', menu_items};
+
+            function linked = areAxesLinked(all_axes)
+                linked = true;
+                for i = 1:length(all_axes) - 1
+                    if ~isequal(all_axes(i).XLim, all_axes(i+1).XLim)
+                        linked = false;
+                        return;
+                    end
+                end
+            end
+    
+            function same = areNumLinesSame(all_axes)
+                num_lines = length(findall(all_axes(1), 'Type', 'line'));
+                same = true;
+                for i = 2:length(all_axes)
+                    if num_lines ~= length(findall(all_axes(i), 'Type', 'line'))
+                        same = false;
+                        return;
+                    end
+                end
+            end
+                
+            function toggleVisibility(src, ~, graphic_object_handle)
+                if strcmp(graphic_object_handle.Visible, 'on')
+                    graphic_object_handle.Visible = 'off';
+                    src.Checked = 'off';
+                else
+                    graphic_object_handle.Visible = 'on';
+                    src.Checked = 'on';
+                end
+            end
+
+            function toggleVisibilityGroup(src, ~, graphic_object_index)
+                fig = src.Parent.Parent;
+                all_axes = findall(fig, 'Type', 'axes');
+                for i = 1:length(all_axes)
+                    all_graphic_objects = findall(all_axes(i), 'Type', 'line', '-or', 'Type', 'patch');
+                    if graphic_object_index <= length(all_graphic_objects)
+                        toggleVisibility(src, [], all_graphic_objects(graphic_object_index));
+                    end
+                end
+            end
+
+            function toggleAll(src, ~, fig_handle, state, menu_items)
+                all_axes = findall(fig_handle, 'Type', 'axes');
+                for i = 1:length(all_axes)
+                    all_graphic_objects = findall(all_axes(i), 'Type', 'line', '-or', 'Type', 'patch');
+                    for j = 1:length(all_graphic_objects)
+                        all_graphic_objects(j).Visible = state;
+                    end
+                end
+                if strcmp(state, 'on')
+                    src.Checked = 'on';
+                    for i = 1:length(menu_items)
+                        menu_items(i).Checked = 'on';
+                    end
+                else
+                    src.Checked = 'off';
+                    for i = 1:length(menu_items)
+                        menu_items(i).Checked = 'off';
+                    end
+                end
+            end
+        end       
 
         function addExportMenu(fig_handle)
             % Add a menu Export to figure            
@@ -291,7 +439,7 @@ classdef Core_UI < Logos
                 
                 if ~isempty(file_name)
                     if nargin < 3
-                        beautify_mode = Go_Settings.getInstance.getGUIModeExport;
+                        beautify_mode = App_Settings.getInstance.getGUIModeExport;
                     end
                     
                     if nargin < 4 || isempty(flag_transparent)
@@ -324,8 +472,8 @@ classdef Core_UI < Logos
                             file_name = fullfile(file_dir, [file_name file_ext]);
                             
                             Core_Utils.exportFig(fh, file_name, beautify_mode, flag_transparent);
-                            if ~isempty(beautify_mode) && ~strcmp(beautify_mode, Go_Settings.getInstance.getGUIMode)
-                                Core_UI.beautifyFig(fh, Go_Settings.getInstance.getGUIMode);
+                            if ~isempty(beautify_mode) && ~strcmp(beautify_mode, App_Settings.getInstance.getGUIMode)
+                                Core_UI.beautifyFig(fh, App_Settings.getInstance.getGUIMode);
                             end
                         end
                     end
@@ -426,7 +574,11 @@ classdef Core_UI < Logos
                         lh = findall(fh.Children(end).Children, 'Type', 'line', 'UserData', caller.Source.UserData);
                     end
                     mh = caller.Source;
-                    value = iif(lh(1).Visible(2) == 'n', 'off', 'on'); % toggle visibility
+                    if isa(lh(1).Visible,'matlab.lang.OnOffSwitchState')
+                        value = iif(lh(1).Visible == 'on', 'off', 'on'); % toggle visibility
+                    else
+                        value = iif(lh(1).Visible(2) == 'n', 'off', 'on'); % toggle visibility
+                    end
                 end
                 
                 for i = 1 : numel(lh)
@@ -487,9 +639,9 @@ classdef Core_UI < Logos
             end
         end
         
-        function beautifyFig(fig_handle, color_mode)
+        function beautifyFig(fig_handle_list, color_mode, flag_no_labels)
             % Change font size / type colors of a figure
-            % 
+            %
             % INPUT:
             %   fig_handle  figure handler (e.g. gcf)
             %   color_mode  two modes are supported:
@@ -500,256 +652,289 @@ classdef Core_UI < Logos
             %   Core_UI.beautifyFig(fig_handle, color_mode)
             FONT = 'Open Sans';
             %FONT = 'Helvetica';
-            if nargin == 0 || isempty(fig_handle)
-                fig_handle = gcf;
-            end
-            if nargin < 2 || isempty(color_mode)
-                color_mode = Go_Settings.getInstance.getGUIMode;
-            end
-            ax_list = findall(fig_handle,'type','axes');
-            for ax = ax_list(:)'
-                ax.FontName = 'Open Sans';
-                ax.FontWeight = 'bold';
-            end
-            set(fig_handle, ...
-                'DefaultFigureColor', 'w', ...
-                'DefaultAxesLineWidth', 0.5, ...
-                'DefaultAxesXColor', 'k', ...
-                'DefaultAxesYColor', 'k', ...
-                'DefaultAxesFontUnits', 'points', ...
-                'DefaultAxesFontSize', Core_UI.getFontSize(8), ...
-                'DefaultAxesFontName', FONT, ...
-                'DefaultLineLineWidth', 1, ...
-                'DefaultTextFontUnits', 'Points', ...
-                'DefaultTextFontSize', Core_UI.getFontSize(13), ...
-                'DefaultTextFontName', FONT, ...
-                'DefaultTextFontWeight', 'bold', ...
-                'DefaultAxesBox', 'off', ...
-                'DefaultAxesTickLength', [0.02 0.025]);
-            
-            set(fig_handle, 'DefaultAxesTickDir', 'out');
-            set(fig_handle, 'DefaultAxesTickDirMode', 'manual');
-            
+            for fig_handle = fig_handle_list(:)'
+                if nargin == 0 || isempty(fig_handle)
+                    fig_handle = gcf;
+                end
+                if nargin < 2 || isempty(color_mode)
+                    color_mode = App_Settings.getInstance.getGUIMode;
+                end
+                ax_list = findall(fig_handle,'type','axes');
+                for ax = ax_list(:)'
+                    ax.FontName = 'Open Sans';
+                    ax.FontWeight = 'bold';
+                end
+                set(fig_handle, ...
+                    'DefaultFigureColor', 'w', ...
+                    'DefaultAxesLineWidth', 0.5, ...
+                    'DefaultAxesXColor', 'k', ...
+                    'DefaultAxesYColor', 'k', ...
+                    'DefaultAxesFontUnits', 'points', ...
+                    'DefaultAxesFontSize', Core_UI.getFontSize(8), ...
+                    'DefaultAxesFontName', FONT, ...
+                    'DefaultLineLineWidth', 1, ...
+                    'DefaultTextFontUnits', 'Points', ...
+                    'DefaultTextFontSize', Core_UI.getFontSize(13), ...
+                    'DefaultTextFontName', FONT, ...
+                    'DefaultTextFontWeight', 'bold', ...
+                    'DefaultAxesBox', 'off', ...
+                    'DefaultAxesTickLength', [0.02 0.025]);
 
-            ui_list = findall(fig_handle, 'Type', 'uicontrol');
-            for ui = ui_list(:)'
-                if ~ischar(ui.BackgroundColor) && all(ui.BackgroundColor > 0.5)
-                    ui.FontName = FONT;
-                    ui.FontSize = iif(ui.FontSize == 12, Core_UI.getFontSize(12), Core_UI.getFontSize(13));
-                end
-            end
-            
-            cb_list = findall(fig_handle, 'Type', 'colorbar');
-            for cb = cb_list(:)'
-                cb.FontName = FONT;
-                cb.FontSize = Core_UI.getFontSize(13);
-                cbt_list = findall(cb.UserData, 'Type', 'text');
-                for cbt = cbt_list(:)'
-                    cbt.FontName = FONT;
-                    cbt.FontSize = Core_UI.getFontSize(12);
-                end
-            end
-            
-            ax_list = findall(fig_handle,'type','axes');
-            for ax = ax_list(:)'
-                ax.FontName = FONT;
-                ax.FontSize = Core_UI.getFontSize(11);
-                text_label = findall(ax, 'Type', 'text');
-                for txt = text_label(:)'
-                    % If the text have the same color of the background change it accordingly
-                    txt.FontName = FONT;
-                    %txt.FontSize = iif(txt.FontSize == 9, Core_UI.getFontSize(9), Core_UI.getFontSize(10));
-                end
-            end
-            text_label = findall(gcf,'Tag', 'm_grid_xticklabel');
-            for txt = text_label(:)'
-                txt.FontName = FONT;
-                txt.FontSize = Core_UI.getFontSize(16);
-            end
-            text_label = findall(gcf,'Tag', 'm_grid_yticklabel');
-            for txt = text_label(:)'
-                txt.FontName = FONT;
-                txt.FontSize = Core_UI.getFontSize(16);
-            end
-            text_label = findall(gcf,'Tag', 'm_ruler_label');
-            for txt = text_label(:)'
-                txt.FontName = FONT;
-                txt.FontSize = Core_UI.getFontSize(14);
-            end
-            legend = findall(gcf, 'type', 'legend');
-            for lg = legend(:)'
-                lg.FontName = FONT;
-                lg.FontSize = 11;
-            end
-            
-            if strcmp(color_mode, 'dark') % ------------------------------------------------------------------- DARK
-                fig_handle.Color = [0.15, 0.15 0.15];
-                box_list = findall(fig_handle, 'Type', 'uicontainer');
-                for box = box_list(:)'
-                    if ~ischar(box.BackgroundColor) && all(box.BackgroundColor > 0.5)
-                        box.BackgroundColor = 1 - box.BackgroundColor;
-                    end
-                end
+                set(fig_handle, 'DefaultAxesTickDir', 'out');
+                set(fig_handle, 'DefaultAxesTickDirMode', 'manual');
+
+                % Change generic font of uicontrols
                 ui_list = findall(fig_handle, 'Type', 'uicontrol');
                 for ui = ui_list(:)'
                     if ~ischar(ui.BackgroundColor) && all(ui.BackgroundColor > 0.5)
-                        ui.ForegroundColor = 1 - ui.ForegroundColor;
-                        ui.BackgroundColor = 1 - ui.BackgroundColor;
-                    end
-                end
-                
-                cb_list = findall(fig_handle, 'Type', 'colorbar');
-                for cb = cb_list(:)'
-                    cb.Color = [0.8 0.8 0.8];
-                    cbt_list = findall(cb.UserData, 'Type', 'text');
-                    for cbt = cbt_list(:)'
-                        cbt.Color = [0.8 0.8 0.8];
-                    end
-                end
-                ax_list = findall(fig_handle,'type','axes');
-                for ax = ax_list(:)'
-                    ax.Color = [0.2 0.2 0.2];
-                    ax.Title.Color = [1 1 1];
-                    ax.XLabel.Color = [0.8 0.8 0.8];
-                    if numel(ax.YAxis) == 2
-                        yyaxis(ax, 'left');
-                    end
-                    ax.YLabel.Color = [0.8 0.8 0.8];
-                    ax.ZLabel.Color = [0.8 0.8 0.8];
-                    ax.XColor = [0.8 0.8 0.8];
-                    if numel(ax.YAxis) == 2
-                        yyaxis(ax, 'left');
-                        ax.YColor = [0.8 0.8 0.8];
-                    else
-                        ax.YColor = [0.8 0.8 0.8];
-                    end
-                    ax.ZColor = [0.8 0.8 0.8];
-                    text_label = findall(ax, 'Type', 'text');
-                    for txt = text_label(:)'
-                        % If the text have the same color of the background change it accordingly
-                        if isnumeric(txt.BackgroundColor) && isnumeric(txt.Color) && sum(abs(txt.BackgroundColor - txt.Color)) == 0
-                            if ~ischar(txt.BackgroundColor) && all(txt.BackgroundColor > 0.5)
-                                txt.Color = 1 - txt.Color;
-                                txt.BackgroundColor = 1 - txt.BackgroundColor;
-                            end
-                        else
-                            if ~ischar(txt.Color) && all(txt.Color < 0.5)
-                                txt.Color = 1 - txt.Color;
-                            end
-                            if ~ischar(txt.BackgroundColor) && all(txt.BackgroundColor > 0.5)
-                                txt.BackgroundColor = 1 - txt.BackgroundColor;
-                            end
+                        ui.FontName = FONT;
+                        if not(isfield(ui.UserData, 'keep_size') && ui.UserData.keep_size)
+                            ui.FontSize = iif(ui.FontSize == 12, Core_UI.getFontSize(12), Core_UI.getFontSize(13));
                         end
                     end
                 end
-                text_label = findall(gcf,'Tag', 'm_grid_xticklabel');
-                for txt = text_label(:)'
-                    txt.Color = [0.8 0.8 0.8];
-                end
-                text_label = findall(gcf,'Tag', 'm_grid_yticklabel');
-                for txt = text_label(:)'
-                    txt.Color = [0.8 0.8 0.8];
-                end
-                text_label = findall(gcf,'Tag', 'm_ruler_label');
-                for txt = text_label(:)'
-                    txt.Color = [0.8 0.8 0.8];
-                end
-                legend = findall(gcf, 'type', 'legend');
-                for lg = legend(:)'
-                    lg.Color = [1 1 1];
-                    lg.Title.Color = [0 0 0];
-                    lg.TextColor = 1-[0.8 0.8 0.8];
-                    lg.EdgeColor = [0.5 0.5 0.5];
-                end
-                
-            elseif strcmp(color_mode, 'light') % ------------------------------------------------------------------- LIGHT
-                fig_handle.Color = [1 1 1];
-                box_list = findall(fig_handle, 'Type', 'uicontainer');
-                for box = box_list(:)'
-                    if ~ischar(box.BackgroundColor) && all(box.BackgroundColor < 0.5)
-                        box.BackgroundColor = 1 - box.BackgroundColor;
-                    end
-                end
-                ui_list = findall(fig_handle, 'Type', 'uicontrol');
-                for ui = ui_list(:)'
-                    if ~ischar(ui.BackgroundColor) && all(ui.BackgroundColor < 0.5)
-                        ui.ForegroundColor = 1 - ui.ForegroundColor;
-                        ui.BackgroundColor = 1 - ui.BackgroundColor;
-                    end
-                end
-                
+
+                % Change font of colorbar
                 cb_list = findall(fig_handle, 'Type', 'colorbar');
                 for cb = cb_list(:)'
-                    cb.Color = 1-[0.8 0.8 0.8];
+                    cb.FontName = FONT;
+                    cb.FontSize = Core_UI.getFontSize(13);
                     cbt_list = findall(cb.UserData, 'Type', 'text');
                     for cbt = cbt_list(:)'
-                        cbt.Color = 1-[0.8 0.8 0.8];
+                        cbt.FontName = FONT;
+                        cbt.FontSize = Core_UI.getFontSize(12);
                     end
                 end
+
+                % Deal with axes
                 ax_list = findall(fig_handle,'type','axes');
                 for ax = ax_list(:)'
-                    ax.Color = [1 1 1];
-                    ax.Title.Color = 1-[1 1 1];
-                    ax.XLabel.Color = 1-[0.8 0.8 0.8];
-                    if numel(ax.YAxis) == 2
-                        yyaxis(ax, 'left');
-                    end
-                    ax.YLabel.Color = 1-[0.8 0.8 0.8];
-                    ax.ZLabel.Color = 1-[0.8 0.8 0.8];
-                    ax.XColor = 1-[0.8 0.8 0.8];
-                    if numel(ax.YAxis) == 2
-                        yyaxis(ax, 'left');
-                        ax.YColor = 1-[0.8 0.8 0.8];
-                        %yyaxis(ax, 'right');
-                        %ax.YColor = [0.8 0.2 0.2];
+                    ax.FontName = FONT;
+                    ax.TitleFontSizeMultiplier = 1.3;
+                    if not(isempty(ax.Title)) && (isfield(ax.Title.UserData, 'keep_size') && ax.Title.UserData.keep_size)
+                        font_size = ax.Title.FontSize;
                     else
-                        ax.YColor = 1-[0.8 0.8 0.8];
+                        font_size = 0;
                     end
-                    ax.ZColor = 1-[0.8 0.8 0.8];
+                    ax.FontSize = Core_UI.getFontSize(11);
+                    if font_size
+                        ax.Title.FontSize = font_size;
+                    end
+
                     text_label = findall(ax, 'Type', 'text');
                     for txt = text_label(:)'
                         % If the text have the same color of the background change it accordingly
-                        if isnumeric(txt.BackgroundColor) && isnumeric(txt.Color) && sum(abs(txt.BackgroundColor - txt.Color)) == 0
-                            if ~ischar(txt.BackgroundColor) && all(txt.BackgroundColor < 0.5)
-                                txt.Color = 1 - txt.Color;
-                                txt.BackgroundColor = 1 - txt.BackgroundColor;
-                            end
-                        else
-                            if ~ischar(txt.Color) && all(txt.Color > 0.5)
-                                txt.Color = 1 - txt.Color;
-                            end
-                            if ~ischar(txt.BackgroundColor) && all(txt.BackgroundColor < 0.5)
-                                txt.BackgroundColor = 1 - txt.BackgroundColor;
-                            end
-                        end
+                        txt.FontName = FONT;
                     end
-                end                
+                end
+
+                % Axis font
                 text_label = findall(gcf,'Tag', 'm_grid_xticklabel');
                 for txt = text_label(:)'
-                    txt.Color = 1-[0.8 0.8 0.8];
+                    txt.FontName = FONT;
+                    txt.FontWeight = 'normal';
+                    if not(isfield(txt.UserData, 'keep_size') && txt.UserData.keep_size)
+                        txt.FontSize = Core_UI.getFontSize(12);
+                    end
                 end
                 text_label = findall(gcf,'Tag', 'm_grid_yticklabel');
                 for txt = text_label(:)'
-                    txt.Color = 1-[0.8 0.8 0.8];
+                    txt.FontName = FONT;
+                    txt.FontWeight = 'normal';
+                    if not(isfield(txt.UserData, 'keep_size') && txt.UserData.keep_size)
+                        txt.FontSize = Core_UI.getFontSize(12);
+                    end
                 end
+
+                % Ruler font
                 text_label = findall(gcf,'Tag', 'm_ruler_label');
                 for txt = text_label(:)'
-                    txt.Color = 1-[0.8 0.8 0.8];
+                    txt.FontName = FONT;
+                    if not(isfield(txt.UserData, 'keep_size') && txt.UserData.keep_size)
+                        txt.FontSize = Core_UI.getFontSize(11);
+                    end
                 end
+
+                % Legend font
                 legend = findall(gcf, 'type', 'legend');
                 for lg = legend(:)'
-                    lg.Color = [1 1 1];
-                    lg.Title.Color = [0 0 0];
-                    lg.TextColor = 1-[0.8 0.8 0.8];
-                    lg.EdgeColor = [0.5 0.5 0.5];
-                end                
+                    lg.FontName = FONT;
+                    lg.FontSize = 10;
+                end
+
+                if strcmp(color_mode, 'dark') % ------------------------------------------------------------------- DARK
+                    fig_handle.Color = [0.15, 0.15 0.15];
+                    box_list = findall(fig_handle, 'Type', 'uicontainer');
+                    for box = box_list(:)'
+                        if ~ischar(box.BackgroundColor) && all(box.BackgroundColor > 0.5)
+                            box.BackgroundColor = 1 - box.BackgroundColor;
+                        end
+                    end
+                    ui_list = findall(fig_handle, 'Type', 'uicontrol');
+                    for ui = ui_list(:)'
+                        if ~ischar(ui.BackgroundColor) && all(ui.BackgroundColor > 0.5)
+                            ui.ForegroundColor = 1 - ui.ForegroundColor;
+                            ui.BackgroundColor = 1 - ui.BackgroundColor;
+                        end
+                    end
+
+                    cb_list = findall(fig_handle, 'Type', 'colorbar');
+                    for cb = cb_list(:)'
+                        cb.Color = [0.8 0.8 0.8];
+                        cbt_list = findall(cb.UserData, 'Type', 'text');
+                        for cbt = cbt_list(:)'
+                            cbt.Color = [0.8 0.8 0.8];
+                        end
+                    end
+                    ax_list = findall(fig_handle,'type','axes');
+                    for ax = ax_list(:)'
+                        ax.Color = [0.2 0.2 0.2];
+                        ax.Title.Color = [1 1 1];
+                        ax.XLabel.Color = [0.8 0.8 0.8];
+                        if numel(ax.YAxis) == 2
+                            yyaxis(ax, 'left');
+                        end
+                        ax.YLabel.Color = [0.8 0.8 0.8];
+                        ax.ZLabel.Color = [0.8 0.8 0.8];
+                        ax.XColor = [0.8 0.8 0.8];
+                        if numel(ax.YAxis) == 2
+                            yyaxis(ax, 'left');
+                            ax.YColor = [0.8 0.8 0.8];
+                        else
+                            ax.YColor = [0.8 0.8 0.8];
+                        end
+                        ax.ZColor = [0.8 0.8 0.8];
+                        text_label = findall(ax, 'Type', 'text');
+                        for txt = text_label(:)'
+                            if not(isfield(txt.UserData, 'keep_color') && txt.UserData.keep_color)
+                                % If the text have the same color of the background change it accordingly
+                                if isnumeric(txt.BackgroundColor) && isnumeric(txt.Color) && sum(abs(txt.BackgroundColor - txt.Color)) == 0
+                                    if ~ischar(txt.BackgroundColor) && all(txt.BackgroundColor > 0.5)
+                                        txt.Color = 1 - txt.Color;
+                                        txt.BackgroundColor = 1 - txt.BackgroundColor;
+                                    end
+                                else
+                                    if ~ischar(txt.Color) && all(txt.Color < 0.5)
+                                        txt.Color = 1 - txt.Color;
+                                    end
+                                    if ~ischar(txt.BackgroundColor) && all(txt.BackgroundColor > 0.5)
+                                        txt.BackgroundColor = 1 - txt.BackgroundColor;
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    text_label = findall(gcf,'Tag', 'm_grid_xticklabel');
+                    for txt = text_label(:)'
+                        txt.Color = [0.8 0.8 0.8];
+                    end
+                    text_label = findall(gcf,'Tag', 'm_grid_yticklabel');
+                    for txt = text_label(:)'
+                        txt.Color = [0.8 0.8 0.8];
+                    end
+                    text_label = findall(gcf,'Tag', 'm_ruler_label');
+                    for txt = text_label(:)'
+                        txt.Color = [0.8 0.8 0.8];
+                    end
+                    legend = findall(gcf, 'type', 'legend');
+                    for lg = legend(:)'
+                        lg.Color = [1 1 1];
+                        lg.Title.Color = [0 0 0];
+                        lg.TextColor = 1-[0.8 0.8 0.8];
+                        lg.EdgeColor = [0.5 0.5 0.5];
+                    end
+
+                elseif strcmp(color_mode, 'light') % ------------------------------------------------------------------- LIGHT
+                    fig_handle.Color = [1 1 1];
+                    box_list = findall(fig_handle, 'Type', 'uicontainer');
+                    for box = box_list(:)'
+                        if ~ischar(box.BackgroundColor) && all(box.BackgroundColor < 0.5)
+                            box.BackgroundColor = 1 - box.BackgroundColor;
+                        end
+                    end
+                    ui_list = findall(fig_handle, 'Type', 'uicontrol');
+                    for ui = ui_list(:)'
+                        if ~ischar(ui.BackgroundColor) && all(ui.BackgroundColor < 0.5)
+                            ui.ForegroundColor = 1 - ui.ForegroundColor;
+                            ui.BackgroundColor = 1 - ui.BackgroundColor;
+                        end
+                    end
+
+                    cb_list = findall(fig_handle, 'Type', 'colorbar');
+                    for cb = cb_list(:)'
+                        cb.Color = 1-[0.8 0.8 0.8];
+                        cbt_list = findall(cb.UserData, 'Type', 'text');
+                        for cbt = cbt_list(:)'
+                            cbt.Color = 1-[0.8 0.8 0.8];
+                        end
+                    end
+                    ax_list = findall(fig_handle,'type','axes');
+                    for ax = ax_list(:)'
+                        ax.Color = [1 1 1];
+                        ax.Title.Color = 1-[1 1 1];
+                        ax.XLabel.Color = 1-[0.8 0.8 0.8];
+                        if numel(ax.YAxis) == 2
+                            yyaxis(ax, 'left');
+                        end
+                        ax.YLabel.Color = 1-[0.8 0.8 0.8];
+                        ax.ZLabel.Color = 1-[0.8 0.8 0.8];
+                        ax.XColor = 1-[0.8 0.8 0.8];
+                        if numel(ax.YAxis) == 2
+                            yyaxis(ax, 'left');
+                            ax.YColor = 1-[0.8 0.8 0.8];
+                            %yyaxis(ax, 'right');
+                            %ax.YColor = [0.8 0.2 0.2];
+                        else
+                            ax.YColor = 1-[0.8 0.8 0.8];
+                        end
+                        ax.ZColor = 1-[0.8 0.8 0.8];
+                        text_label = findall(ax, 'Type', 'text');
+                        for txt = text_label(:)'
+                            if not(isfield(txt.UserData, 'keep_color') && txt.UserData.keep_color)
+                                % If the text have the same color of the background change it accordingly
+                                if isnumeric(txt.BackgroundColor) && isnumeric(txt.Color) && sum(abs(txt.BackgroundColor - txt.Color)) == 0
+                                    if ~ischar(txt.BackgroundColor) && all(txt.BackgroundColor < 0.5)
+                                        txt.Color = 1 - txt.Color;
+                                        txt.BackgroundColor = 1 - txt.BackgroundColor;
+                                    end
+                                else
+                                    if ~ischar(txt.Color) && all(txt.Color > 0.5)
+                                        txt.Color = 1 - txt.Color;
+                                    end
+                                    if ~ischar(txt.BackgroundColor) && all(txt.BackgroundColor < 0.5)
+                                        txt.BackgroundColor = 1 - txt.BackgroundColor;
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    text_label = findall(gcf,'Tag', 'm_grid_xticklabel');
+                    for txt = text_label(:)'
+                        txt.Color = 1-[0.8 0.8 0.8];
+                    end
+                    text_label = findall(gcf,'Tag', 'm_grid_yticklabel');
+                    for txt = text_label(:)'
+                        txt.Color = 1-[0.8 0.8 0.8];
+                    end
+                    text_label = findall(gcf,'Tag', 'm_ruler_label');
+                    for txt = text_label(:)'
+                        txt.Color = 1-[0.8 0.8 0.8];
+                    end
+                    legend = findall(gcf, 'type', 'legend');
+                    for lg = legend(:)'
+                        lg.Color = [1 1 1];
+                        lg.Title.Color = [0 0 0];
+                        lg.TextColor = 1-[0.8 0.8 0.8];
+                        lg.EdgeColor = [0.5 0.5 0.5];
+                    end
+                end
+
+                % ResizeFig
+                Core_UI.resizeFig(fig_handle);
             end
-            
-            % ResizeFig
-            Core_UI.resizeFig(fig_handle);
         end
-        
-        function resizeFig(fig_handle)
+
+        function resizeFig(fig_handle, xy_size)
             % Change size of a figure with standard values
             % (only if it is small)
             % 
@@ -762,16 +947,21 @@ classdef Core_UI < Logos
             fig_handle.Units = 'pixels';
             drawnow
             if isprop(fig_handle,'InnerPosition')
-                flag_small_fig = fig_handle.InnerPosition(3) <= (600) && fig_handle.InnerPosition(4) <= (450);
+                flag_small_fig = fig_handle.InnerPosition(3) <= (800) && fig_handle.InnerPosition(4) <= (550);
             else
-                flag_small_fig = fig_handle.Position(3) <= (600) && fig_handle.Position(4) <= (450);
+                flag_small_fig = fig_handle.Position(3) <= (800) && fig_handle.Position(4) <= (550);
+            end
+            if nargin == 2 && not(isempty(xy_size))
+                flag_small_fig = true;
+            else
+                xy_size = [1180 700];
             end
             
             if ~strcmp(fig_handle.WindowStyle, 'docked') && flag_small_fig
                 if isprop(fig_handle,'InnerPosition')
-                    fig_handle.InnerPosition([3, 4]) = [1020 700];
+                    fig_handle.InnerPosition([3, 4]) = xy_size;
                 else
-                    fig_handle.Position([3, 4]) = [1020 700];
+                    fig_handle.Position([3, 4]) = xy_size;
                 end
                 if isunix && not(ismac())
                     fig_handle.Position(1) = round((fig_handle.Parent.ScreenSize(3) - fig_handle.Position(3)) / 2);
@@ -821,11 +1011,7 @@ classdef Core_UI < Logos
             
             Core_UI.insertEmpty(logo_g);
             logo_ax = axes( 'Parent', logo_g);
-            if Core.isReserved()
-                [logo, transparency] = Core_UI.getLogoGReDEdition();
-            else
-                [logo, transparency] = Core_UI.getLogoOpenEdition();
-            end
+            [logo, transparency] = Core_UI.getLogoOpenEdition();
             logo(repmat(sum(logo,3) == 0,1,1,3)) = 0;
             %logo = logo - 20;
             image(logo_ax, logo, 'AlphaData', transparency);
@@ -835,7 +1021,7 @@ classdef Core_UI < Logos
             axis(logo_ax, 'off');
             logo_ax.Position([1,2]) = [size(logo,1) size(logo,2)];
             % Title and description
-            version_txt = text(220, 85, [Core.GO_GPS_VERSION ' '], ...
+            version_txt = text(220, 85, [Core.APP_VERSION ' '], ...
                 'FontName', 'verdana', ...
                 'FontSize', Core_UI.getFontSize(5), ...
                 'FontWeight', 'bold');
@@ -891,7 +1077,7 @@ classdef Core_UI < Logos
             version_txt = uicontrol('Parent', descr_bv, ...
                 'Style', 'Text', ...
                 'HorizontalAlignment', 'right', ...
-                'String', [Core.GO_GPS_VERSION ' '], ...
+                'String', [Core.APP_VERSION ' '], ...
                 'BackgroundColor', logo_bg_color, ...
                 'ForegroundColor', 0 * ones(3, 1), ...
                 'FontName', 'verdana', ...
@@ -923,7 +1109,29 @@ classdef Core_UI < Logos
             flag_handle.YTickLabel = [];                    
             axis(flag_handle, 'off');
         end            
-           
+
+        function [chxbox_handle, editable_handle] = insertSelectorCC(parent, title, but_tag, callback_flag, property_name, callback_edit, color_bg)
+            box_handle = uix.Grid('Parent', parent, ...
+                'Padding', 0, ...
+                'BackgroundColor',color_bg);
+
+            chxbox_handle = uicontrol('Parent', box_handle,...
+                'Style', 'checkbox',...
+                'BackgroundColor', color_bg, ...
+                'String', title, ...
+                'UserData', but_tag,...
+                'Callback', callback_flag ...
+                );
+
+            editable_handle = uicontrol('Parent', box_handle,...
+                'Style', 'edit',...
+                'UserData', property_name, ...
+                'Callback', callback_edit);
+            Core_UI.insertEmpty(box_handle, color_bg);
+            box_handle.Widths = [100 40];
+            box_handle.Heights = Core_UI.LINE_HEIGHT;
+        end
+        
         function chxbox_handle = insertCheckBoxCC(parent, title, but_tag, callback, color)
             chxbox_handle = uicontrol('Parent', parent,...
                 'Style', 'checkbox',...
@@ -1432,7 +1640,7 @@ classdef Core_UI < Logos
             box_handle.Heights = -1;
         end
         
-         function [box_handle, editable_handle] = insertEditBox(parent, text_left, property_name, text_right, callback, widths, color_bg, color_txt)
+        function [box_handle, editable_handle] = insertEditBox(parent, text_left, property_name, text_right, callback, widths, color_bg, color_txt)
             if nargin < 6 || isempty(widths)
                 if nargin < 4 || isempty(text_right)
                     widths  = [-1 -1];
@@ -2037,10 +2245,6 @@ classdef Core_UI < Logos
                     container.Units = cu;
             end            
             axis off;
-            if Core.isReserved
-                GReD_Utility.insertLogoGReD(container, location);
-            end
-
         end
     end
 end

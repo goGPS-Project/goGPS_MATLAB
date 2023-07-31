@@ -31,10 +31,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti
 %  Contributors:      Andrea Gatti, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -69,7 +69,7 @@ classdef Ini_Manager < handle
     end
 
     properties (GetAccess = 'public', SetAccess = 'protected')
-        c_comment  = [';', Ini_Manager.STD_COMMENT];  % Character Identifying the start of a comments
+        c_comment  = Ini_Manager.STD_COMMENT;  % Character Identifying the start of a comments
         file_name = 'config.ini';         % Name (and full path) of the ini
         fid = 0;                          % Handle of the ini file
         rw = 'r';                         % File access mode (r/w)
@@ -259,7 +259,7 @@ classdef Ini_Manager < handle
 
         % Write File ------------------------------------------------------
         function errStatus = writeFile(this)
-            % Force reading of the File
+            % writes the File
             errStatus = false;
             if isempty(this.getFileName())
                 this.log.addError(sprintf('INI writing  of file "%s" failed', this.getFileName()));
@@ -267,11 +267,26 @@ classdef Ini_Manager < handle
             else
                 if (this.fid ~= -1)   % If file access is ok
                     try
-                        this.fid = fopen(this.getFileName(), this.getRW());
+                        this.fid = fopen(this.getFileName(), 'w');
                         % Convert raw data to string
+                        str_cell = {};
+                        if isempty(this.raw_data)
+                           % Try to export from parsed data
+                           if not(isempty(this.section))
+                               for s = 1:numel(this.section)
+                                   str_cell = this.toIniStringSection(this.section{s}.name, str_cell);
+                                   for k = 1:numel(this.section{s}.key)
+                                       str_cell = this.toIniString(this.section{s}.key{k}.name, this.section{s}.key{k}.data, '', str_cell);
+                                   end
+                               end
+                           end
+                        else
+                            str_cell = this.raw_data;
+                        end
+
                         tmp_str = '';
-                        for i = 1 : numel(this.raw_data)
-                            tmp_str = [tmp_str this.raw_data{i} 10]; %#ok<AGROW>
+                        for i = 1 : numel(str_cell)
+                            tmp_str = [tmp_str str_cell{i} 10]; %#ok<AGROW>
                         end
                         fwrite(this.fid, tmp_str);
                         fclose(this.fid);
@@ -280,7 +295,7 @@ classdef Ini_Manager < handle
                         this.log.addError(['INI file cannot be written (' this.file_name '): ' ex.message]);
                     end
 
-                    this.log.addStatusOk('The INI file has been writted correctly', 10);
+                    this.log.addStatusOk(sprintf('"%s" has been updated', this.getFileName()), 10);
                 else
                     this.log.addError(['INI file write failed:' ferror(this.fid)]);
                 end
@@ -293,8 +308,15 @@ classdef Ini_Manager < handle
             %  - file_name changed
             %  - force flag == 1
             %  - INI not yet read
+            %
+            % SYNTAX
+            %   this.update(file_name, force_read)
             if nargin == 2
                 force_read = 0;
+            end
+            if nargin < 3
+                file_name = this.getFileName;
+                force_read = 1;
             end
             reloaded = 0;
             if (~strcmp(file_name,this.getFileName) || (force_read == 1) || ~this.getReadStatus())
@@ -631,11 +653,16 @@ classdef Ini_Manager < handle
                     end
                 end
                 if (isempty(data))
-                    this.log.addWarning(['Key "' key '" not found while reading: "' this.file_name '"'], 10);
+                    this.log.addWarning(['Key "' key '" not found while reading: "' this.file_name '"'], 9);
                 end
             else
+                if isempty(this.section)
+                    % If the section does not exist
+                    this.section = {struct('name', section, 'key', data)};
+                    this.section{end}.key = {struct('name', key, 'data', data)};
+                end
                 while ((s<=length(this.section)) && (s ~= 0))
-                    if (strcmp(this.section{s}.name,section))
+                    if (strcmp(this.section{s}.name, section))
                         k = 1;
                         while ((k<=length(this.section{s}.key)) && (k ~= 0))
                             if (strcmp(this.section{s}.key{k}.name,key))
@@ -645,13 +672,20 @@ classdef Ini_Manager < handle
                                 k = k + 1;
                             end
                         end
+                        if k ~= 0
+                            % If the key does not exist
+                            this.section{s}.key = [this.section{s}.key {struct('name', key, 'data', data)}];
+                            k = 0;
+                        end
                         s = 0;
                     else
                         s = s + 1;    % go on with the search of the section
                     end
                 end
                 if (k ~= 0)
-                    this.log.addWarning(['Key "' key '" not found while reading: "' this.file_name '"'], 10);
+                    this.log.addWarning(['Key "' key '" not found while reading: "' this.file_name '"'], 9);
+                    this.section = [this.section {struct('name', section, 'key', data)}];
+                    this.section{end}.key = {struct('name', key, 'data', data)};
                 end
             end
         end
@@ -843,7 +877,7 @@ classdef Ini_Manager < handle
                     end
                     fprintf(' ]\n');
                 else
-                    % if it iks not an array of string...
+                    % if it is not an array of string...
                     if (ischar(tmpData))
                         fprintf('             |- "%s" = "%s"\n',key, num2str(tmpData));
                     else

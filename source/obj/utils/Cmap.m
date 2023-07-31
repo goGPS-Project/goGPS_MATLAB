@@ -16,10 +16,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti
 %  Contributors:      Andrea Gatti
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -1030,7 +1030,11 @@ classdef Cmap
             Lab1 = Lab2;
             Lab2 = [72 -29 31];
             step = 1/(n_val+1);
-            L(s:s+n_val) = interp1([0 1]', [Lab1(1) Lab2(1)], (step:step:1)','phcip');
+            try
+                L(s:s+n_val) = interp1([0 1]', [Lab1(1) Lab2(1)], (step:step:1)','phcip');
+            catch
+                L(s:s+n_val) = interp1([0 1]', [Lab1(1) Lab2(1)], (step:step:1)','makima');
+            end
             a(s:s+n_val) = interp1([0 1]', [Lab1(2) Lab2(2)], (step:step:1)','linear');
             b(s:s+n_val) = interp1([0 1]', [Lab1(3) Lab2(3)], (step:step:1)','linear');
             s = s+n_val;
@@ -1039,7 +1043,11 @@ classdef Cmap
             Lab1 = Lab2;
             Lab2 = [58 -33 -21];
             step = 1/(n_val+1);
-            L(s:s+n_val) = interp1([0 1]', [Lab1(1) Lab2(1)], (step:step:1)','phcip');
+            try
+                L(s:s+n_val) = interp1([0 1]', [Lab1(1) Lab2(1)], (step:step:1)','phcip');
+            catch
+                L(s:s+n_val) = interp1([0 1]', [Lab1(1) Lab2(1)], (step:step:1)','makima');
+            end
             a(s:s+n_val) = interp1([0 1]', [Lab1(2) Lab2(2)], (step:step:1)','linear');
             b(s:s+n_val) = interp1([0 1]', [Lab1(3) Lab2(3)], (step:step:1)','linear');
             s = s+n_val;
@@ -1048,7 +1056,11 @@ classdef Cmap
             Lab1 = Lab2;
             Lab2 = [45 2 -60];
             step = 1/(n_val+1);
-            L(s:s+n_val) = interp1([0 1]', [Lab1(1) Lab2(1)], (step:step:1)','phcip');
+            try
+                L(s:s+n_val) = interp1([0 1]', [Lab1(1) Lab2(1)], (step:step:1)','phcip');
+            catch
+                L(s:s+n_val) = interp1([0 1]', [Lab1(1) Lab2(1)], (step:step:1)','makima');
+            end
             a(s:s+n_val) = interp1([0 1]', [Lab1(2) Lab2(2)], (step:step:1)','linear');
             b(s:s+n_val) = interp1([0 1]', [Lab1(3) Lab2(3)], (step:step:1)','linear');
             s = s+n_val;

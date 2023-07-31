@@ -1,4 +1,3 @@
-
 %   CLASS Fixer
 % =========================================================================
 %
@@ -16,10 +15,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:                    Andrea Gatti, Giulio Tagliaferro
 %  On the basis of the work of:   Andrea Nardo (on the LAMBDA approach), 
 %  Contributors:                  Eugenio Realini and Hendy F. Suhandri
@@ -90,90 +89,99 @@ classdef Fixer < handle
                 % Regularize the ambiguity covariance matrix
                 % => improves LAMBDA approach
                  amb_ok = (abs(diag(C_amb_amb)) < 1e10); %& abs(fracFNI(amb_float)) < 0.3; % fix only valid ambiguities
-%                  C_amb_amb(amb_ok, amb_ok) = eigRegularizer(full(C_amb_amb(amb_ok, amb_ok)), 1e6);
-%                C_amb_amb = (C_amb_amb + C_amb_amb') ./ 2; % Force it to be symmetric
+%                 C_amb_amb(amb_ok, amb_ok) = eigRegularizer(full(C_amb_amb(amb_ok, amb_ok)), 1e6);
+%                 C_amb_amb = (C_amb_amb + C_amb_amb') ./ 2; % Force it to be symmetric
             else
                 amb_ok = (abs(diag(C_amb_amb)) < 1e10); %& abs(fracFNI(amb_float)) < 0.3; % fix only valid ambiguities
                 C_amb_amb = (C_amb_amb + C_amb_amb') ./ 2; % Force it to be symmetric
-                               
             end
             
-            switch approach
-                case {'lambda_ILS'}
-                    [tmp_amb_fixed, sq_norm, success_rate] = LAMBDA(amb_float(amb_ok), full(C_amb_amb(amb_ok, amb_ok)), 1, 'P0', this.p0, 'mu', this.mu);
-                    %[tmp_amb_fixed,sqnorm,success_rate]=LAMBDA(amb_float(amb_ok), full(10 * C_amb_amb(amb_ok, amb_ok)),4,'P0',this.p0,'mu',mu);
-                    mu = ratioinv(this.p0, 1 - success_rate, length(tmp_amb_fixed));
-                    ratio = sq_norm(1) / sq_norm(2);
-                    
-                    amb_fixed = repmat(amb_fixed, 1, size(tmp_amb_fixed, 2));
-                    amb_fixed(amb_ok, :) = tmp_amb_fixed;
-                    is_fixed  = ratio <= mu;
-                    if is_fixed
-                        is_fixed = is_fixed + ~all(amb_ok);
-                    end
-                    l_fixed   = abs(rem(amb_fixed,1)) < 1e-5;
-                case {'round_then_ILS'}
-                    % round amboguities very nera to zero then apply
-                    % lambbda
-                    amb_ok = find(amb_ok);
-                    sigma_float = sqrt(diag(C_amb_amb(amb_ok, amb_ok)));
-                    pmf = Fixer.oneDimPMF(amb_float(amb_ok), sigma_float);
-                    idx_round = abs(fracFNI(amb_float(amb_ok))) < 0.1 & pmf > 0.999; % we can round right away no need for LAMBDA
-                    amb_fixed = repmat(amb_fixed, 1, 2);
-                    l_fixed   = false(size(amb_fixed));
-                    l_fixed(amb_ok(idx_round),:) = true;
-                    amb_fixed(amb_ok(idx_round),:) = repmat(round(amb_float(amb_ok(idx_round))),1,2);
-                    amb_float(amb_ok(~idx_round)) = amb_float(amb_ok(~idx_round)) - C_amb_amb(amb_ok(~idx_round), amb_ok(idx_round))*  inv(C_amb_amb(amb_ok(idx_round), amb_ok(idx_round))) * (amb_float(amb_ok(idx_round)) - amb_fixed(amb_ok(idx_round),1));
-                    C_amb_amb(amb_ok(~idx_round), amb_ok(~idx_round))   =   C_amb_amb(amb_ok(~idx_round), amb_ok(~idx_round))   -   C_amb_amb(amb_ok(~idx_round), amb_ok(idx_round))*  inv(C_amb_amb(amb_ok(idx_round), amb_ok(idx_round))) * C_amb_amb(amb_ok(idx_round), amb_ok(~idx_round));
-                    [amb_fixed(amb_ok(~idx_round),:), sq_norm, success_rate] = LAMBDA(amb_float(amb_ok(~idx_round)), full(C_amb_amb(amb_ok(~idx_round), amb_ok(~idx_round))), 1, 'P0', this.p0, 'mu', this.mu);
-                    %[tmp_amb_fixed,sqnorm,success_rate]=LAMBDA(amb_float(amb_ok), full(10 * C_amb_amb(amb_ok, amb_ok)),4,'P0',this.p0,'mu',mu);
-                    mu = ratioinv(this.p0, 1 - success_rate, length(amb_ok(~idx_round)));
-                    ratio = sq_norm(1) / sq_norm(2);
-                    is_fixed  = ratio <= mu;
-                    if is_fixed
-                        l_fixed(amb_ok(~idx_round),:) = true;
+            try
+                switch approach
+                    case {'lambda_ILS'}
+                        [tmp_amb_fixed, sq_norm, success_rate] = LAMBDA(amb_float(amb_ok), full(C_amb_amb(amb_ok, amb_ok)), 1, 'P0', this.p0, 'mu', this.mu);
+                        %[tmp_amb_fixed,sqnorm,success_rate]=LAMBDA(amb_float(amb_ok), full(10 * C_amb_amb(amb_ok, amb_ok)),4,'P0',this.p0,'mu',mu);
+                        mu = ratioinv(this.p0, 1 - success_rate, length(tmp_amb_fixed));
+                        ratio = sq_norm(1) / sq_norm(2);
+                        
+                        amb_fixed = repmat(amb_fixed, 1, size(tmp_amb_fixed, 2));
+                        amb_fixed(amb_ok, :) = tmp_amb_fixed;
+                        is_fixed  = ratio <= mu;
+                        if is_fixed
+                            is_fixed = is_fixed + ~all(amb_ok);
+                        end
+                        l_fixed   = abs(rem(amb_fixed,1)) < 1e-5;
+                    case {'round_then_ILS'}
+                        % round ambiguities very near to zero then apply
+                        % lambda
+                        amb_ok = find(amb_ok);
+                        sigma_float = sqrt(diag(C_amb_amb(amb_ok, amb_ok)));
+                        pmf = Fixer.oneDimPMF(amb_float(amb_ok), sigma_float);
+                        idx_round = abs(fracFNI(amb_float(amb_ok))) < 0.1 & pmf > 0.999; % we can round right away no need for LAMBDA
+                        amb_fixed = repmat(amb_fixed, 1, 2);
+                        l_fixed   = false(size(amb_fixed));
+                        l_fixed(amb_ok(idx_round),:) = true;
+                        amb_fixed(amb_ok(idx_round),:) = repmat(round(amb_float(amb_ok(idx_round))),1,2);
+                        amb_float(amb_ok(~idx_round)) = amb_float(amb_ok(~idx_round)) - C_amb_amb(amb_ok(~idx_round), amb_ok(idx_round))*  inv(C_amb_amb(amb_ok(idx_round), amb_ok(idx_round))) * (amb_float(amb_ok(idx_round)) - amb_fixed(amb_ok(idx_round),1));
+                        C_amb_amb(amb_ok(~idx_round), amb_ok(~idx_round))   =   C_amb_amb(amb_ok(~idx_round), amb_ok(~idx_round))   -   C_amb_amb(amb_ok(~idx_round), amb_ok(idx_round))*  inv(C_amb_amb(amb_ok(idx_round), amb_ok(idx_round))) * C_amb_amb(amb_ok(idx_round), amb_ok(~idx_round));
+                        [amb_fixed(amb_ok(~idx_round),:), sq_norm, success_rate] = LAMBDA(amb_float(amb_ok(~idx_round)), full(C_amb_amb(amb_ok(~idx_round), amb_ok(~idx_round))), 1, 'P0', this.p0, 'mu', this.mu);
+                        %[tmp_amb_fixed,sqnorm,success_rate]=LAMBDA(amb_float(amb_ok), full(10 * C_amb_amb(amb_ok, amb_ok)),4,'P0',this.p0,'mu',mu);
+                        mu = ratioinv(this.p0, 1 - success_rate, length(amb_ok(~idx_round)));
+                        ratio = sq_norm(1) / sq_norm(2);
+                        is_fixed  = ratio <= mu;
+                        if is_fixed
+                            l_fixed(amb_ok(~idx_round),:) = true;
+                            
+                        end
+                        is_fixed = true;
+                    case {'lambda_bootstrapping'}
+                        [tmp_amb_fixed,sqnorm,success_rate]=LAMBDA(amb_float(amb_ok), full(C_amb_amb(amb_ok, amb_ok)),4,'P0',this.p0,'mu',this.mu);
+                        
+                        mu = ratioinv(this.p0, 1 - success_rate, length(tmp_amb_fixed));
+                        
+                        amb_fixed = repmat(amb_fixed, 1, size(tmp_amb_fixed, 2));
+                        amb_fixed(amb_ok, :) = tmp_amb_fixed;
+                        is_fixed = true;
+                        l_fixed   = amb_ok;
+                    case {'lambda_partial'}
+                        Qahat = full(C_amb_amb(amb_ok, amb_ok));
+                        % Trick lambda code, with partials noi siamo piÃ¹ di bocca buona...
+                        % if it is almost symmetric make it symmetric
+                        if all(serialize(Qahat-Qahat' < 3e-6)) && ~all(serialize(Qahat-Qahat' < 1e-8))
+                            Qahat = (Qahat + Qahat') ./ 2;
+                        end
+                        % Add minimum of regularization
+                        reg_factor = median(eig(Qahat))*1e-8;
+                        Qahat = Qahat + reg_factor*eye(size(Qahat));
+                        [tmp_amb_fixed, sq_norm, success_rate,~,~,nfx,mu] = LAMBDA(amb_float(amb_ok), Qahat, 5, 'P0', 0.995, 'mu', this.mu);
+                        is_fixed = true;
+                        l_fixed   = amb_ok;
+                        l_fixed(l_fixed) = abs(fracFNI(tmp_amb_fixed(:,1))) < 1e-9;
+                        amb_fixed(amb_ok, 1) = tmp_amb_fixed(:,1);
+                    case {'bayesian_with_monte_carlo'}
+                        [tmp_amb_fixed] = this.bayesianAmbFixing(amb_float(amb_ok), full( C_amb_amb(amb_ok, amb_ok)));
+                        amb_fixed(amb_ok, :) = tmp_amb_fixed;
+                        is_fixed = true;
+                        l_fixed = amb_ok;
+                    case {'best_integer_equivariant'}
+                        [tmp_amb_fixed] = this.BIE(amb_float(amb_ok), full(C_amb_amb(amb_ok, amb_ok)));
+                        amb_fixed(amb_ok, :) = tmp_amb_fixed;
+                        is_fixed = true;
+                        l_fixed = amb_ok;
+                    case {'sequential_best_integer_equivariant'}
+                        % boostrap solution starting from the most probable and
+                        % not the one with lower formal errror
+                        l_fixed = amb_ok;
+                        [amb_fixed(amb_ok), l_fixed(amb_ok),  VCV_not_fixed] = this.mp_bootstrap(amb_float(amb_ok),full(C_amb_amb(amb_ok, amb_ok)));
+                        is_fixed = true;
+                end
+            catch ex
+                is_fixed = false;
+                l_fixed = nan(size(amb_float));
 
-                    end
-                    is_fixed = true;
-                case {'lambda_bootstrapping'}
-                    [tmp_amb_fixed,sqnorm,success_rate]=LAMBDA(amb_float(amb_ok), full(C_amb_amb(amb_ok, amb_ok)),4,'P0',this.p0,'mu',this.mu);
-                    
-                    mu = ratioinv(this.p0, 1 - success_rate, length(tmp_amb_fixed));
-                    
-                    amb_fixed = repmat(amb_fixed, 1, size(tmp_amb_fixed, 2));
-                    amb_fixed(amb_ok, :) = tmp_amb_fixed;
-                    is_fixed = true;
-                    l_fixed   = amb_ok;
-                case {'lambda_partial'}
-                    Qahat = full(C_amb_amb(amb_ok, amb_ok));
-                    % Trick lambda code, with partials noi siamo piÿ di bocca buona...
-                    % if it is almost square make it square
-                    if all(serialize(Qahat-Qahat' < 1e-6)) && ~all(serialize(Qahat-Qahat' < 1e-8))
-                        Qahat = (Qahat + Qahat') ./ 2;
-                    end
-                    
-                    [tmp_amb_fixed, sq_norm, success_rate,~,~,nfx,mu] = LAMBDA(amb_float(amb_ok), Qahat, 5, 'P0', 0.995, 'mu', this.mu);
-                    is_fixed = true;
-                    l_fixed   = amb_ok;
-                    l_fixed(l_fixed) = abs(fracFNI(tmp_amb_fixed(:,1))) < 1e-9;
-                    amb_fixed(amb_ok, 1) = tmp_amb_fixed(:,1);
-
-                case {'bayesian_with_monte_carlo'}
-                    [tmp_amb_fixed] = this.bayesianAmbFixing(amb_float(amb_ok), full( C_amb_amb(amb_ok, amb_ok)));
-                    amb_fixed(amb_ok, :) = tmp_amb_fixed;
-                    is_fixed = true;
-                    l_fixed = amb_ok;
-                case {'best_integer_equivariant'}
-                    [tmp_amb_fixed] = this.BIE(amb_float(amb_ok), full(C_amb_amb(amb_ok, amb_ok)));
-                    amb_fixed(amb_ok, :) = tmp_amb_fixed;
-                    is_fixed = true;
-                    l_fixed = amb_ok;
-                case {'sequential_best_integer_equivariant'}
-                    % boostrap solution starting from the most probable and
-                    % not the one with lower formal errror
-                    l_fixed = amb_ok;
-                    [amb_fixed(amb_ok), l_fixed(amb_ok),  VCV_not_fixed] = this.mp_bootstrap(amb_float(amb_ok),full(C_amb_amb(amb_ok, amb_ok)));
-                    is_fixed = true;
+                Core_Utils.printEx(ex);
+                Core.getLogger.addError('Fixing failed :-(');
+                %Core.getCurrentCore.exportMat();
             end
         end
     end

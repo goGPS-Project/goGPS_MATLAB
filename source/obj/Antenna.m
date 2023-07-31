@@ -16,10 +16,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti, Giulio Tagliaferro ...
 %  Contributors:      Andrea Gatti, Giulio Tagliaferro ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -206,9 +206,9 @@ classdef Antenna < handle
                 this.n_freq = 0;
             end
 
-            id_fstart = find(txt(lim(:,1) + 61) == 'T'); % find lines containg START OF FREQUENCY
+            id_fstart = find(txt(lim(:,1) + 61) == 'T' &txt(lim(:,1) + 74) == 'E' ); % find lines containg START OF FREQUENCY
             id_pco = find(txt(lim(:,1) + 60) == 'N'); % find lines containg  NORTH / EAST / UP
-            id_fstop = find(txt(lim(:,1) + 61) == 'N'); % find lines containg END OF FREQUENCY
+            id_fstop = find(txt(lim(:,1) + 61) == 'N'&txt(lim(:,1) + 72) == 'E' ); % find lines containg END OF FREQUENCY
             
             if this.n_freq ~= numel(id_fstart) || this.n_freq ~= numel(id_pco) || this.n_freq ~= numel(id_fstop)
                 % Frequencies are currupted, no scanning is admissible for this antenna
@@ -480,7 +480,7 @@ classdef Antenna < handle
                         % Using scattered interpolant for azimuth to have a smooth interpolation
                         [zen_m, az_m] = ndgrid(zen_pcv, az_val);
                         fun = griddedInterpolant(zen_m, az_m, pcv_val, 'linear');
-                        pcv_delay = fun(zen, az);
+                        pcv_delay = fun(zen, mod(az,360));
                     elseif strcmp(method, 'lin')
                         
                         % linear interpolation between consecutive values

@@ -21,10 +21,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti
 %  Contributors:      Andrea Gatti
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -186,9 +186,9 @@ classdef Com_Interface < handle
 
         function reset_count = pause(this, seconds, reset_count)
             % Display wait message
-            %
+            % 
             % SINTAX
-            %   this.deleteMsg(<msg_type>, <all_ids>)
+            %   this.pause(seconds, reset_count)
             
             if nargin > 2 && ~isempty(reset_count) && reset_count > 0
                this.nch_wait = 0;

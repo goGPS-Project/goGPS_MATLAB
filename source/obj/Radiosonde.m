@@ -19,10 +19,10 @@ classdef Radiosonde < handle
     %     __ _ ___ / __| _ | __|
     %    / _` / _ \ (_ |  _|__ \
     %    \__, \___/\___|_| |___/
-    %    |___/                    v 1.0RC1
+    %    |___/                    v 1.0
     %
     %--------------------------------------------------------------------------
-    %  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+    %  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
     %  Written by:        Andrea Gatti, Alice Bonfiglio, Stefano Barindelli
     %  Contributors:      Andrea Gatti, Alice Bonfiglio, Stefano Barindelli, Alessandra Mascitelli
     %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -56,7 +56,7 @@ classdef Radiosonde < handle
         data_time       % time as datetime                  datetime [n_records x 1]
         pressure        % pressure [hPa]                    double   [n_records x 1]
         height          % height [m]                        double   [n_records x 1]
-        temperature     % temperature [ÿC]                  double   [n_records x 1]
+        temperature     % temperature [Ã¿C]                  double   [n_records x 1]
         rel_humidity    % relatibe humidity [%]             double   [n_records x 1]
         
         ref_time        % launch epoch;
@@ -68,8 +68,8 @@ classdef Radiosonde < handle
         MAX_DIST = 100;  % Maximum distance in Km from a station to consider it valid
         
         JAPAN_STATION = {'47401', '47418', '47412', '47580', '47582', '47600', '47646', '47681', '47678', '47741', '47778', '47807', '47827', '47909', '47945', '47918'};
-        ITALY_STATION = {'16045', '16080', '16113', '16245', '16320', '16429', '16546'};
-        ITALY_LINATE = '16080';
+        ITALY_STATION = {'16045', '16064', '16113', '16245', '16320', '16429', '16546'};
+        ITALY_NOVARA = '16064';
     end
     
     methods (Static)
@@ -219,7 +219,9 @@ classdef Radiosonde < handle
                     end
                 else
                     try
-                        mkdir(sta_dir);
+                        if ~exist(sta_dir, 'dir')
+                            mkdir(sta_dir);
+                        end
                     catch
                         Core.getLogger.addWarning(sprintf('RAOB dir cannot be created at "%s"', sta_dir));
                     end
@@ -563,7 +565,7 @@ classdef Radiosonde < handle
                     %barometric formula for finding h
                     p0 = 101325; %Pa -> Sea level standard atmospheric pressure
                     %L = 0.0065; %K/m -> Temperature lapse rate, = g/c_p for dry air
-                    %c_p = 1007; %J/(kgÿK) -> Constant-pressure specific heat
+                    %c_p = 1007; %J/(kgÃ¿K) -> Constant-pressure specific heat
                     t0 = 288.15; %K -> Sea level standard temperature
                     flag_interval_ref = getFlagsLimits(nan_height);
                     for h = 1:size(flag_interval_ref,1)
@@ -1813,7 +1815,7 @@ classdef Radiosonde < handle
                 '15420  Bucuresti Inmh-Banesa (LRBS)';
                 '15614  Sofia (Observ) (LBSF)';
                 '16045  Rivolto (LIPI)';
-                '16080  Milano/Linate (LIML)';
+                '16064  Novara/Cameri (LIMN)';
                 '16113  Cuneo-Levaldigi';
                 '16245  Pratica Di Mare (LIRE)';
                 '16320  Brindisi (LIBR)';
@@ -1917,7 +1919,7 @@ classdef Radiosonde < handle
             raob_list.s15420 = struct('lat',   44.50, 'lon',   26.13, 'name', 'LRBS Bucuresti Inmh-Banesa');
             raob_list.s15614 = struct('lat',   42.65, 'lon',   23.38, 'name', 'LBSF Sofia (Observ)');
             raob_list.s16045 = struct('lat',   45.97, 'lon',   13.05, 'name', 'LIPI Rivolto');
-            raob_list.s16080 = struct('lat',   45.43, 'lon',    9.28, 'name', 'LIML Milano');
+            raob_list.s16064 = struct('lat',   45.43, 'lon',    9.28, 'name', 'LIML Milano');
             raob_list.s16113 = struct('lat',   44.53, 'lon',    7.61, 'name', 'Cuneo-Levaldigi');
             raob_list.s16245 = struct('lat',   41.65, 'lon',   12.43, 'name', 'LIRE Pratica Di Mare');
             raob_list.s16320 = struct('lat',   40.65, 'lon',   17.95, 'name', 'LIBR Brindisi');
@@ -2618,7 +2620,7 @@ classdef Radiosonde < handle
                 '72776'; '72786'; '72797'; '73033'; '74389'; '74455'; '74560'; '74646'; '74794'; '76225'; '76458'; '76526'; '76612'; '76654'; '76679'; '78073';
                 '78384'; '78486'; '78526'; '78583'; '78954'; '78970'; '78988'; '80001'; '82022'; '91165'; '91285'; '01415'; '02365'; '02591'; '03005'; '03808';
                 '03953'; '06011'; '06458'; '08579'; '10035'; '10113'; '10184'; '10393'; '10410'; '10548'; '10739'; '10868'; '11520'; '11747'; '11952'; '12120';
-                '12374'; '12425'; '12843'; '12982'; '13275'; '13388'; '14240'; '14430'; '15420'; '15614'; '16045'; '16080'; '16113'; '16245'; '16320'; '16429';
+                '12374'; '12425'; '12843'; '12982'; '13275'; '13388'; '14240'; '14430'; '15420'; '15614'; '16045'; '16064'; '16113'; '16245'; '16320'; '16429';
                 '16546'; '16716'; '17030'; '17064'; '17130'; '17196'; '17220'; '17240'; '17351'; '17516'; '22820'; '22845'; '26075'; '26298'; '26702'; '26781';
                 '27038'; '27199'; '27459'; '27594'; '27713'; '27707'; '27730'; '27962'; '27995'; '33317'; '33345'; '34009'; '34122'; '34172'; '34247'; '34467';
                 '34731'; '37011'; '01004'; '94998'; '78016'; '91938'};

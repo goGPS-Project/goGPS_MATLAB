@@ -15,10 +15,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti
 %  Contributors:      Andrea Gatti
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -207,6 +207,7 @@ classdef GUI_Inspector < GUI_Unique_Win
                 image(logo_ax, ones(size(logo)), 'AlphaData', transparency);
                 logo_ax.XTickLabel = [];
                 logo_ax.YTickLabel = [];
+                axis equal;
                 axis off;
                 
                 Core_UI.insertEmpty(left_tbv, logo_GUI_Inspector.BG_COLOR);
@@ -259,7 +260,7 @@ classdef GUI_Inspector < GUI_Unique_Win
                 title_l = uix.VBox('Parent', title, 'BackgroundColor', GUI_Inspector.BG_COLOR);
                 title.Widths = [60 -1];
                 Core_UI.insertEmpty(title_l, logo_GUI_Inspector.BG_COLOR)
-                txt = this.insertBoldText(title_l, ['- software V' Core.GO_GPS_VERSION], 9, [], 'left');
+                txt = this.insertBoldText(title_l, ['- software V' Core.APP_VERSION], 9, [], 'left');
                 txt.BackgroundColor = logo_GUI_Inspector.BG_COLOR;
                 title_l.Heights = [2, -1];
                 
@@ -508,15 +509,15 @@ classdef GUI_Inspector < GUI_Unique_Win
                 'BackgroundColor', cmd_bg);
 
             uicontrol( 'Parent', but_line, ...
-                'String', 'SNR (polar)', ...
-                'TooltipString', 'Sigma to Noise Ration Polar scatter (per tracking)', ...
-                'UserData', {'SHOW T@ SNR'}, ...
+                'String', 'SKY (polar)', ...
+                'TooltipString', 'Sky plots of the satellites (per constellations)', ...
+                'UserData', {'SHOW T@ SKY'}, ...
                 'Callback', @this.onInsertCommand);
             
             uicontrol( 'Parent', but_line, ...
-                'String', 'SNR (polar - interpolated)', ...
-                'TooltipString', 'Maps derived from the Signal to Noise ratio (per tracking)', ...
-                'UserData', {'SHOW T@ SNRI'}, ...
+                'String', 'SNR (polar)', ...
+                'TooltipString', 'Signal to Noise Ration Polar scatter (per tracking)', ...
+                'UserData', {'SHOW T@ SNR'}, ...
                 'Callback', @this.onInsertCommand);
             
             but_line = uix.HButtonBox('Parent', workspace_box, ...
@@ -532,6 +533,12 @@ classdef GUI_Inspector < GUI_Unique_Win
                 'UserData', {'SHOW T@ CKW'}, ...
                 'Callback', @this.onInsertCommand);
            
+            uicontrol( 'Parent', but_line, ...
+                'String', 'SNR (polar - interpolated)', ...
+                'TooltipString', 'Maps derived from the Signal to Noise ratio (per tracking)', ...
+                'UserData', {'SHOW T@ SNRI'}, ...
+                'Callback', @this.onInsertCommand);
+            
             but_line = uix.HButtonBox('Parent', workspace_box, ...
                 'ButtonSize', [165 28] , ...
                 'Spacing', 5, ...
@@ -1600,13 +1607,17 @@ classdef GUI_Inspector < GUI_Unique_Win
                         Core.getLogger.addStatusOk(sprintf('Core successifully loaded', core_file));
                     
                         rec = core.rec;
+                        coo = rec.getCoo;
+                        
                         assignin('base', 'core', core);
                         assignin('base', 'rec', rec);
+                        assignin('base', 'coo', coo);
                         
                         log = Core.getLogger();
-                        log.addMarkedMessage('Now you should be able to see 2 new variables:');
-                        log.addMessage(log.indent(' - core      the core processor object containing all the goGPS structures'));
-                        log.addMessage(log.indent(' - rec       the array of Receivers'));
+                        log.addMarkedMessage('Now you should be able to see 3 new variables:');
+                        log.addMessage(log.indent(' - core      the core processor object containing all the Breva structures'));
+                        log.addMessage(log.indent(' - rec       the array of Receivers (core.rec)'));
+                        log.addMessage(log.indent(' - coo       the array of coordinates (rec.getCoo)'));
                         log.newLine();
                     end
                 else

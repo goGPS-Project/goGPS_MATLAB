@@ -6,10 +6,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Giulio Tagliaferro
 %  Contributors:      Giulio Tagliaferro, Andrea Gatti ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -42,13 +42,13 @@ classdef Core_Reference_Frame < handle
     end
     
     properties
-        station_code
+        station_code = {};
         xyz     % XYZ coordinates
         vxvyvz  % XYZ velocities
         std_pup % std planar up
         
-        end_validity_epoch
-        start_validity_epoch
+        end_validity_epoch;
+        start_validity_epoch;
         
         flag
         is_valid
@@ -58,6 +58,8 @@ classdef Core_Reference_Frame < handle
         % Creator
         function this = Core_Reference_Frame()
             % Core object creator
+            this.end_validity_epoch = GPS_Time();
+            this.start_validity_epoch = GPS_Time();        
         end
     end
     
@@ -175,13 +177,26 @@ classdef Core_Reference_Frame < handle
             this.end_validity_epoch = [];
         end
         
-        function [xyz, is_valid, std_pup] = getCoo(this, sta_name, epoch)
+        function coo = getAllCoordinates(this)
+            % Get a single coordinate object containing the positions of all the stations
+            % 
+            % SYNTAX
+            %   rf.getAllCoordinates;
+            xyz = nan(numel(this.station_code), 3); 
+            for i = 1:numel(this.station_code); 
+                xyz(i,:) = this.getCoo(this.station_code{i}); 
+            end
+            coo = Coordinates.fromXYZ(xyz);
+        end
+
+        function [xyz, is_valid, std_pup, flag] = getCoo(this, sta_name, epoch)
             % get the coordinates of the station defined by marker name at the desidered epoch
             %
             % SYNTAX:
-            %  [xyz, is_valid] = this.getCoo(sta_name, epoch)
+            %  [xyz, is_valid, std_pup, flag] = this.getCoo(sta_name, epoch)
             xyz = [];
             std_pup = [];
+            flag = 0;
             % load RF if not loaded
             is_valid = false;
             if ~this.isValid()
@@ -219,6 +234,7 @@ classdef Core_Reference_Frame < handle
                             
                             is_valid = true;
                             std_pup = this.std_pup(idx_sta,:);
+                            flag = this.flag(idx_sta);
                         end
                     end
                 end
@@ -320,32 +336,43 @@ classdef Core_Reference_Frame < handle
             status = ~isempty(this.is_valid) && this.is_valid;
         end
         
-        function [status] = isFixed(this, sta_code)
+        function [status] = isFixed(this, sta_code, epoch)
             % tell if station coordiantes are meant to be fixed
             % in case sation not sound return false
             %
             % SYNTAX:
-            %  [status] = this.isFixed(sta_code)
+            %  [status] = this.isFixed(sta_code, epoch)
             status = false;
             if size(this.station_code) > 0
                 sta_idx = find(strcmpi(this.station_code, sta_code), 1, 'first');
                 if sum(sta_idx) > 0
-                    status  = this.flag(sta_idx(1)) == 2;
+                    if nargin == 3
+                        [~, ~, ~, flag] = this.getCoo(sta_code, epoch);
+                    else
+                        flag = this.flag(sta_idx(1));
+                    end
+                    status = any(serialize(this.xyz(sta_idx(1),:))) && flag == 2;
                 end
             end
         end
         
-        function [status] = isFixedPrepro(this, sta_code)
+        function [status] = isFixedPrepro(this, sta_code, epoch)
             % tell if station coordiantes are meant to be fixed
             % in case sation not sound return false
             %
             % SYNTAX:
-            %  [status] = this.isFixed(sta_code)
+            %  [status] = this.isFixed(sta_code, epoch)
             status = false;
             if size(this.station_code) > 0
                 sta_idx = find(strcmpi(this.station_code, sta_code), 1, 'first');
                 if sum(sta_idx) > 0
-                    status  = this.flag(sta_idx(1)) == 3;
+                    if nargin == 3
+                        [~, ~, ~, flag] = this.getCoo(sta_code, epoch);
+                    else
+                        flag = this.flag(sta_idx(1));
+                    end
+                    status = any(serialize(this.xyz(sta_idx(1),:))) && flag == 3;
+
                 end
             end
         end
@@ -360,7 +387,7 @@ classdef Core_Reference_Frame < handle
             if numel(this.station_code) > 0
                 sta_idx = find(strcmpi(this.station_code, sta_code), 1, 'first');
                 if sum(sta_idx) > 0
-                    status  = this.flag(sta_idx(1)) == 2 || this.flag(sta_idx(1)) == 1  || this.flag(sta_idx(1)) == 3;
+                    status  = any(serialize(this.xyz(sta_idx(1),:))) && (this.flag(sta_idx(1)) == 2 || this.flag(sta_idx(1)) == 1  || this.flag(sta_idx(1)) == 3);
                 end
             end
         end
@@ -375,7 +402,7 @@ classdef Core_Reference_Frame < handle
             if numel(this.station_code) > 0
                 sta_idx = find(strcmpi(this.station_code, sta_code), 1, 'first');
                 if sum(sta_idx) > 0
-                    status  = this.flag(sta_idx(1)) == 3 || this.flag(sta_idx(1)) == 2;
+                    status  = any(serialize(this.xyz(sta_idx(1),:))) && (this.flag(sta_idx(1)) == 3 || this.flag(sta_idx(1)) == 2);
                 end
             end
         end
@@ -475,8 +502,10 @@ classdef Core_Reference_Frame < handle
             str = sprintf('%s#STA             X             Y              Z  F       dX       dY        dZ   std Planar    std Up   date validity start   date validity stop\n', str);
             str = sprintf('%s#               [m]           [m]            [m]       [m/y]    [m/y]     [m/y]         [m]       [m]  yyyy-mm-dd HH:MM:SS.s yyyy-mm-dd HH:MM:SS.s\n', str);
             str = sprintf('%s#--------------------------------------------------------------------------------------------------------------------------------------------------\n', str);
-            for i = 1 : size(this.xyz, 1)
-                str = sprintf('%s%4s %+14.5f %+14.5f %+14.5f %1d %+9.5f %+9.5f %+9.5f  %+9.5f %+9.5f  %s %s\n', str, this.station_code{i}, this.xyz(i, 1), this.xyz(i, 2), this.xyz(i, 3), this.flag(i), this.vxvyvz(i, 1), this.vxvyvz(i, 2), this.vxvyvz(i, 3),  this.std_pup(i, 1),  this.std_pup(i, 2),  this.start_validity_epoch.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS.s'), this.end_validity_epoch.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS.s'));
+            if ~isempty(this.end_validity_epoch)
+                for i = 1 : this.end_validity_epoch.length
+                    str = sprintf('%s%4s %+14.5f %+14.5f %+14.5f %1d %+9.5f %+9.5f %+9.5f  %+9.5f %+9.5f  %s %s\n', str, this.station_code{i}, this.xyz(i, 1), this.xyz(i, 2), this.xyz(i, 3), this.flag(i), this.vxvyvz(i, 1), this.vxvyvz(i, 2), this.vxvyvz(i, 3),  this.std_pup(i, 1),  this.std_pup(i, 2),  this.start_validity_epoch.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS.s'), this.end_validity_epoch.getEpoch(i).toString('yyyy-mm-dd HH:MM:SS.s'));
+                end
             end
         end
         

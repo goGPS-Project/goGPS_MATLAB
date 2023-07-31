@@ -17,10 +17,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti
 %  Contributors:      Andrea Gatti, Giulio Tagliaferro, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -137,13 +137,15 @@ classdef FTP_Downloader < handle
                     this.ftp_server = ftp(strcat(this.addr, ':', this.port), this.user, this.passwd);
                 end
                 cd(this.ftp_server);
-                warning('off')
-                sf = struct(this.ftp_server);
-                warning('on')
-                if isfield(sf, 'jobject')
+                try
+                    warning('off')
+                    sf = struct(this.ftp_server);
+                    warning('on')
                     sf.jobject.enterLocalPassiveMode();
                     sf.jobject.setConnectTimeout(15);
                     sf.jobject.setDataTimeout(30);
+                catch ex
+                    % nothing to do here
                 end
             catch
                 this.ftp_server = [];
@@ -170,16 +172,16 @@ classdef FTP_Downloader < handle
             ext = '';
             if not_in_cache
                 try
-                    files = dir(this.ftp_server, folder);
+                    files = dir(this.ftp_server, fullfile(folder, '*.*'));
                     this.f_name_pool{end+1} = {folder , files};
                     idx = length(this.f_name_pool);
                 catch ex
                     try
                         this.reconnect();
-                        files = dir(this.ftp_server, folder);
+                        files = dir(this.ftp_server, fullfile(folder, '*.*'));
                         this.f_name_pool{end+1} = {folder , files};
                         idx = length(this.f_name_pool);
-                    catch
+                    catch ex
                         status = false;
                         this.log.addWarning(['Could not connect to: ' this.addr]);
                         return
@@ -188,18 +190,22 @@ classdef FTP_Downloader < handle
             end
             folder_s = this.f_name_pool{idx};
             files = folder_s{2};
-            for i = 1 : length(files)
-                if strcmp(files(i).name, f_name) || any(strfind(files(i).name, [f_name, '.']))
-                    [~, ~, ext_s] = fileparts(files(i).name); 
-                    [~, ~, ext] = fileparts(f_name);
-                    % If the file on the server is compressed return the extension of the compression
-                    ext = iif(strcmp(ext, ext_s), '', ext_s);
-                    status = true;
-                    return
-                end
+            % match f_name at the end of files.name
+            pattern = strcat('.*', regexprep(f_name, '\.', '\\.'), '(\.gz|\.bz2|\.zip|\.rar|\.7z|\.Z|\.gzip)?$');
+            if isempty(files)
+                id_match = [];
+            else
+                id_match = find(~cellfun(@isempty, regexpi({files.name}, pattern)), 1);
             end
-            status = false;
-            
+            if ~isempty(id_match)
+                status = true;
+                % If the file on the server is compressed return the extension of the compression
+                [~, ~, ext] = fileparts(f_name);
+                [~, ~, ext_s] = fileparts(files(id_match(1)).name);
+                ext = iif(strcmp(ext, ext_s), '', ext_s);
+                return
+            end
+            status = false;            
         end
         
         function [status]  = downloadUncompress(this, filepath, out_dir)
@@ -216,7 +222,7 @@ classdef FTP_Downloader < handle
                 while(retry < 2)
                     try
                         try
-                            fpath = mget(this.ftp_server, [fname '*'], out_dir); % some ftp do not work properly with "*" wildcard -> try standard names too
+                            fpath = mget(this.ftp_server, [fname '*.*'], out_dir); % some ftp do not work properly with "*" wildcard -> try standard names too
                         catch
                             fpath = [];
                         end
@@ -252,26 +258,7 @@ classdef FTP_Downloader < handle
                             status = true;
                             if this.log.isScreenOut; fprintf('\b'); end
                             this.log.addMessage(' Done');
-                            [~, ~, fext] = fileparts(fpath{1});
-                            if strcmp(fext,'.Z') || strcmp(fext,'.gz')
-                                if (isunix())
-                                    system(['gzip -d -f ' fpath{1} '&> /dev/null &']);
-                                else
-                                    try                                        
-                                        [goGPS_path] = which('goGPS');
-                                        [goGPS_dir] = fileparts(goGPS_path);
-                                        [status, result] = system(['"' goGPS_dir '\utility\thirdParty\7z1602-extra\7za.exe" -y x "' fpath{1} '" -o"'  out_dir '"']); %#ok<ASGLU>
-                                        if (status == 0)
-                                            status = true;
-                                            delete([fpath{1}]);
-                                        end
-                                    catch
-                                        this.log.addError(sprintf('Please decompress the %s file before trying to use it in goGPS!!!', fname));
-                                        status = false;
-                                    end
-                                end
-                            end
-                            
+                            status = Core_Utils.uncompressFile(fpath{1});
                         end
                     catch ex
                         pause(0.5 * (retry - 1));
@@ -284,7 +271,7 @@ classdef FTP_Downloader < handle
                 status = false;
             end
         end
-
+       
         function [status, compressed] = download(this, remote_dir, file_name, local_dir, force_overwrite)
             % function to download a file (or a list of files) from a ftp a server
             % SYNTAX:
@@ -394,17 +381,20 @@ classdef FTP_Downloader < handle
                                         this.reconnect();
                                         if compressed
                                             try
-                                                if (isunix())
-                                                    system(['uncompress -f ' local_dir filesep file_name]);
+                                                if (isunix())                                                    
+                                                    res = system(['uncompress -f ' local_dir filesep file_name]);
+                                                    if res ~= 0
+                                                        system(['gzip -d -f ' local_dir filesep file_name '&> /dev/null &']);
+                                                    end
                                                     compressed = false;
                                                 else
                                                     try
-                                                        [goGPS_path] = which('goGPS');
-                                                        [goGPS_dir] = fileparts(goGPS_path);
-                                                        [status, result] = system(['"' goGPS_dir '\utility\thirdParty\7z1602-extra\7za.exe" -y x "' local_dir filesep file_name '"' ' -o' '"' local_dir '"']); %#ok<ASGLU>
+                                                        [app_path] = Core.getInstallDir();
+                                                        [app_dir] = fileparts(app_path);
+                                                        [status, result] = system(['"' app_dir '\utility\thirdParty\7z1602-extra\7za.exe" -y x "' local_dir filesep file_name '"' ' -o' '"' local_dir '"']); %#ok<ASGLU>
                                                         delete([local_dir filesep file_name]);
                                                     catch
-                                                        this.log.addError(sprintf('Please decompress the %s file before trying to use it in goGPS!!!', file_name));
+                                                        this.log.addError(sprintf('Please decompress the %s file before trying to use it!!!', file_name));
                                                         compressed = 1;
                                                     end
                                                 end
@@ -457,7 +447,7 @@ classdef FTP_Downloader < handle
                 flag = ~system('ping -c 1 www.fast.com > /dev/null 2>&1');
             end
         end
-
+        
         function [file, status, compressed] = urlRead(ftp_addr, ftp_port, remote_dir, file_name, local_dir)
             % download and read an ftp file
             % SYNTAX: [file, status, compressed] = urlRead(ftp_addr, ftp_port, remote_dir, file_name, local_dir)

@@ -14,10 +14,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Giulio Tagliaferro
 %  Contributors:      Giulio Tagliaferro, Andrea Gatti ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -332,26 +332,59 @@ classdef Atmosphere < handle
                 this.importVMFCoeffFile(fname{i});
             end
             h_fname = state.getVMFHeightFileName();
-            fid = fopen(h_fname, 'rt');
-            if strcmpi(state.vmf_res,'2.5x2')
-                fgetl(fid); %skip one line header
-                formatSpec = [repmat([repmat(' %f',1,10) '\n'],1,14) repmat(' %f',1,5)];
-                h_data = cell2mat(textscan(fid,formatSpec,91));
-                h_data(:,end) = [];
-            elseif strcmpi(state.vmf_res,'5x5')
-                formatSpec = '%f';
-                h_data = textscan(fid,formatSpec); h_data = h_data{1,1};
-                h_data = reshape(h_data,72,36)';
-            elseif strcmpi(state.vmf_res,'1x1')
-                formatSpec = '%f';
-                h_data = textscan(fid,formatSpec); h_data = h_data{1,1};
-                h_data = reshape(h_data,360,180)';
+            h_data = 0;
+            try
+                fid = fopen(h_fname, 'rt');
+                if strcmpi(state.vmf_res,'2.5x2')
+                    try
+                        fgetl(fid); %skip one line header
+                    catch ex
+                        Core_Utils.printEx(ex);
+                    end
+                    formatSpec = [repmat([repmat(' %f',1,10) '\n'],1,14) repmat(' %f',1,5)];
+                    h_data = cell2mat(textscan(fid,formatSpec,91));
+                    h_data(:,end) = [];
+                elseif strcmpi(state.vmf_res,'5x5')
+                    formatSpec = '%f';
+                    h_data = textscan(fid,formatSpec); h_data = h_data{1,1};
+                    h_data = reshape(h_data,72,36)';
+                elseif strcmpi(state.vmf_res,'1x1')
+                    formatSpec = '%f';
+                    h_data = textscan(fid,formatSpec); h_data = h_data{1,1};
+                    h_data = reshape(h_data,360,180)';
+                end
+            catch ex
+                Core.getLogger.addError(sprintf('Error reading "%s"', h_fname));
+                Core_Utils.printEx(ex);
+                % keyboard
             end
                 
             this.vmf_coeff.ell_height = h_data;
             fclose(fid);
         end
         
+        function resetVMF(this)
+            state = Core.getState;
+            state.vmf_name = '';
+            this.vmf_coeff = struct( ...
+                'ell_height', [], ... %ellipsoidal height for the vmf values
+                'ah',         [], ...    % alpha coefficient dry
+                'aw',         [], ...    % alpha coefficent wet
+                'zhd',        [], ...    % zhd
+                'zwd',        [], ...    % zwd
+                'first_lat',  [], ...    % first latitude
+                'first_lon',  [], ...    % first longitude
+                'd_lat',      [], ...    % lat spacing
+                'd_lon',      [], ...    % lon_spacing
+                'n_lat',      [], ...    % num lat
+                'n_lon',      [], ...    % num lon
+                'first_time', [], ...    % times [time] of the maps
+                'first_time_double', [], ...    % times [time] of the maps [seconds from GPS zero]
+                'dt',         [], ...    % time spacing
+                'n_t',        [] ...   % num of epocvhs
+            );
+        end
+
         function importTidalAtmLoadHarmonics(this)
             % importing Tidal Atm and loading Harmonics
             %
@@ -521,13 +554,13 @@ classdef Atmosphere < handle
                         n_lon = 360;
                         d_lat = -1;
                         d_lon = 1;
-                        first_lat = 0.5;
+                        first_lat = 89.5;
                         first_lon = 0.5;
                     elseif strcmpi(state.vmf_res,'2.5x2')
                         n_lat = 91;
                         n_lon = 144;
-                        d_lat = -1;
-                        d_lon = 1;
+                        d_lat = -2;
+                        d_lon = 2.5;
                         first_lat = 90;
                         first_lon = 0.0;
                     elseif strcmpi(state.vmf_res,'5x5')
@@ -535,10 +568,15 @@ classdef Atmosphere < handle
                         n_lon = 72;
                         d_lat = -5;
                         d_lon = 5;
-                        first_lat = 2.5;
+                        first_lat = 87.5;
                         first_lon = 2.5;
                     end
                     data = sscanf(txt(lim(eoh + 1, 1) : lim(end,2)), '%f ');
+                    if numel(data) < n_lon * n_lat * 6
+                        % VMF file is corrupted
+                        Core.getLogger.addError(sprintf('"%s" is corrupted, consider deleting it', ffile_name));
+                        data = [data; nan(n_lon * n_lat * 6 - numel(data), 1)];
+                    end
                     ah =  reshape(data(3:6:end), n_lon, n_lat)';
                     aw =  reshape(data(4:6:end), n_lon, n_lat)';
                     zhd = reshape(data(5:6:end), n_lon, n_lat)';
@@ -930,9 +968,6 @@ classdef Atmosphere < handle
                 
                 %interpolate along time
                 zwd =  squeeze(valb).*(1-st) + squeeze(vala).*st;
-                
-                
-                
             end
         end
         
@@ -952,7 +987,7 @@ classdef Atmosphere < handle
             if isempty(this.ionex) || isempty(this.ionex.data)
                 tec = 0;
             else
-                tec = Core_Utils.linInterpLatLonTime(this.ionex.data, this.ionex.first_lat, this.ionex.d_lat, this.ionex.first_lon, this.ionex.d_lon, this.ionex.first_time_double, this.ionex.d_t, lat, lon,gps_time);
+                tec = Core_Utils.linInterpRotLatLonTime(this.ionex.data, this.ionex.first_lat, this.ionex.d_lat, this.ionex.first_lon, this.ionex.d_lon, this.ionex.first_time_double, this.ionex.d_t, lat, lon, gps_time);
             end
         end
         
@@ -995,9 +1030,10 @@ classdef Atmosphere < handle
         end
         
         function foi_delay = getFOIdelayCoeff(this,lat,lon, az,el,h,time)
-            % get first horder ionosphere delay
+            % get first order ionosphere delay
             gps_time = time.getGpsTime();
             foi_delay = zeros(size(el));
+            % For each epoch
             for t = 1: size(el,1)
                 idx_sat = find(el(t,:) > 0);
                 if length(idx_sat) > 0
@@ -1014,7 +1050,7 @@ classdef Atmosphere < handle
             % hoi_delay3 -> hoi_delay3_coeff * wavelength^4
             % bending    -> bending_coeff    * wavelength^4
             
-            % [1] Fritsche, M., R. Dietrich, C. Knÿfel, A. Rÿlke, S. Vey, M. Rothacher, and P. Steigenberger. Impact
+            % [1] Fritsche, M., R. Dietrich, C. Knofel, A. Rulke, S. Vey, M. Rothacher, and P. Steigenberger. Impact
             % of higher-order ionospheric terms on GPS estimates. Geophysical Research Letters, 32(23),
             % 2005. doi: 10.1029/2005GL024342.
             % [2] Odijk, Dennis. "Fast precise GPS positioning in the presence of ionospheric delays." (2002).
@@ -1102,158 +1138,7 @@ classdef Atmosphere < handle
     methods
         %-----------------------------------------------------------
         % TROPO
-        %-----------------------------------------------------------
-        function [delay] = saastamoinenModel(this, h, undu, el)
-            % SYNTAX:
-            %   [delay] = Atmosphere.tropo_error_correction(lat, lon, h, el);
-            %
-            % INPUT:
-            %   time_rx = receiver reception time
-            %   lat = receiver latitude          [degrees]
-            %   lon = receiver longitude         [degrees]
-            %   h  = receiver ellipsoidal height [meters]  [nx1]
-            %   el = satellite elevation         [degrees] [nx1]
-            %
-            % OUTPUT:
-            %   corr = tropospheric error correction
-            %
-            % DESCRIPTION:
-            %   Computation of the pseudorange correction due to tropospheric refraction.
-            %   Saastamoinen algorithm using standard atmosphere accounting for
-            %   height gradient for temperature pressure and humidity.
-            %   --> multi epoch for static receiver
-            
-            % Saastamoinen model requires (positive) orthometric height
-            % ÿÿ undulation is never less than 300 m (on Earth)
-            %h(undu > -300) = h(undu > -300) - undu(undu > -300);
-            h = h - undu;
-            h(h < 0) = 0;
-            
-            if (h < 5000)
-                
-                % conversion to radians
-                el = abs(el) * pi/180;
-                
-                % Standard atmosphere - Berg, 1948 (Bernese)
-                % pressure [mbar]
-                Pr = this.STD_PRES;
-                % temperature [K]
-                Tr = this.STD_TEMP;
-                % humidity [%]
-                Hr = this.STD_HUMI;
-                
-                P = Pr * (1-0.0000226*h).^5.225;
-                T = Tr - 0.0065*h;
-                H = Hr * exp(-0.0006396*h);
-                
-                %----------------------------------------------------------------------
-                
-                %linear interpolation
-                h_a = [0; 500; 1000; 1500; 2000; 2500; 3000; 4000; 5000];
-                B_a = [1.156; 1.079; 1.006; 0.938; 0.874; 0.813; 0.757; 0.654; 0.563];
-                
-                t = zeros(length(T),1);
-                B = zeros(length(T),1);
-                
-                for i = 1 : length(T)
-                    
-                    d = h_a - h(i);
-                    [~, j] = min(abs(d));
-                    if (d(j) > 0)
-                        index = [j-1; j];
-                    else
-                        index = [j; j+1];
-                    end
-                    
-                    t(i) = (h(i) - h_a(index(1))) ./ (h_a(index(2)) - h_a(index(1)));
-                    B(i) = (1-t(i))*B_a(index(1)) + t(i)*B_a(index(2));
-                end
-                
-                %----------------------------------------------------------------------
-                
-                e = 0.01 * H .* exp(-37.2465 + 0.213166*T - 0.000256908*T.^2);
-                
-                % tropospheric delay
-                w_fun = (1-tan(el).^2./(tan(el).^2+tan(el+2).^2));
-                %delay = ((0.002277 ./ sin(el)) .* (P - (B ./ tan(el).^2)) + (0.002277 ./ sin(el)) .* (1255./T + 0.05) .* e);
-                delay = ((0.002277 ./ sin(el)) .* (P - (B ./ (tan(el).^2+ 0.01.*w_fun))) + (0.002277 ./ sin(el)) .* (1255./T + 0.05) .* e); % max to eliminate numeric instability near 0
-            else
-                delay = zeros(size(el));
-            end
-        end
-        
-        function [delay] = saastamoinenModelGPT(this, gps_time, lat, lon, h, undu, el)
-            % SYNTAX
-            %   [delay] = Atmosphere.saastamoinen_model_GPT(time_rx, lat, lon, h, undu, el)
-            %
-            % INPUT:
-            %   time_rx = receiver reception time
-            %   lat = receiver latitude          [degrees]
-            %   lon = receiver longitude         [degrees]
-            %   h  = receiver ellipsoidal height [meters]
-            %   el = satellite elevation         [degrees] [nx1]
-            %
-            % OUTPUT:
-            %   corr = tropospheric error correction
-            %
-            % DESCRIPTION:
-            %   Computation of the pseudorange correction due to tropospheric refraction.
-            %   Saastamoinen algorithm using P T from Global Pressure and Temperature
-            %   (GPT), and H from standard atmosphere accounting for humidity height gradient.
-            %   --> single epoch
-            [pres, temp] = this.gpt(gps_time, lat*pi/180, lon*pi/180, h, undu);
-            
-            t_h = h;
-            t_h(undu > -300) = t_h(undu > -300) - undu(undu > -300);
-            ZHD_R = saast_dry(pres, t_h, lat);
-            ZWD_R = saast_wet(temp, this.STD_HUMI, t_h);
-            
-            [gmfh_R, gmfw_R] = this.gmf(gps_time, lat*pi/180, lon*pi/180, h - undu, (90-el)*pi/180);
-            delay = gmfh_R .* ZHD_R + gmfw_R .* ZWD_R;
-        end
-        
-        function [delay] = saastamoinenModelPTH(this, gps_time,lat, lon, h, undu, el, P, T, H)
-            % SYNTAX
-            %   [delay] = Atmosphere.saastamoinen_modelPTH(time_rx, lat, lon, h, undu, el)
-            %
-            % INPUT:
-            %   time_rx = receiver reception time
-            %   lat = receiver latitude          [degrees]
-            %   lon = receiver longitude         [degrees]
-            %   h  = receiver ellipsoidal height [meters]
-            %   el = satellite elevation         [degrees] [nx1]
-            %
-            % OUTPUT:
-            %   corr = tropospheric error correction
-            %
-            % DESCRIPTION:
-            %   Computation of the pseudorange correction due to tropospheric refraction.
-            %   Saastamoinen algorithm using P T from Global Pressure and Temperature
-            %   (GPT), and H from standard atmosphere accounting for humidity height gradient.
-            %   --> single epoch
-            
-            if isnan(P) || isnan(T) || isnan(H)
-                [pres, temp] = this.gpt(gps_time, lat*pi/180, lon*pi/180, h, undu);
-                if isnan(P)
-                    P = pres;
-                end
-                if isnan(T)
-                    T = temp;
-                end
-                if isnan(H)
-                    H = this.STD_HUMI;
-                end
-                this.log.addWarning(sprintf('No valid meteo data are present @%s\nUsing standard GPT values \n - %.1f ÿC\n - %.1f hpa\n - humidity %.1f', datestr(gps_time / 86400 + GPS_Time.GPS_ZERO, 'HH:MM'), T, P, H), 100);
-            end
-            
-            t_h = h;
-            ZHD_R = saast_dry(P, t_h, lat);
-            ZWD_R = saast_wet(T, H, t_h);
-            
-            [gmfh_R, gmfw_R] = this.gmf(gps_time, lat*pi/180, lon*pi/180, h - undu, (90-el)*pi/180);
-            delay = gmfh_R .* ZHD_R + gmfw_R .* ZWD_R;
-        end
-        
+        %-----------------------------------------------------------        
         function [pres, temp, undu] = gpt(this, gps_time, dlat, dlon, dhgt, undu)
             % This subroutine determines Global Pressure and Temperature
             % based on Spherical Harmonics up to degree and order 9
@@ -1535,7 +1420,7 @@ classdef Atmosphere < handle
             % lat: ellipsoidal latitude in radians
             % lon: longitude in radians
             % hgt: orthometric height in m
-            % zd:   zenith distance in radians
+            % el:   zenith distance in radians
             %
             % output data
             % -----------
@@ -1551,8 +1436,11 @@ classdef Atmosphere < handle
             % this is taken from Niell (1996) to be consistent
             %
             % SYNTAX
-            %   [gmfh, gmfw] = gmf(this, gps_time, dlat, dlon, dhgt, zd)
-            doy = time.getMJD()  - 44239 + 1;
+            %   [gmfh, gmfw] = gmf(this, gps_time, dlat, dlon, dhgt, el)
+            if isa(time, 'GPS_Time')
+                time = time.getMJD();
+            end
+            doy = time - 44239 + 1;
             
             pi = 3.14159265359d0;
             
@@ -1967,12 +1855,12 @@ classdef Atmosphere < handle
             [h_h_coorection] = this.hydrostaticMFHeigthCorrection(h_ell,el);
             gmfh = gmfh + h_h_coorection;
         end
-                        
+ 
         %-----------------------------------------------------------
         % IONO
         %-----------------------------------------------------------
         function [iono_mf] = getIonoMF(this, lat_rad, h_ortho, el_rad, rcm)
-            % Get the pierce point
+            % Get the iono mapping function
             % INPUT:
             %   lat_rad             latitude of the receiver           [rad]
             %   h_ortho             orthometric height of the receiver [m]
@@ -2000,7 +1888,7 @@ classdef Atmosphere < handle
             iono_mf(id_ok) = (1-(k).^2).^(-1/2); % formula 6.99 in [1]
         end
     end
-    
+
     methods (Static)
         %-----------------------------------------------------------
         % TROPO
@@ -2011,7 +1899,7 @@ classdef Atmosphere < handle
                 ./ (sine + (a ./ (sine + (b ./ (sine + c) ))));
         end
         
-        function [ht_corr] = hydrostaticMFHeigthCorrection(h_ell,el)
+        function [ht_corr] = hydrostaticMFHeigthCorrection(h_ell, el)
             % coorect the hysdrostatic mapping functions for the height
             % formulas and paramaters taken from :
             %   Niell, A. E. "Global mapping functions for the atmosphere delay at radio wavelengths." Journal of Geophysical Research: Solid Earth 101.B2 (1996): 3227-3246.
@@ -2024,7 +1912,7 @@ classdef Atmosphere < handle
             c_ht = 1.14d-3;
             h_ell_km     = h_ell/1000;   % convert height to km
             % eq (6)
-            ht_corr_coef = 1 ./ sin(zero2nan(el))   -    Atmosphere.mfContinuedFractionForm(a_ht,b_ht,c_ht,el);
+            ht_corr_coef = 1 ./ sin(zero2nan(el))- Atmosphere.mfContinuedFractionForm(a_ht,b_ht,c_ht,el);
             % eq (7)
             ht_corr      = ht_corr_coef * h_ell_km;
         end
@@ -2048,10 +1936,14 @@ classdef Atmosphere < handle
             % hidrostatic b form Isobaric mapping function
             bh = 0.002905;
             
-            doy = time.getMJD()  - 44239 + 1;
+            if isnumeric(time)
+                doy = time  - 44239 + 1;
+            else
+                doy = time.getMJD()  - 44239 + 1;
+            end
             % c hydrostatic is taken from equation (7) in [1]
             ch = c0_h + ((cos((doy - 28) / 365.25 * 2 * pi + phi_h) + 1) * c11_h / 2 + c10_h)*(1 - cos(lat));
-            % wet b and c form Niell mapping function at 45ÿ lat tab 4 in [3]
+            % wet b and c form Niell mapping function at 45deg lat tab 4 in [3]
             bw = 0.00146;
             cw = 0.04391;
         end
@@ -2275,9 +2167,118 @@ classdef Atmosphere < handle
             zhd_corr = zhd2 - zhd1;
         end
 
+        function [pwv] = zwd2pwv(zwd, temperature)
+            % Convert ZWD to PWV according to Bevis formula
+            %
+            % INPUT
+            %   zwd             Zenith Wet Delay
+            %   temperature     temperature at the station deg Celsius
+            % SYNTAX 
+            %   pwv = Atmosphere.zwd2pwv(zwd, temperature)
+            degCtoK = 273.15;
+            % weighted mean temperature of the atmosphere over Alaska (Bevis et al., 1994)
+            Tm = (temperature + degCtoK)*0.72 + 70.2;
+
+            % Askne and Nordius formula (from Bevis et al., 1994)
+            Q = (4.61524e-3*((3.739e5./Tm) + 22.1));
+
+            % precipitable Water Vapor
+            pwv = zwd ./ Q;
+        end
+        
         %-----------------------------------------------------------
         % IONO
         %-----------------------------------------------------------
+
+        function ionex = readIonex(file_name)
+            ionex = struct( ...
+            'data',       [], ...    % ionosphere single layer map [n_lat x _nlon x n_time]
+            'first_lat',  [], ...    % first latitude
+            'first_lon',  [], ...    % first longitude
+            'd_lat',      [], ...    % lat spacing
+            'd_lon',      [], ...    % lon_spacing
+            'n_lat',      [], ...    % num lat
+            'n_lon',      [], ...    % num lon
+            'first_time', [], ...    % times [time] of the maps
+            'first_time_double', [], ...    % times [time] of the maps [seconds from GPS zero]
+            'dt',         [], ...    % time spacing
+            'n_t',        [], ...    % num of epocvhs
+            'height',     []  ...    % heigh of the layer
+            );
+
+            % import IONEX file
+            % if the files data overlaps or touch the present data in the object the new data are appended to the old one, otherwise the old data re-discarded
+            %
+            % SYNTAX
+            %   importIonex(this, file_name)
+            fnp = File_Name_Processor();
+            log = Core.getLogger;
+            if ~exist(file_name, 'file') == -1
+                log.addWarning(sprintf('File IONEX %s not found', file_name));
+                return
+            else
+                log.addMessage(log.indent(sprintf('Opening file %s for reading', fnp.getFileName(file_name))));
+                [txt, lim] = Core_Utils.readTextFile(file_name);
+
+                % read header
+                for l = 1:size(lim,1)
+                    line = txt(lim(l,1):lim(l,2));
+                    if instr(line,'END OF HEADER')
+                        break
+                    elseif instr(line,'EPOCH OF FIRST MAP')
+                        first_epoch = GPS_Time(sscanf(line(1:60),'%f %f %f %f %f %f')');
+                    elseif instr(line,'EPOCH OF LAST MAP')
+                        last_epoch = GPS_Time(sscanf(line(1:60),'%f %f %f %f %f %f')');
+                    elseif instr(line,'INTERVAL')
+                        interval = sscanf(line(1:60),'%f')';
+                    elseif instr(line,'HGT1 / HGT2 / DHGT')
+                        height = sscanf(line(1:60),'%f %f %f')';
+                    elseif instr(line,'LAT1 / LAT2 / DLAT')
+                        lats = sscanf(line(1:60),'%f %f %f')';
+                    elseif instr(line,'LON1 / LON2 / DLON')
+                        lons = sscanf(line(1:60),'%f %f %f')';
+                    elseif instr(line,'EXPONENT')
+                        exponent = sscanf(line(1:60),'%f')';
+                    end
+                end
+
+                lim(1:l,:) = [];
+                txt(1:(lim(1,1)-1)) = [];
+                lim(:,1:2) = lim(:,1:2) - lim(1,1) +1;
+                n_lat = round((lats(2)-lats(1))/lats(3))+1;
+                n_lon = round((lons(2)-lons(1))/lons(3))+1;
+                n_line_1_lat = ceil(n_lon*5 / 80);
+
+                nt = round((last_epoch - first_epoch) / interval);
+                lines = repmat([false; false; repmat([false; true; false(n_line_1_lat-1,1) ],n_lat,1); false],nt,1);
+                st_l  = lim(lines, 1);
+                cols = [0:(n_lon*5+n_line_1_lat-2)];
+                idx = repmat(cols,length(st_l),1) + repmat(st_l,1,length(cols));
+                idx(:,81:81:length(cols))   = [];
+                idx(:,366:end) = []; %% trial and error fix bug fix
+                vals = txt(serialize(idx'));
+                vals = reshape(vals,5,length(vals)/5);
+                nums = sscanf(vals,'%f');
+                data = permute(reshape(nums,n_lon,n_lat,nt),[2,1,3])*10^(exponent);
+                if mod(lons(1), 360) == mod(lons(2),360)
+                    data(:,end,:) = [];
+                    n_lon = n_lon -1;
+                end
+                ionex.first_time = first_epoch;
+                ionex.first_time_double = first_epoch.getGpsTime();
+                ionex.d_t = interval;
+                ionex.n_t =  nt;
+                ionex.first_lat= lats(1);
+                ionex.d_lat = lats(3);
+                ionex.n_lat = n_lat ;
+                ionex.first_lon= lons(1);
+                ionex.d_lon = lons(3);
+                ionex.n_lon = n_lon;
+                ionex.height = height;
+                ionex.data = data;
+            end
+        end
+
         function [delay] = klobucharModel(lat, lon, az, el, sow, ionoparams)
             % SYNTAX
             %   [delay] = Atmosphere. klobuchar_model(lat, lon, az, el, sow, ionoparams)
@@ -2302,9 +2303,7 @@ classdef Atmosphere < handle
             %-------------------------------------------------------------------------------
             %initialization
             delay = zeros(size(el));
-            
-            
-            
+
             %ionospheric parameters
             a0 = ionoparams(1);
             a1 = ionoparams(2);
@@ -2395,7 +2394,8 @@ classdef Atmosphere < handle
             lat_pp = asin(sin(lat_rad) * cos(psi_pp) + cos(lat_rad) * sin(psi_pp) .* cos(az_rad));
             
             % longitude of the ionosphere piercing point
-            id_hl = ((lat_pp >  70*pi/180) & (tan(psi_pp).*cos(az_rad)      > tan((pi/2) - lat_rad))) | ...
+            % RTCA/DO-229C, Minimum operational performance standards for global positioning system/wide area augmentation system airborne equipment, RTCA inc, November 28, 2001
+            id_hl = ((lat_pp >  70*pi/180) & (tan(psi_pp).*cos(az_rad) > tan((pi/2) - lat_rad))) | ...
                 ((lat_pp < -70*pi/180) & (tan(psi_pp).*cos(az_rad + pi) > tan((pi/2) + lat_rad)));
             
             lon_pp = zeros(size(az_rad));
@@ -2415,7 +2415,7 @@ classdef Atmosphere < handle
                     -cos(az_rad).*cos(el_rad) ...
                     -sin(el_rad)];
                 % go to global system
-                k = local2globalVel2(k', lon_rad,lat_rad)';
+                k = local2globalVel2(k', lon_rad, lat_rad)';
             end
             
             lat_pp = reshape(lat_pp, input_size(1), input_size(2));

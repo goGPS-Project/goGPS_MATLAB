@@ -21,10 +21,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti
 %  Contributors:      Andrea Gatti, Giulio Tagliaferro
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -109,6 +109,7 @@ classdef File_Wizard < handle
                 flag_check = true;
             end
             this.current_resource = resource_name;
+            this.rm.readFile(); % reset resource file
             [file_tree, latency] = this.rm.getFileStr(center_name, resource_name);
             if isempty(file_tree)
                 [file_tree, latency] = this.rm.getFileStr('default', resource_name);
@@ -136,24 +137,23 @@ classdef File_Wizard < handle
             % check remote
             if  state.isAutomaticDownload && ~status && flag_check
                 if latency(1)~=0 && n_h_passed  < latency(1)
-                    log.addWarning(log.indent(sprintf('Not enough latency for finding all the %s orbits...', resource_name)));
-                    status = false;
+                    log.addWarning(log.indent(sprintf('Not enough latency for finding all the %s orbits...\nTry to get what''s available', resource_name)));
+                end
+
+                log.addMessage(log.indent('Checking remote folders ...'));
+                [status, file_tree, ext] = this.navigateTree(file_tree, 'remote_check');
+                if status
+                    log.addStatusOk('All files have been found remotely', 10);
                 else
-                    log.addMessage(log.indent('Checking remote folders ...'));
-                    [status, file_tree, ext] = this.navigateTree(file_tree, 'remote_check');
-                    if status
-                        log.addStatusOk('All files have been found remotely', 10);
-                    else
-                        log.addError('Some files not found remotely, starting to download what it''s available');
-                        status = true;
-                    end
-                
-                    if status || this.nrt
-                        log.addMessage(log.indent('Downloading Resources ...'));
-                        [status, ~] = this.navigateTree(file_tree, 'download');
-                        if not(status)
-                            log.addWarning('Not all file have been found or uncompressed');
-                        end
+                    log.addError('Some files not found remotely, starting to download what it''s available');
+                    status = true;
+                end
+
+                if status || this.nrt
+                    log.addMessage(log.indent('Downloading Resources ...'));
+                    [status, ~] = this.navigateTree(file_tree, 'download');
+                    if not(status)
+                        log.addWarning('Not all file have been found or uncompressed');
                     end
                 end
             end
@@ -214,18 +214,19 @@ classdef File_Wizard < handle
                         end
                         [file_name_lst, date_list] = this.fnp.dateKeyRepBatch(f_path, dsa, dso,'0','0','0',vmf_res,vmf_source);
                         file_name_lst = flipud(file_name_lst);
-
+                        
                         f_status_lst = file_tree{4};
                         f_ext_lst = file_tree{5};
                         
-                        if ~isempty(file_name_lst) && (any(strfind(file_name_lst{1}, 'garner')) || any(strfind(file_name_lst{1}, 'cddis')))
+                        if ~isempty(file_name_lst) && (any(strfind(file_name_lst{1}, 'garner')) || any(strfind(file_name_lst{1}, 'cddis'))) || ~isempty(strfind(file_name_lst{1}, 'DCB'))
                             % It seems like aria does not work with graner FTP, it does not download all the file requested, some fails
                             aria_err_code = true; % switch to matlab FTP download
                         else
                             [f_status_lst, aria_err_code] = Core_Utils.aria2cDownloadUncompress(file_name_lst, f_ext_lst, f_status_lst, date_list);
                         end
+                        
                         for i = 1 : length(file_name_lst)
-                            if isempty(f_status_lst) || ~f_status_lst(i) && aria_err_code % do this only if aria fails
+                            if isempty(f_status_lst) || ~f_status_lst(i) || aria_err_code % do this only if aria fails
                                 file_name = file_name_lst{i};
                                 server = regexp(file_name,'(?<=\?{)\w*(?=})','match','once'); % search for ?{server_name} in paths
                                 file_name = strrep(file_name,['?{' server '}'],'');
@@ -236,7 +237,7 @@ classdef File_Wizard < handle
                                     mkdir(out_dir);
                                 end
                                 %out_dir = out_dir{1};
-                                if instr(port,'21')
+                                 if instr(port,'21')
                                     idx = this.getServerIdx(s_ip, port, user, passwd);
                                     if ~this.nrt
                                         %status = status && this.ftp_downloaders{idx}.downloadUncompress(file_name, out_dir);
@@ -253,7 +254,7 @@ classdef File_Wizard < handle
                                         status = Core_Utils.downloadHttpTxtResUncompress([s_ip file_name], out_dir, user, passwd) && status;
                                     end
                                     f_status_lst(i) = status;
-                                elseif  instr(port,'443')
+                                elseif instr(port,'443')
                                     if ~this.nrt
                                         %status = status && Core_Utils.downloadHttpTxtResUncompress([s_ip file_name], out_dir, user, passwd,true);
                                         status = Core_Utils.downloadHttpTxtResUncompress([s_ip file_name], out_dir, user, passwd,true) && status;
@@ -302,6 +303,10 @@ classdef File_Wizard < handle
                                 file_name_lst_ur = file_name_lst;
                             end
                             status = true;
+                            fprintf('Searching for:\n');
+                            for i = 1:length(file_name_lst)
+                                fprintf('%d: "%s"\n', i, file_name_lst{i});
+                            end
                             f_status_lst = false(length(file_name_lst),1); % file list to be saved in tree with flag of downloaded or not
                             if strcmp(mode, 'local_check')
                                 for i = 1 : length(file_name_lst)
@@ -390,7 +395,7 @@ classdef File_Wizard < handle
                                                 idx = this.getServerIdx(s_ip, port, user, passwd);
                                                 [stat, ext] = this.ftp_downloaders{idx}.check(file_name);
                                             elseif instr(port,'443')
-                                                [stat, ext] = Core_Utils.checkHttpTxtRes(['https://' s_ip file_name]);
+                                                [stat, ext] = Core_Utils.checkHttpTxtRes(['https://' s_ip file_name], user, passwd);
                                             else
                                                 [stat, ext] = Core_Utils.checkHttpTxtRes([s_ip file_name]);
                                             end
@@ -480,6 +485,8 @@ classdef File_Wizard < handle
             end
             % check if selected center os compatible with selected
             % constellation
+            this.rm.readFile; % Reload remote resource file
+            
             centers = this.rm.getData('ORBIT_CENTER','available');
             is_ok = false;
             for i = 1 : length(centers)
@@ -615,6 +622,7 @@ classdef File_Wizard < handle
                 vers = '3';
                 res = '5x5';
             end
+            status = false;
             if not(isempty(res))
                 for j = 1 : length(list_preferred_source)
                     this.vmf_res = res;
@@ -641,7 +649,12 @@ classdef File_Wizard < handle
                 else
                     log.addWarning('Not all vmf files founds');
                 end
+            else
+                % VMF are not requested
+                err_code = 0;
             end
+            
+            
             
         end
         
@@ -658,8 +671,12 @@ classdef File_Wizard < handle
             % OUTPUT:
             state = Core.getState();
             bias_center = state.getRemoteBiasCenter();
-            status = this.conjureResource('bias', date_start, date_stop, bias_center);
-            err_code = ~status;
+            if strcmp(bias_center, 'none')
+                err_code = false;
+            else
+                status = this.conjureResource('bias', date_start, date_stop, bias_center);
+                err_code = ~status;
+            end
         end
         
         function err_code = conjureNavFiles(this, date_start, date_stop)
@@ -724,44 +741,48 @@ classdef File_Wizard < handle
             state = Core.getState;
             list_preferred = state.preferred_iono;
             iono_center = state.getRemoteIonoCenter();
-            status = true;
-            for i = 1 : length(list_preferred)
-                if strcmp(list_preferred{i}, 'broadcast')
-                    status = this.conjureResource(['iono_' list_preferred{i}], date_start, date_stop, iono_center);
-                else
-                    status = this.conjureResource(['iono_' list_preferred{i}], date_start, date_stop, iono_center);
-                    if flag_brdc
-                        status = this.conjureResource('iono_broadcast', date_start, date_stop, iono_center);
+            if strcmp(iono_center, 'none')
+                log.addMarkedMessage('No iono center is selected');
+            else
+                status = true;
+                for i = 1 : length(list_preferred)
+                    if strcmp(list_preferred{i}, 'broadcast')
+                        status = this.conjureResource(['iono_' list_preferred{i}], date_start, date_stop, iono_center);
+                    else
+                        status = this.conjureResource(['iono_' list_preferred{i}], date_start, date_stop, iono_center);
+                        if flag_brdc
+                            status = this.conjureResource('iono_broadcast', date_start, date_stop, iono_center);
+                        end
                     end
+                    if status
+                        switch list_preferred{i}
+                            case {'final'}
+                                log.addStatusOk('Final ionospheric maps files are present ^_^');
+                            case {'rapid'}
+                                log.addStatusOk('Rapid ionospheric maps files are present ^_^');
+                            case {'predicted1'}
+                                log.addStatusOk('One day ahead predicted ionospheric maps files are present ^_^');
+                            case {'predicted2'}
+                                log.addStatusOk('Two day ahead predicted ionospheric maps files are present ^_^');
+                            case {'broadcast'}
+                                log.addStatusOk('Broadcast ionospheric parameters files are present');
+                        end
+                        break
+                    end
+                end
+                if (state.iono_model == 2) && (state.iono_management == 3 || state.flag_apr_iono)
+                    status = this.conjureResource('iono_broadcast', date_start, date_stop, iono_center);
                 end
                 if status
-                    switch list_preferred{i}
-                        case {'final'}
-                            log.addStatusOk('Final ionospheric maps files are present ^_^');
-                        case {'rapid'}
-                            log.addStatusOk('Rapid ionospheric maps files are present ^_^');
-                        case {'predicted1'}
-                            log.addStatusOk('One day ahead predicted ionospheric maps files are present ^_^');
-                        case {'predicted2'}
-                            log.addStatusOk('Two day ahead predicted ionospheric maps files are present ^_^');
-                        case {'broadcast'}
-                            log.addStatusOk('Broadcast ionospheric parameters files are present');
+                    err_code = 0;
+                    if isempty(list_preferred)
+                        log.addStatusOk('No iono files requested, nothing to do!')
+                    else
+                        log.addStatusOk('Ionosphere resource files are present ^_^')
                     end
-                    break
-                end
-            end
-            if (state.iono_model == 2) && (state.iono_management == 3 || state.flag_apr_iono)
-                status = this.conjureResource('iono_broadcast', date_start, date_stop, iono_center);
-            end
-            if status
-                err_code = 0;
-                if isempty(list_preferred)
-                    log.addStatusOk('No iono files requested, nothing to do!')
                 else
-                    log.addStatusOk('Ionosphere resource files are present ^_^')
+                    log.addWarning('Not all iono files found program might misbehave')
                 end
-            else
-                log.addWarning('Not all iono files found program might misbehave')
             end
         end
         
@@ -815,10 +836,23 @@ classdef File_Wizard < handle
             year  = date_f(1) : 1 : date_l(1);
             file_crx = cell(length(year),1);
             
+            %connect to the CRX server
+            try
+                ftp_server = ftp(aiub_ip);
+            catch
+                log.addMessage(log.indent(sprintf(['FTP connection to the AIUB server (ftp://' aiub_ip '). Please wait...'])));
+                log.addError('Connection failed.');
+                return
+            end
+            
+            
             for y = 1 : length(year)
                 
                 %target directory
                 s = '/BSWUSER52/GEN';
+                
+                cd(ftp_server, '/');
+                cd(ftp_server, s);
                 
                 %target file
                 s2 = ['SAT_' num2str(year(y),'%04d') '.CRX'];
@@ -830,18 +864,6 @@ classdef File_Wizard < handle
                 % If there's no CRX or the CRX is older than the day of the processing and it has not been downloaded in the last day
                 % do not do
                 if isempty(d) || ((t < date_stop.addSeconds(10*86400)) && (GPS_Time.now - t > 43200))
-                    
-                    % connect to the CRX server
-                    try
-                        ftp_server = ftp(aiub_ip, 'anonymous', 'info@gogps-project.org');
-                    catch ex
-                        log.addMessage(log.indent(sprintf(['FTP connection to the AIUB server (ftp://' aiub_ip '). Please wait...'])));
-                        log.addError('Connection failed.');
-                        return
-                    end
-                    cd(ftp_server, '/');
-                    cd(ftp_server, s);
-
                     log.addMessage(log.indent(sprintf(['FTP connection to the AIUB server (ftp://' aiub_ip '). Please wait...'])));
                     %if not(exist([down_dir, '/', s2]) == 2)
                     try
@@ -899,7 +921,7 @@ classdef File_Wizard < handle
             log.addStatusOk('CRX files are present ^_^')
         end
         
-        function err_code = conjureIGSATXFile(this)
+        function err_code = conjureIGSATXFile(this, year)
             % SYNTAX:
             %   this.conjureIGSATXFile();
             %
@@ -908,6 +930,10 @@ classdef File_Wizard < handle
             %
             % DESCRIPTION:
             %   Download of .ATX files from the IGS FTP server.
+
+            if nargin < 2 || isempty(year)
+                year = '20';
+            end
             
             err_code = 0;
             log = Core.getLogger;
@@ -930,10 +956,11 @@ classdef File_Wizard < handle
             rem_path = '/pub/station/general';
                         
             % target file
-            rem_file = 'igs14.atx';
+            rem_file = ['igs' year '.atx'];
             local_file = state.getAtxFile;
-            
-            log.addMessage(log.indent(sprintf(['FTP connection to the IGS server (ftp://' igs_ip ').\nIGS ftp might be slow and the ATX file is approximately 18MB. Please wait...'])));
+            [local_dir, ~, ~] = fileparts(local_file); local_file = fullfile(local_dir, rem_file);
+
+            log.addMessage(log.indent(sprintf(['Connection to the IGS server (http://' igs_ip ').\nIGS ftp might be slow and the ATX file is approximately 18MB. Please wait...'])));
             %if not(exist([down_dir, '/', s2]) == 2)
             try
                 % move the old antex file
@@ -971,6 +998,7 @@ classdef File_Wizard < handle
                     err_code = 1;
                 end
             end
+            state.setAtxFile(local_file);
             log.addMessage(log.indent(sprintf('Downloaded ATX file: "%s"\n', local_file)));
             log.addStatusOk('ATX files are present ^_^')
         end
@@ -1257,6 +1285,10 @@ classdef File_Wizard < handle
                         err_code{t} = this.conjureVmfFiles(date_start, date_stop);
                     case {'igsatx'}
                         err_code{t} = this.conjureIGSATXFile();
+                    case {'igsatx14'}
+                        err_code{t} = this.conjureIGSATXFile('14');
+                    case {'igsatx20'}
+                        err_code{t} = this.conjureIGSATXFile('20');
                 end
             end
             if numel(err_code) == 1

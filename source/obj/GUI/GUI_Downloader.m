@@ -16,10 +16,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti
 %  Contributors:      Andrea Gatti, Giulio Tagliaferro
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -329,7 +329,7 @@ classdef GUI_Downloader < GUI_Unique_Win
                 left_bv.Heights = [left_bv.Heights(1:3)' 10 200 -1];
                 vb = uix.VBox('Parent', dwn_panel, ...
                     'BackgroundColor', Core_UI.LIGHT_GREY_BG);
-                this.check_boxes_dwn{end+1} = Core_UI.insertCheckBoxLight(vb, 'igs14.atx', 'chkbox_igsatx', []); this.check_boxes_dwn{end}.Value = false;                
+                this.check_boxes_dwn{end+1} = Core_UI.insertCheckBoxLight(vb, 'igs20.atx', 'chkbox_igsatx', []); this.check_boxes_dwn{end}.Value = false;                
                 this.check_boxes_dwn{end+1} = Core_UI.insertCheckBoxLight(vb, 'CRX', 'chkbox_crx', []); this.check_boxes_dwn{end}.Value = true;
                 this.check_boxes_dwn{end+1} = Core_UI.insertCheckBoxLight(vb, 'Ephemerides, clocks, ERP', 'chkbox_eph', []); this.check_boxes_dwn{end}.Value = true;
                 this.check_boxes_dwn{end+1} = Core_UI.insertCheckBoxLight(vb, 'Ionospheric maps', 'chkbox_iono', []); this.check_boxes_dwn{end}.Value = true;
@@ -752,13 +752,23 @@ classdef GUI_Downloader < GUI_Unique_Win
     %% METHODS UI getters
     % ==================================================================================================================================================
     methods
-        function [sss_start, sss_stop, validity_check] = getSessionsLimits(this)
-            % get Start session and stop from UI
-            % check validity if sss_start > sss_stop then stop = start
+    function [sss_start, sss_stop, validity_check] = getSessionsLimits(this)
+            % Get the beginning and end of the session from GUI
+            % check validity by testing if sss_start > sss_stop then stop = start
+            %
+            % INPUT: 
+            %   this      handle to the GUI_Downloader object
+            %
+            % OUTPUT: 
+            %   sss_start       session beginning [GPS_Time]
+            %   sss_stop        session end       [GPS_Time]
+            %   validity_check  return true if valid [boolean]
             %
             % SYNTAX:
             %   [sss_start, sss_stop, validity_check] = getSessionLimits(this)
             %
+
+
             state = Core.getCurrentSettings();
             validity_check = true;
             
@@ -997,9 +1007,6 @@ classdef GUI_Downloader < GUI_Unique_Win
                 rf.init(state.getCrdFile);
                 this.updateCooTable();
             end
-            if strcmp(caller.UserData, 'obs_name') || strcmp(caller.UserData, 'obs_dir')
-                this.updateRecList()
-            end
         end
         
         function onEditArrayChange(this, caller, event)
@@ -1231,7 +1238,7 @@ classdef GUI_Downloader < GUI_Unique_Win
             if exist([config_dir filesep 'config'], 'dir')
                 config_dir = [config_dir filesep 'config'];
             end
-            % On MacOS this doesn't work anymore: [file_name, pathname] = uigetfile({'*.ini;','INI configuration file (*.ini)'; '*.mat;','state file goGPS < 0.5 (*.mat)'}, 'Choose file with saved settings', config_dir);
+            % On MacOS this doesn't work anymore: [file_name, pathname] = uigetfile({'*.ini;','INI configuration file (*.ini)'; '*.mat;','state file Breva < 0.5 (*.mat)'}, 'Choose file with saved settings', config_dir);
             [file_name, path_name] = uigetfile('*.ini', 'Choose file with saved settings', config_dir);
             
             if path_name ~= 0 % if the user pressed cancelled, then we exit this callback
@@ -1244,7 +1251,6 @@ classdef GUI_Downloader < GUI_Unique_Win
                     state.importIniFile(settings_file);
                     Core.getReferenceFrame.init();
                     this.updateUI();
-                    this.updateRecList();
                 else
                     Core.getLogger.addError('Unrecognized input file format!');
                 end
@@ -1271,6 +1277,7 @@ classdef GUI_Downloader < GUI_Unique_Win
             fw = File_Wizard;
             [sss_start, sss_stop] = this.getSessionsLimits();
             fw.downloadResource(this.getDownloadableItems(),sss_start, sss_stop);
+            this.updateUI();
             this.ok_go = true;
         end
         

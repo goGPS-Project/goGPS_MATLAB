@@ -16,10 +16,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti, Giulio Tagliaferro ...
 %  Contributors:      Andrea Gatti, Giulio Tagliaferro ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -49,6 +49,8 @@ classdef Meteo_Network < handle
         % Concrete implementation.  See Singleton superclass.
         function this = Meteo_Network()
             this.log = Core.getLogger();
+            this.mds = Meteo_Data();
+            this.mds(1) = [];
         end
     end
     
@@ -83,21 +85,38 @@ classdef Meteo_Network < handle
             % SYNTAX
             %   this.initFromFileList(file_name_list)
             
-            n_stations = numel(file_name_list);
-            for  i = 1 : n_stations
-                n_sss = numel(file_name_list{i});
-                for  s = 1 : n_sss
-                    if ~isempty(File_Name_Processor.getFileName(file_name_list{i}{s}))
-                        if ~exist(file_name_list{i}{s}, 'file')
-                            this.log.addWarning(sprintf('Skipping %s - file not found', file_name_list{i}{s}));
-                        else
-                            md = Meteo_Data(file_name_list{i}{s});
-                            if md.isValid()
-                                % md.setMaxBound(0);
-                                if length(this.mds) < i
-                                    this.mds = [this.mds; md];
+            n_files = numel(file_name_list);
+            this.mds = Meteo_Data;
+            this.mds(1) = [];
+            for  f = 1 : n_files
+                if iscell(file_name_list{f})
+                    n_sss = numel(file_name_list{f});
+                    for  s = 1 : n_sss
+                        if ~isempty(File_Name_Processor.getFileName(file_name_list{f}{s}))
+                            if ~exist(file_name_list{f}{s}, 'file')
+                                this.log.addWarning(sprintf('Skipping %s - file not found', file_name_list{f}{s}));
+                            else
+                                [~, ~, ext] = fileparts(file_name_list{f}{s});
+                                if strcmp(ext, '.mat')
+                                    tmp = load(file_name_list{f}{s}, 'mds');
+                                    if ~isfield(tmp, 'mds') || isempty(tmp.mds)
+                                        mds = Meteo_Data;
+                                        mds.setValid(false);
+                                    else
+                                        mds = tmp.mds;
+                                    end
                                 else
-                                    this.mds(i).inject(md);
+                                    mds = Meteo_Data(file_name_list{f}{s});
+                                end
+                                for m = 1:numel(mds)
+                                    if mds(m).isValid()
+                                        [~, ids] = this.mds.get(mds(m).getMarkerName);
+                                        if isempty(ids)
+                                            this.mds = [this.mds; mds(m)];
+                                        else
+                                            this.mds(ids).inject(mds(m));
+                                        end
+                                    end
                                 end
                             end
                         end

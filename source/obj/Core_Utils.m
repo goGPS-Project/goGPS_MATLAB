@@ -1,4 +1,3 @@
-
 %   CLASS Core_Utils
 % =========================================================================
 %
@@ -16,10 +15,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti, Giulio Tagliaferro
 %  Contributors:      Andrea Gatti, Giulio Tagliaferro, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -47,9 +46,273 @@ classdef Core_Utils < handle
         V_LIGHT = 299792458;                % Velocity of light in the void [m/s]
     end
     
-    methods (Static)
+    properties (Constant, Access = private)
+        ISO_DEF = ['Country','Alpha-2 code','Alpha-3 code','Numeric code','Latitude (average)','Longitude (average)'];
+        ISO3166 = { ...
+            'AF', 'AFG', 'Afghanistan', '4', '33';
+            'AL', 'ALB', 'Albania', '8', '41';
+            'DZ', 'DZA', 'Algeria', '12', '28';
+            'AS', 'ASM', 'American Samoa', '16', '-14.3333';
+            'AD', 'AND', 'Andorra', '20', '42.5';
+            'AO', 'AGO', 'Angola', '24', '-12.5';
+            'AI', 'AIA', 'Anguilla', '660', '18.25';
+            'AQ', 'ATA', 'Antarctica', '10', '-90';
+            'AG', 'ATG', 'Antigua and Barbuda', '28', '17.05';
+            'AR', 'ARG', 'Argentina', '32', '-34';
+            'AM', 'ARM', 'Armenia', '51', '40';
+            'AW', 'ABW', 'Aruba', '533', '12.5';
+            'AU', 'AUS', 'Australia', '36', '-27';
+            'AT', 'AUT', 'Austria', '40', '47.3333';
+            'AZ', 'AZE', 'Azerbaijan', '31', '40.5';
+            'BS', 'BHS', 'Bahamas', '44', '24.25';
+            'BH', 'BHR', 'Bahrain', '48', '26';
+            'BD', 'BGD', 'Bangladesh', '50', '24';
+            'BB', 'BRB', 'Barbados', '52', '13.1667';
+            'BY', 'BLR', 'Belarus', '112', '53';
+            'BE', 'BEL', 'Belgium', '56', '50.8333';
+            'BZ', 'BLZ', 'Belize', '84', '17.25';
+            'BJ', 'BEN', 'Benin', '204', '9.5';
+            'BM', 'BMU', 'Bermuda', '60', '32.3333';
+            'BT', 'BTN', 'Bhutan', '64', '27.5';
+            'BO', 'BOL', 'Bolivia, Plurinational State of', '68', '-17';
+            'BO', 'BOL', 'Bolivia', '68', '-17';
+            'BA', 'BIH', 'Bosnia and Herzegovina', '70', '44';
+            'BW', 'BWA', 'Botswana', '72', '-22';
+            'BV', 'BVT', 'Bouvet Island', '74', '-54.4333';
+            'BR', 'BRA', 'Brazil', '76', '-10';
+            'IO', 'IOT', 'British Indian Ocean Territory', '86', '-6';
+            'BN', 'BRN', 'Brunei Darussalam', '96', '4.5';
+            'BN', 'BRN', 'Brunei', '96', '4.5';
+            'BG', 'BGR', 'Bulgaria', '100', '43';
+            'BF', 'BFA', 'Burkina Faso', '854', '13';
+            'BI', 'BDI', 'Burundi', '108', '-3.5';
+            'KH', 'KHM', 'Cambodia', '116', '13';
+            'CM', 'CMR', 'Cameroon', '120', '6';
+            'CA', 'CAN', 'Canada', '124', '60';
+            'CV', 'CPV', 'Cape Verde', '132', '16';
+            'KY', 'CYM', 'Cayman Islands', '136', '19.5';
+            'CF', 'CAF', 'Central African Republic', '140', '7';
+            'TD', 'TCD', 'Chad', '148', '15';
+            'CL', 'CHL', 'Chile', '152', '-30';
+            'CN', 'CHN', 'China', '156', '35';
+            'CX', 'CXR', 'Christmas Island', '162', '-10.5';
+            'CC', 'CCK', 'Cocos (Keeling) Islands', '166', '-12.5';
+            'CO', 'COL', 'Colombia', '170', '4';
+            'KM', 'COM', 'Comoros', '174', '-12.1667';
+            'CG', 'COG', 'Congo', '178', '-1';
+            'CD', 'COD', 'Congo, the Democratic Republic of the', '180', '0';
+            'CK', 'COK', 'Cook Islands', '184', '-21.2333';
+            'CR', 'CRI', 'Costa Rica', '188', '10';
+            'CI', 'CIV', 'Côte d''Ivoire', '384', '8';
+            'CI', 'CIV', 'Ivory Coast', '384', '8';
+            'HR', 'HRV', 'Croatia', '191', '45.1667';
+            'CU', 'CUB', 'Cuba', '192', '21.5';
+            'CY', 'CYP', 'Cyprus', '196', '35';
+            'CZ', 'CZE', 'Czech Republic', '203', '49.75';
+            'DK', 'DNK', 'Denmark', '208', '56';
+            'DJ', 'DJI', 'Djibouti', '262', '11.5';
+            'DM', 'DMA', 'Dominica', '212', '15.4167';
+            'DO', 'DOM', 'Dominican Republic', '214', '19';
+            'EC', 'ECU', 'Ecuador', '218', '-2';
+            'EG', 'EGY', 'Egypt', '818', '27';
+            'SV', 'SLV', 'El Salvador', '222', '13.8333';
+            'GQ', 'GNQ', 'Equatorial Guinea', '226', '2';
+            'ER', 'ERI', 'Eritrea', '232', '15';
+            'EE', 'EST', 'Estonia', '233', '59';
+            'ET', 'ETH', 'Ethiopia', '231', '8';
+            'FK', 'FLK', 'Falkland Islands (Malvinas)', '238', '-51.75';
+            'FO', 'FRO', 'Faroe Islands', '234', '62';
+            'FJ', 'FJI', 'Fiji', '242', '-18';
+            'FI', 'FIN', 'Finland', '246', '64';
+            'FR', 'FRA', 'France', '250', '46';
+            'GF', 'GUF', 'French Guiana', '254', '4';
+            'PF', 'PYF', 'French Polynesia', '258', '-15';
+            'TF', 'ATF', 'French Southern Territories', '260', '-43';
+            'GA', 'GAB', 'Gabon', '266', '-1';
+            'GM', 'GMB', 'Gambia', '270', '13.4667';
+            'GE', 'GEO', 'Georgia', '268', '42';
+            'DE', 'DEU', 'Germany', '276', '51';
+            'GH', 'GHA', 'Ghana', '288', '8';
+            'GI', 'GIB', 'Gibraltar', '292', '36.1833';
+            'GR', 'GRC', 'Greece', '300', '39';
+            'GL', 'GRL', 'Greenland', '304', '72';
+            'GD', 'GRD', 'Grenada', '308', '12.1167';
+            'GP', 'GLP', 'Guadeloupe', '312', '16.25';
+            'GU', 'GUM', 'Guam', '316', '13.4667';
+            'GT', 'GTM', 'Guatemala', '320', '15.5';
+            'GG', 'GGY', 'Guernsey', '831', '49.5';
+            'GN', 'GIN', 'Guinea', '324', '11';
+            'GW', 'GNB', 'Guinea-Bissau', '624', '12';
+            'GY', 'GUY', 'Guyana', '328', '5';
+            'HT', 'HTI', 'Haiti', '332', '19';
+            'HM', 'HMD', 'Heard Island and McDonald Islands', '334', '-53.1';
+            'VA', 'VAT', 'Holy See (Vatican City State)', '336', '41.9';
+            'HN', 'HND', 'Honduras', '340', '15';
+            'HK', 'HKG', 'Hong Kong', '344', '22.25';
+            'HU', 'HUN', 'Hungary', '348', '47';
+            'IS', 'ISL', 'Iceland', '352', '65';
+            'IN', 'IND', 'India', '356', '20';
+            'ID', 'IDN', 'Indonesia', '360', '-5';
+            'IR', 'IRN', 'Iran, Islamic Republic of', '364', '32';
+            'IQ', 'IRQ', 'Iraq', '368', '33';
+            'IE', 'IRL', 'Ireland', '372', '53';
+            'IM', 'IMN', 'Isle of Man', '833', '54.23';
+            'IL', 'ISR', 'Israel', '376', '31.5';
+            'IT', 'ITA', 'Italy', '380', '42.8333';
+            'JM', 'JAM', 'Jamaica', '388', '18.25';
+            'JP', 'JPN', 'Japan', '392', '36';
+            'JE', 'JEY', 'Jersey', '832', '49.21';
+            'JO', 'JOR', 'Jordan', '400', '31';
+            'KZ', 'KAZ', 'Kazakhstan', '398', '48';
+            'KE', 'KEN', 'Kenya', '404', '1';
+            'KI', 'KIR', 'Kiribati', '296', '1.4167';
+            'KP', 'PRK', 'Korea, Democratic People''s Republic of', '408', '40';
+            'KR', 'KOR', 'Korea, Republic of', '410', '37';
+            'KR', 'KOR', 'South Korea', '410', '37';
+            'KW', 'KWT', 'Kuwait', '414', '29.3375';
+            'KG', 'KGZ', 'Kyrgyzstan', '417', '41';
+            'LA', 'LAO', 'Lao People''s Democratic Republic', '418', '18';
+            'LV', 'LVA', 'Latvia', '428', '57';
+            'LB', 'LBN', 'Lebanon', '422', '33.8333';
+            'LS', 'LSO', 'Lesotho', '426', '-29.5';
+            'LR', 'LBR', 'Liberia', '430', '6.5';
+            'LY', 'LBY', 'Libyan Arab Jamahiriya', '434', '25';
+            'LY', 'LBY', 'Libya', '434', '25';
+            'LI', 'LIE', 'Liechtenstein', '438', '47.1667';
+            'LT', 'LTU', 'Lithuania', '440', '56';
+            'LU', 'LUX', 'Luxembourg', '442', '49.75';
+            'MO', 'MAC', 'Macao', '446', '22.1667';
+            'MK', 'MKD', 'Macedonia, the former Yugoslav Republic of', '807', '41.8333';
+            'MG', 'MDG', 'Madagascar', '450', '-20';
+            'MW', 'MWI', 'Malawi', '454', '-13.5';
+            'MY', 'MYS', 'Malaysia', '458', '2.5';
+            'MV', 'MDV', 'Maldives', '462', '3.25';
+            'ML', 'MLI', 'Mali', '466', '17';
+            'MT', 'MLT', 'Malta', '470', '35.8333';
+            'MH', 'MHL', 'Marshall Islands', '584', '9';
+            'MQ', 'MTQ', 'Martinique', '474', '14.6667';
+            'MR', 'MRT', 'Mauritania', '478', '20';
+            'MU', 'MUS', 'Mauritius', '480', '-20.2833';
+            'YT', 'MYT', 'Mayotte', '175', '-12.8333';
+            'MX', 'MEX', 'Mexico', '484', '23';
+            'FM', 'FSM', 'Micronesia, Federated States of', '583', '6.9167';
+            'MD', 'MDA', 'Moldova, Republic of', '498', '47';
+            'MC', 'MCO', 'Monaco', '492', '43.7333';
+            'MN', 'MNG', 'Mongolia', '496', '46';
+            'ME', 'MNE', 'Montenegro', '499', '42';
+            'MS', 'MSR', 'Montserrat', '500', '16.75';
+            'MA', 'MAR', 'Morocco', '504', '32';
+            'MZ', 'MOZ', 'Mozambique', '508', '-18.25';
+            'MM', 'MMR', 'Myanmar', '104', '22';
+            'MM', 'MMR', 'Burma', '104', '22';
+            'NA', 'NAM', 'Namibia', '516', '-22';
+            'NR', 'NRU', 'Nauru', '520', '-0.5333';
+            'NP', 'NPL', 'Nepal', '524', '28';
+            'NL', 'NLD', 'Netherlands', '528', '52.5';
+            'AN', 'ANT', 'Netherlands Antilles', '530', '12.25';
+            'NC', 'NCL', 'New Caledonia', '540', '-21.5';
+            'NZ', 'NZL', 'New Zealand', '554', '-41';
+            'NI', 'NIC', 'Nicaragua', '558', '13';
+            'NE', 'NER', 'Niger', '562', '16';
+            'NG', 'NGA', 'Nigeria', '566', '10';
+            'NU', 'NIU', 'Niue', '570', '-19.0333';
+            'NF', 'NFK', 'Norfolk Island', '574', '-29.0333';
+            'MP', 'MNP', 'Northern Mariana Islands', '580', '15.2';
+            'NO', 'NOR', 'Norway', '578', '62';
+            'OM', 'OMN', 'Oman', '512', '21';
+            'PK', 'PAK', 'Pakistan', '586', '30';
+            'PW', 'PLW', 'Palau', '585', '7.5';
+            'PS', 'PSE', 'Palestinian Territory, Occupied', '275', '32';
+            'PA', 'PAN', 'Panama', '591', '9';
+            'PG', 'PNG', 'Papua New Guinea', '598', '-6';
+            'PY', 'PRY', 'Paraguay', '600', '-23';
+            'PE', 'PER', 'Peru', '604', '-10';
+            'PH', 'PHL', 'Philippines', '608', '13';
+            'PN', 'PCN', 'Pitcairn', '612', '-24.7';
+            'PL', 'POL', 'Poland', '616', '52';
+            'PT', 'PRT', 'Portugal', '620', '39.5';
+            'PR', 'PRI', 'Puerto Rico', '630', '18.25';
+            'QA', 'QAT', 'Qatar', '634', '25.5';
+            'RE', 'REU', 'Réunion', '638', '-21.1';
+            'RO', 'ROU', 'Romania', '642', '46';
+            'RU', 'RUS', 'Russian Federation', '643', '60';
+            'RU', 'RUS', 'Russia', '643', '60';
+            'RW', 'RWA', 'Rwanda', '646', '-2';
+            'SH', 'SHN', 'Saint Helena, Ascension and Tristan da Cunha', '654', '-15.9333';
+            'KN', 'KNA', 'Saint Kitts and Nevis', '659', '17.3333';
+            'LC', 'LCA', 'Saint Lucia', '662', '13.8833';
+            'PM', 'SPM', 'Saint Pierre and Miquelon', '666', '46.8333';
+            'VC', 'VCT', 'Saint Vincent and the Grenadines', '670', '13.25';
+            'VC', 'VCT', 'Saint Vincent & the Grenadines', '670', '13.25';
+            'VC', 'VCT', 'St. Vincent and the Grenadines', '670', '13.25';
+            'WS', 'WSM', 'Samoa', '882', '-13.5833';
+            'SM', 'SMR', 'San Marino', '674', '43.7667';
+            'ST', 'STP', 'Sao Tome and Principe', '678', '1';
+            'SA', 'SAU', 'Saudi Arabia', '682', '25';
+            'SN', 'SEN', 'Senegal', '686', '14';
+            'RS', 'SRB', 'Serbia', '688', '44';
+            'SC', 'SYC', 'Seychelles', '690', '-4.5833';
+            'SL', 'SLE', 'Sierra Leone', '694', '8.5';
+            'SG', 'SGP', 'Singapore', '702', '1.3667';
+            'SK', 'SVK', 'Slovakia', '703', '48.6667';
+            'SI', 'SVN', 'Slovenia', '705', '46';
+            'SB', 'SLB', 'Solomon Islands', '90', '-8';
+            'SO', 'SOM', 'Somalia', '706', '10';
+            'ZA', 'ZAF', 'South Africa', '710', '-29';
+            'GS', 'SGS', 'South Georgia and the South Sandwich Islands', '239', '-54.5';
+            'SS', 'SSD', 'South Sudan', '728', '8';
+            'ES', 'ESP', 'Spain', '724', '40';
+            'LK', 'LKA', 'Sri Lanka', '144', '7';
+            'SD', 'SDN', 'Sudan', '736', '15';
+            'SR', 'SUR', 'Suriname', '740', '4';
+            'SJ', 'SJM', 'Svalbard and Jan Mayen', '744', '78';
+            'SZ', 'SWZ', 'Swaziland', '748', '-26.5';
+            'SE', 'SWE', 'Sweden', '752', '62';
+            'CH', 'CHE', 'Switzerland', '756', '47';
+            'SY', 'SYR', 'Syrian Arab Republic', '760', '35';
+            'TW', 'TWN', 'Taiwan, Province of China', '158', '23.5';
+            'TW', 'TWN', 'Taiwan', '158', '23.5';
+            'TJ', 'TJK', 'Tajikistan', '762', '39';
+            'TZ', 'TZA', 'Tanzania, United Republic of', '834', '-6';
+            'TH', 'THA', 'Thailand', '764', '15';
+            'TL', 'TLS', 'Timor-Leste', '626', '-8.55';
+            'TG', 'TGO', 'Togo', '768', '8';
+            'TK', 'TKL', 'Tokelau', '772', '-9';
+            'TO', 'TON', 'Tonga', '776', '-20';
+            'TT', 'TTO', 'Trinidad and Tobago', '780', '11';
+            'TN', 'TUN', 'Tunisia', '788', '34';
+            'TR', 'TUR', 'Turkey', '792', '39';
+            'TM', 'TKM', 'Turkmenistan', '795', '40';
+            'TC', 'TCA', 'Turks and Caicos Islands', '796', '21.75';
+            'TV', 'TUV', 'Tuvalu', '798', '-8';
+            'UG', 'UGA', 'Uganda', '800', '1';
+            'UA', 'UKR', 'Ukraine', '804', '49';
+            'AE', 'ARE', 'United Arab Emirates', '784', '24';
+            'GB', 'GBR', 'United Kingdom', '826', '54';
+            'US', 'USA', 'United States', '840', '38';
+            'UM', 'UMI', 'United States Minor Outlying Islands', '581', '19.2833';
+            'UY', 'URY', 'Uruguay', '858', '-33';
+            'UZ', 'UZB', 'Uzbekistan', '860', '41';
+            'VU', 'VUT', 'Vanuatu', '548', '-16';
+            'VE', 'VEN', 'Venezuela, Bolivarian Republic of', '862', '8';
+            'VE', 'VEN', 'Venezuela', '862', '8';
+            'VN', 'VNM', 'Viet Nam', '704', '16';
+            'VN', 'VNM', 'Vietnam', '704', '16';
+            'VG', 'VGB', 'Virgin Islands, British', '92', '18.5';
+            'VI', 'VIR', 'Virgin Islands, U.S.', '850', '18.3333';
+            'WF', 'WLF', 'Wallis and Futuna', '876', '-13.3';
+            'EH', 'ESH', 'Western Sahara', '732', '24.5';
+            'YE', 'YEM', 'Yemen', '887', '15';
+            'ZM', 'ZMB', 'Zambia', '894', '-15';
+            'ZW', 'ZWE', 'Zimbabwe', '716', '-20';
+            'OC', 'OCE', 'Ocean', '0', '0';   % fake entry
+            'WD', 'WRD', 'World', '-90', '0'; % fake entry
+            };
+    end
+    
+    methods (Static)               
         %--------------------------------------------------------------------------
-        % FILTERS AND INTERPOLATORS
+        %% FILTERS AND INTERPOLATORS
         %--------------------------------------------------------------------------
         
         function diff_data = diffAndPred(data, n_order, t_ref, method)
@@ -66,67 +329,74 @@ classdef Core_Utils < handle
                 n_order = 1;
             end
             if nargin < 4 || isempty(method)
-                method = 'spline';
+                method = 'pchip';
             end
-            diff_data = nan(size(data));
-            % Add n_order rows to data
-            data = [repmat(data(1,:), n_order, 1); data];
-            for s = 1 : size(data, 2)
-                % Get the original good data for column s
-                tmp = data(1 + n_order : end, s);
-                id_ok = ~isnan(tmp);
-                if sum(id_ok) > 2
-                    lim = getFlagsLimits(id_ok);
-                    % Interpolate data beginning
-                    % interpolate the "left" of the first element of an arc
-                    % because diff "eat" the first value
-                    %if (length(id_ok) > (n_order + 1)) && any(id_ok(1))
-                    %    id_est = find(id_ok(lim(1,1):lim(1,2)));
-                    %    data(1 : n_order, s) = interp1(t_ref(id_est), tmp(id_est), 1 - n_order : 0, 'spline', 'extrap');
-                    %end
-                    
-                    lim_short = lim(lim(:,2) - lim(:,1) < 2 & lim(:,1) > 1, :);
-                    % short arcs cannot be differenciated efficiently
-                    for l = 1 : size(lim_short, 1)
-                        data(lim_short(l, 1), s) = data(lim_short(l, 1)+1, s);
-                    end
-                    
-                    % differenciate only limits larger than 2
-                    lim = lim(lim(:,2) - lim(:,1) > 1, :);
-                    for l = 1 : size(lim, 1)
-                        id_data = lim(l, 1) : lim(l, 2);
-                        id_est = 0 : (n_order - 1);
+            if isempty(data)
+                diff_data = [];
+            else
+                diff_data = nan(size(data));
+                % Add n_order rows to data
+                data = [repmat(data(1,:), n_order, 1); data];
+                for s = 1 : size(data, 2)
+                    % Get the original good data for column s
+                    tmp = data(1 + n_order : end, s);
+                    id_ok = ~isnan(tmp);
+                    if sum(id_ok) > 2
+                        lim = getFlagsLimits(id_ok);
+                        % Interpolate data beginning
+                        % interpolate the "left" of the first element of an arc
+                        % because diff "eat" the first value
+                        %if (length(id_ok) > (n_order + 1)) && any(id_ok(1))
+                        %    id_est = find(id_ok(lim(1,1):lim(1,2)));
+                        %    data(1 : n_order, s) = interp1(t_ref(id_est), tmp(id_est), 1 - n_order : 0, 'spline', 'extrap');
+                        %end
                         
-                        % slower approach with interp1
-                        % data(lim(l, 1) + id_est, s) = interp1(t_ref(id_data), tmp(id_data), lim(l, 1) - 1 - fliplr(id_est), 'spline', 'extrap');
-                        
-                        % faster approach skipping a lot of checks
-                        % this is the internal implementation of interp1
-                        if strcmp(method, 'zeros')
-                            data(lim(l, 1) + id_est, s) = 0;
-                        else
-                            fun = griddedInterpolant(t_ref(id_data), tmp(id_data), method);
-                            data(lim(l, 1) + id_est, s) = fun(lim(l, 1) - 1 - fliplr(id_est));
+                        lim_short = lim(lim(:,2) - lim(:,1) < 2 & lim(:,1) > 1, :);
+                        % short arcs cannot be differenciated efficiently
+                        for l = 1 : size(lim_short, 1)
+                            data(lim_short(l, 1), s) = data(lim_short(l, 1)+1, s);
                         end
                         
-                        diff_data(id_data, s) = diff(data(lim(l, 1) : (lim(l, 2) + n_order), s), n_order);
-                        % restore data for the next interval
-                        data(1 + n_order : end, s) = tmp;
+                        % differenciate only limits larger than 2
+                        lim = lim(lim(:,2) - lim(:,1) > 1, :);
+                        for l = 1 : size(lim, 1)
+                            id_data = lim(l, 1) : lim(l, 2);
+                            id_est = 0 : (n_order - 1);
+                            
+                            % slower approach with interp1
+                            % data(lim(l, 1) + id_est, s) = interp1(t_ref(id_data), tmp(id_data), lim(l, 1) - 1 - fliplr(id_est), 'spline', 'extrap');
+                            
+                            % faster approach skipping a lot of checks
+                            % this is the internal implementation of interp1
+                            if strcmp(method, 'zeros')
+                                data(lim(l, 1) + id_est, s) = 0;
+                            else
+                                fun = griddedInterpolant(t_ref(id_data), tmp(id_data), method);
+                                data(lim(l, 1) + id_est, s) = fun(lim(l, 1) - 1 - fliplr(id_est));
+                            end
+                            
+                            diff_data(id_data, s) = diff(data(lim(l, 1) : (lim(l, 2) + n_order), s), n_order);
+                            % restore data for the next interval
+                            data(1 + n_order : end, s) = tmp;
+                        end
                     end
                 end
+                % diff_data = diff(data, n_order); % now it is done arc by arc
             end
-            % diff_data = diff(data, n_order); % now it is done arc by arc
         end
         
         
-        function [y_out,coeff] = interp1LS(x_in, y_in, degree, x_out)
+        function [y_out,coeff] = interp1LS(x_in, y_in, degree, x_out, flag_reg)
             % Least squares interpolant of a 1D dataset
             %
             % SYNTAX
             %   y_out = interp1LS(x_in, y_in, degree, x_out)
             
-            if nargin < 4
+            if nargin < 4 || isempty(x_out)
                 x_out = x_in;
+            end
+            if nargin < 5
+                flag_reg = false;
             end
             coeff = nan(degree+1, iif(min(size(y_in)) == 1, 1, size(y_in,2)));
             for c = 1 : iif(min(size(y_in)) == 1, 1, size(y_in,2))
@@ -158,13 +428,24 @@ classdef Core_Utils < handle
                 end
                 
                 warning('off')
-                if min(size(y_in)) == 1
+                if (min(size(y_in)) == 1) && (numel(flag_reg) == 1) && not(flag_reg)
                     %y_out = A2 * ((A' * A) \ (A' * y_tmp(:)));
                     coeff(:,c) = (A \ y_tmp(:));
                     y_out = A2 * coeff(:,c);
                     y_out = reshape(y_out, size(x_out, 1), size(x_out, 2));
+                elseif numel(flag_reg) == numel(y_in)
+                    if size(flag_reg, 1) == 1
+                        v_tmp = flag_reg';
+                    else
+                        v_tmp = flag_reg(:, c);
+                    end
+                    % full regularization
+                    invQ = spdiags(1 ./ (v_tmp.^2), 0, numel(v_tmp), numel(v_tmp));
+                    At_invQ = A' * invQ;
+                    coeff(:,c) = full(((At_invQ * A) \ (At_invQ * y_tmp(:))));
+                    y_out(:,c) = A2 * coeff(:,c);
                 else
-                    coeff(:,c) = ((A' * A + 1e-6 * eye(size(A,2))) \ (A' * y_tmp(:)));
+                    coeff(:,c) = full(((A' * A + 1e-6 * speye(size(A,2))) \ (A' * y_tmp(:))));
                     y_out(:,c) = A2 * coeff(:,c);
                 end
                 warning('on')
@@ -375,24 +656,165 @@ classdef Core_Utils < handle
                 %interpolate along lat
                 val = valu.*(1-slat) + vald.*slat;
                 
-            else %space first % NOTE: consider speed up in case only one time is present, unnecessary operations done
+            else %space first % NOTE: consider speed up in case only one time is present, unnecessary operations done                
+                % lon first % NOTE: consider speed up in case only one time is present, unnecessary operations done
                 % interpolate along lon
-                valbu = permute(data(ilat   , ilons , it  ).*(1-slon) + data(ilat   , ilone , it  ).*slon,[3 1 2]);
-                valau = permute(data(ilat   , ilons , min(it+1,size(data,3))).*(1-slon) + data(ilat   , ilone , min(it+1,size(data,3))).*slon,[3 1 2]);
-                valbd = permute(data(ilat+1 , ilons , it  ).*(1-slon) + data(ilat+1 , ilone , it  ).*slon,[3 1 2]);
-                valad = permute(data(ilat+1 , ilons , min(it+1,size(data,3))).*(1-slon) + data(ilat+1 , ilone , min(it+1,size(data,3))).*slon,[3 1 2]);
-                
-                %interpolate along lat
-                valb = valbd.*(1-slat) + valbu.*slat;
-                vala = valad.*(1-slat) + valau.*slat;
-                
-                %interpolate along time
+                % before up
+                % after up
+                % before down
+                % after down
+                if numel(it) == 1
+                    it = it*ones(size(ilat));
+                end
+                idx1 = sub2ind([nlat nlon nt], ilat, ilons(:,1), it);
+                idx2 = sub2ind([nlat nlon nt], ilat, ilone(:,1), it);
+                valbu = permute(data(idx1).*(1-slon(:,1)) + data(idx2).*slon(:,1),[3 1 2]);
+                idx1 = sub2ind([nlat nlon nt], ilat   , ilons(:,1) , min(it+1,size(data,3)));
+                idx2 = sub2ind([nlat nlon nt], ilat   , ilone(:,1) , min(it+1,size(data,3)));
+                valau = permute(data(idx1).*(1-slon(:,1)) + data(idx2).*slon(:,1),[3 1 2]);
+                idx1 = sub2ind([nlat nlon nt], ilat+1 , ilons(:,1) , it);
+                idx2 = sub2ind([nlat nlon nt], ilat+1 , ilone(:,1) , it);
+                valbd = permute(data(idx1).*(1-slon(:,1)) + data(idx2).*slon(:,1),[3 1 2]);
+                idx1 = sub2ind([nlat nlon nt], ilat+1 , ilons(:,1) , min(it+1,size(data,3)));
+                idx2 = sub2ind([nlat nlon nt], ilat+1 , ilone(:,1) , min(it+1,size(data,3)));
+                valad = permute(data(idx1).*(1-slon(:,1)) + data(idx2).*slon(:,1),[3 1 2]);
+
+                % interpolate along lat
+                % before
+                % after
+                valb = valbu(:).*(1-slat) + valbd(:).*slat;
+                vala = valau(:).*(1-slat) + valad(:).*slat;
+
+                % interpolate along time
                 val = valb.*(1-st) + vala.*st;
             end
             
         end
         
+        function val = linInterpRotLatLonTime(data, first_lat, dlat, first_lon, dlon, first_t, dt, lat, lon, t)
+            % Interpolate values froma data on a geographical grid with multiple epoch
+            % data structure:
+            %        first dimension : dlat (+) south pole -> north pole
+            %        second dimension : dlon (+) west -> east
+            %        third dimension : dr (+) time usual direction
+            %        NOTE: dlat, dlon,dt do not have to be positive
+            %
+            % Differently to linInterpLatLonTime it consider that the map rotates with the Earth motion
+            % This function is created ad hoc for ionospheric interpolation
+            %
+            % INPUT:
+            %      data - the data to be interpolate
+            %      fist_lat - value of first lat value (max lat)
+            %      dlat - px size lat
+            %      first_lon - value of first lon value
+            %      dlon - px size lon
+            %      first_t - value of first time
+            %      dt - px size time
+            %      lat - lat at what we want to interpolate
+            %      lon - lon at what we ant to interpolate
+            %      gps_time - time at what we want to interpolate
+            % NOTES 1 - all lat values should have same unit of measure
+            %       2 - all lon values should have same unit of measure
+            %       3 - all time values should have same unit of measure
+            %       4 - the method will interpolate first in the dimesnion with less time
+            % IMPORTANT : no double values at the borders should coexist: e.g. -180 180 or 0 360
+            [nlat , nlon, nt] = size(data);
+            n_in_lat = length(lat);
+            n_in_lon = length(lon);
+            n_in_t = length(t);
+            assert(n_in_lat == n_in_lon);
+            [ it, st, ilons, ilone, slon, ilat, slat] = Core_Utils.getIntIdxRot(data, first_lat, dlat, first_lon, dlon, first_t, dt, lat, lon, t);
+            
+            % lon first % NOTE: consider speed up in case only one time is present, unnecessary operations done
+            % interpolate along lon 
+            % before up
+            % after up
+            % before down
+            % after down
+            it = it*ones(size(ilat));            
+            idx1 = sub2ind([nlat nlon nt], ilat, ilons(:,1), it);
+            idx2 = sub2ind([nlat nlon nt], ilat, ilone(:,1), it);
+            valbu = permute(data(idx1).*(1-slon(:,1)) + data(idx2).*slon(:,1),[3 1 2]);
+            idx1 = sub2ind([nlat nlon nt], ilat   , ilons(:,2) , min(it+1,size(data,3)));
+            idx2 = sub2ind([nlat nlon nt], ilat   , ilone(:,2) , min(it+1,size(data,3)));
+            valau = permute(data(idx1).*(1-slon(:,2)) + data(idx2).*slon(:,2),[3 1 2]);
+            idx1 = sub2ind([nlat nlon nt], ilat+1 , ilons(:,1) , it);
+            idx2 = sub2ind([nlat nlon nt], ilat+1 , ilone(:,1) , it);
+            valbd = permute(data(idx1).*(1-slon(:,1)) + data(idx2).*slon(:,1),[3 1 2]);
+            idx1 = sub2ind([nlat nlon nt], ilat+1 , ilons(:,2) , min(it+1,size(data,3)));
+            idx2 = sub2ind([nlat nlon nt], ilat+1 , ilone(:,2) , min(it+1,size(data,3)));
+            valad = permute(data(idx1).*(1-slon(:,2)) + data(idx2).*slon(:,2),[3 1 2]);
+
+            % interpolate along lat
+            % before
+            % after
+            valb = valbu(:).*(1-slat) + valbd(:).*slat;
+            vala = valau(:).*(1-slat) + valad(:).*slat;
+
+            % interpolate along time
+            val = valb.*(1-st) + vala.*st;            
+        end
         
+        function [dlat, dlon, data] = addSphBorder(dlat, dlon, data, border_size)
+            % Replicate spherical data to allow interpolation
+            %
+            % INPUT
+            %   dlat    latitude  [deg]  [  90 -90]
+            %   dlon    longitude [deg]  [-180 180]
+            %   data    data to replicate
+            %
+            % OUTPUT
+            %   !!! Angles will be outside their range of validity !!!
+            %   dlat    latitude  [deg]
+            %   dlon    longitude [deg]
+            %   data    data to replicate
+            %
+            % SYNTAX
+            %   [dlat, dlon, data] = Core_Utils.addSphBorder(dlat, dlon, data, border_size)
+
+            dlon = mod(dlon + 180, 360) - 180;
+            idb = abs(dlat(:)) > 90 - border_size(1) & abs(dlat(:)) < 90;
+            dlat = [dlat(:); (180 - abs(dlat(idb))) .* sign(dlat(idb))];
+            dlon = [dlon(:); dlon(idb)];
+            data = [data(:); data(idb)];
+
+            idb = abs(dlon(:)) > 180 - border_size(end) & abs(dlat(:)) < 180;
+            dlat = [dlat(:); dlat(idb)];
+            dlon = [dlon(:); (360 - abs(dlon(idb))) .* -sign(dlon(idb))];
+            data = [data(:); data(idb)];
+        end
+        
+        function [data_grid, dlat_grid, dlon_grid] = sparseEarthGridder(dlat, dlon, data, grid_step)
+            % Grid from spherical sparse data to the entire world map
+            %
+            % INPUT 
+            %   dlat    latitude  [deg]  [  90 -90] [n x 1]
+            %   dlon    longitude [deg]  [-180 180] [n x 1]
+            %   data    data to interpolate         [n x 1]
+            %
+            % OUTPUT 
+            %   data         Earth map 
+            %   dlat_grid    latitude  [deg]  [  90 -90]
+            %   dlon_grid    longitude [deg]  [-180 180]
+            %
+            % SYNTAX
+            %   [data_grid, dlat_grid, dlon_grid] = Core_Utils.sparseEarthGridder(dlat, dlon, data, grid_step)
+
+
+            border_size = 15;
+            if nargin == 3 || isempty(grid_step)
+                grid_step = [0.5 0.5];
+            end
+
+            [dlat, dlon, data] = Core_Utils.addSphBorder(dlat, dlon, data, border_size);
+
+            fun = scatteredInterpolant(dlon(:), dlat(:), data(:));
+
+            [dlat_grid, dlon_grid] = getGrid(grid_step);
+            [dlon_grid, dlat_grid] = meshgrid(dlon_grid,dlat_grid);
+            data_grid = reshape(fun(dlon_grid,dlat_grid), size(dlat_grid,1), size(dlat_grid,2));
+        end
+
         function [val] = cubicSpline(t)
             % Compute matrix entry for cubic spline
             %
@@ -482,8 +904,8 @@ classdef Core_Utils < handle
             [el_grid, az_grid] = getGrid([step_el step_az], 0, 90, -180, 180);
         end
             
-        function id_ok = polarCleaner(az, el, data, step_deg)
-            % Remove observations above 3 sigma 
+        function id_ok = polarCleaner(az, el, data, step_deg, n_sigma)
+            % Remove observations above n_sigma sigma 
             %
             % INPUT 
             %   az          azimuth [rad]
@@ -499,7 +921,13 @@ classdef Core_Utils < handle
             % az -180 : 180
             %% el 0 : 90
             %figure; polarScatter(az, pi/2-el, 5, data); colormap(gat);
-            step_deg = [360, 1; 3, 3];
+            if nargin < 4
+                step_deg = [360, 1; 3, 3];
+            end
+            if nargin < 5
+                n_sigma = 3;
+            end
+            
             
             az_grid = ((-180 + (step_deg(1, 1) / 2)) : step_deg(1, 1) : (180 - step_deg(1, 1) / 2)) .* (pi/180);
             el_grid = flipud(((step_deg(1, end) / 2) : step_deg(1, end) : 90 - (step_deg(1, end) / 2))' .* (pi/180));
@@ -516,7 +944,7 @@ classdef Core_Utils < handle
                 id_set = find(uid == b);
                 dset = data(id_set);
                 sigma = std(dset);
-                id_ok(id_set(abs(dset) > 3 * sigma)) = false;
+                id_ok(id_set(abs(dset) > n_sigma * sigma)) = false;
             end
             %figure; polarScatter(az(id_ok == 0), pi/2-el(id_ok == 0), 5, data(id_ok == 0)); colormap(gat);
             
@@ -538,7 +966,7 @@ classdef Core_Utils < handle
                     dset = data(id_set) - median(serialize(data(id_set)));
                     %data(id_set) = median(serialize(data(id_set)));
                     sigma = min(0.01, std(dset));
-                    id_ok(id_set(abs(dset) < 3 * sigma)) = true;
+                    id_ok(id_set(abs(dset) < n_sigma * sigma)) = true;
                 end
                 
                 %figure; polarScatter(az(id_ok), pi/2-el(id_ok), 5, data(id_ok)); colormap(gat);
@@ -686,6 +1114,164 @@ classdef Core_Utils < handle
                 y = cos(az_grid_out) .* decl_n;
                 
                 data_map(:) = funGridder(x(:),y(:));
+            else
+                el_grid_out = el_grid;
+                az_grid_out = az_grid;
+            end
+        end
+        
+        function [data_map, n_map, az_grid_out, el_grid_out] = hemiGridderStd(az, el, data, step_deg, step_deg_out, flag_congurent_cells)
+            % Get std of points on a semi sphere
+            % To be fixed for non congruent grids
+            %
+            % INPUT 
+            %   az      azimuth
+            %   el      elevation
+            %
+            % SYNTAX
+            %   [data_map, n_map, az_grid, el_grid] = Core_Utils.hemiGridderStd(az, el, data, step_deg, step_deg_out, flag_congurent_cells)
+            
+            % Define grid
+            % az -180 : 180
+            % el 0 : 90
+            el_grid = flipud(((step_deg(end) / 2) : step_deg(end) : 90 - (step_deg(end) / 2))' .* (pi/180));
+            flag_congurent_cells = nargin >= 6 && ~isempty(flag_congurent_cells) && flag_congurent_cells;
+            if flag_congurent_cells
+                step_az = 360 ./ round((360 / step_deg(1)) * cos(el_grid));
+                az_grid = {};
+                for i = 1 : numel(step_az)
+                   az_grid{i} = ((-180 + (step_az(i) / 2)) : step_az(i) : (180 - step_az(i) / 2)) .* (pi/180);
+                   n_az(i) = numel(az_grid{i});
+                end                
+            else
+                az_grid = ((-180 + (step_deg(1) / 2)) : step_deg(1) : (180 - step_deg(1) / 2)) .* (pi/180);
+                n_az = numel(az_grid);
+            end
+            n_el = numel(el_grid);
+            
+            % Find map indexes
+            row = max(1, min(floor((pi/2 - el) / (step_deg(end) / 180 * pi)) + 1, length(el_grid)));
+            if flag_congurent_cells
+                col = max(1, min(floor((az + pi) ./ (step_az(row) / 180 * pi) ) + 1, n_az(i)));
+            else
+                col = max(1, min(floor((az + pi) / (step_deg(1) / 180 * pi) ) + 1, length(az_grid)));
+            end
+            
+            % init maps
+            [n_map, data_map] = deal(zeros(n_el, max(n_az)));
+                        
+            % fill maps
+            r_lim = minMax(row);
+            if any(r_lim)
+                for r = r_lim(1):r_lim(2)
+                    id_r = row == r;
+                    for c = unique(col(id_r))'
+                        id = id_r & col == c; % index of the cell
+                        n_map(r,c) = sum(id);
+                        data_map(r,c) = std(data(id));
+                    end
+                end
+            end
+            
+            % max cells with a minimum number of data < n_min
+            n_map = nan2zero(n_map);
+            data_map(n_map < 3) = min(max(data_map(:)), 3*std(data(:),'omitnan'));
+
+            flag_debug = false;
+            if flag_congurent_cells && flag_debug
+                data_congruent = {};
+                for i = 1 : numel(el_grid)
+                    data_congruent{i} = data_map(i, 1 : numel(az_grid{i}));
+                end
+                Core_Utils.plotSphPatchGrid(el_grid, az_grid, data_congruent);
+            end
+            
+            % distort map
+            if (nargin >= 5) && ~isempty(step_deg_out)
+                data_map_in = data_map;
+                decl_n = ((pi/2 - el_grid)/(pi/2));
+                
+                % Define output grid
+                az_grid_out = ((-180 + (step_deg(1) / 2)) : step_deg(1) : (180 - step_deg(1) / 2)) .* (pi/180);
+                el_grid_out = el_grid;
+                n_az_out = numel(az_grid_out);
+                n_el_out = numel(el_grid_out);
+                data_map = zeros(n_el_out, n_az_out);
+                
+                if flag_congurent_cells
+                    % Interpolate elevation by elevation
+                    [az, el] = deal(zeros(n_el, max(n_az)));
+                    [az_mg, el_mg] = meshgrid(az_grid_out, el_grid_out);
+                    for i = 1 : numel(el_grid)
+                        az_tmp = [az_grid{i} nan(1, max(n_az) - n_az(i))];
+                        az(i, :) = az_tmp;
+                        el(i, :) = el_grid(i);
+                        
+                        if sum(n_map(i, :) > 0) < 2
+                            data_map(i, :) = data_map_in(i,1);
+                        else
+                            az_tmp = az_tmp(n_map(i, :) > 0)';
+                            az_tmp = [az_tmp-2*pi; az_tmp; az_tmp+2*pi];
+                            data_tmp = data_map_in(i, n_map(i, :) > 0)';
+                            data_tmp = [data_tmp; data_tmp; data_tmp];
+                            data_map(i, :) = interp1(az_tmp, data_tmp, az_mg(i, :)', 'linear');
+                            az_tmp = [az_grid{i}'-2*pi; az_grid{i}'; az_grid{i}'+2*pi];
+                            data_tmp = [n_map(i, 1 : n_az(i))'; n_map(i, 1 : n_az(i))'; n_map(i, 1 : n_az(i))'];
+                            n_map(i, :) = interp1(az_tmp, data_tmp, az_mg(i, :)', 'nearest');
+                        end
+                    end
+                    %data_map(n_map == 0) = 0;
+                    %n_map(n_map == 0) = 0.1; % this is to cheat the next scatteredInterpolant
+                    data_map_in = data_map;
+                    
+                    % get polar coordinates
+                    x = sin(az_grid_out) .* decl_n;
+                    y = cos(az_grid_out) .* decl_n;
+                    funGridder = scatteredInterpolant(x(n_map > 0), y(n_map > 0), data_map_in(n_map > 0), 'linear' );
+                    funGridderNMap = scatteredInterpolant(x(:), y(:), n_map(:), 'nearest' );
+                else
+                    % get polar coordinates
+                    x = sin(az_grid) .* decl_n;
+                    y = cos(az_grid) .* decl_n;
+                    
+                    data_map_in(n_map == 0) = 0;
+                    n_map(n_map == 0) = 0.1; % this is to cheat the next scatteredInterpolant
+                    
+                    funGridder = scatteredInterpolant(x(n_map > 0), y(n_map > 0), data_map_in(n_map > 0), 'linear' );
+                    x = linspace(-1, 1, 180/min(step_deg_out));
+                    y = x;
+                    [x_mg, y_mg] = meshgrid(x, y);
+                    polar_data = nan(numel(x), numel(y));
+                    id_ok = hypot(x_mg, y_mg) < 1;
+                    polar_data(id_ok) = funGridder(x_mg(id_ok), y_mg(id_ok));
+                    
+                    % Prepare polar gridder
+                    funGridder = scatteredInterpolant(x_mg(id_ok), y_mg(id_ok), polar_data(id_ok), 'linear');
+                end
+                
+                
+                % Define output grid
+                az_grid_out = ((-180 + (step_deg_out(1) / 2)) : step_deg_out(1) : (180 - step_deg_out(1) / 2)) .* (pi/180);
+                el_grid_out = flipud(((step_deg_out(end) / 2) : step_deg_out(end) : 90 - (step_deg_out(end) / 2))' .* (pi/180));
+                n_az_out = numel(az_grid_out);
+                n_el_out = numel(el_grid_out);
+                data_map = zeros(n_el_out, n_az_out);
+                n_map_out = zeros(n_el_out, n_az_out);
+                
+                % Get polar coordinates
+                decl_n = ((pi/2 - el_grid_out)/(pi/2));
+                x = sin(az_grid_out) .* decl_n;
+                y = cos(az_grid_out) .* decl_n;
+                
+                data_map(:) = funGridder(x(:),y(:));
+                n_map_out(:) = funGridderNMap(x(:),y(:));
+                data_lim = minMax(data_map(n_map_out > 3));
+                data_map(data_map < data_lim(1)) = data_lim(1);
+                data_map(data_map > data_lim(2)) = data_lim(2);
+                for a = 1 : size(data_map,2)
+                    data_map(find(n_map_out(:,a) > 1, 1, 'last') : end, a) = data_lim(2);
+                end
+                n_map = n_map_out;
             else
                 el_grid_out = el_grid;
                 az_grid_out = az_grid;
@@ -1237,7 +1823,7 @@ classdef Core_Utils < handle
         end
 
         %--------------------------------------------------------------------------
-        % TRIGONOMETRIC manipulators
+        %% TRIGONOMETRIC manipulators
         %--------------------------------------------------------------------------
 
         function r_angle = deg2rad(d_angle)
@@ -1253,13 +1839,584 @@ classdef Core_Utils < handle
             %
             % SYNTAX
             %   r_angle =Core_Utils.deg2rad(d_angle)
+            
             d_angle = r_angle .* (180/pi);
+        end
+                
+        function [xe, ye] = ellipse(x, y, major, minor, az)
+            % Get the coordinates of an ellipse
+            %
+            % SYNTAX
+            %   [xe, ye] = Core_Utils.ellipse(x, y, major, minor, theta)
+            center = [x, y];
+            theta = 90 - az;
+
+            % Generate x and y coordinates for the ellipse
+            t = linspace(0, 2*pi);
+            xe = center(1) + major*cos(t)*cosd(theta) - minor*sin(t)*sind(theta);
+            ye = center(2) + major*cos(t)*sind(theta) + minor*sin(t)*cosd(theta);
+        end
+
+        function ph = plotEllipse(x, y, major, minor, az, varargin)
+            % Plot the coordinates of an ellipse
+            %
+            % SYNTAX
+            %   [xe, ye] = Core_Utils.plotEllipse(x, y, major, minor, theta)
+            [xe, ye] = Core_Utils.ellipse(x, y, major, minor, az);
+            if nargin < 6
+                varargin = {};
+            end
+            if ~iscell(varargin)
+                varargin = {varargin};
+            end
+            ph = plot(xe, ye, varargin{:});
+        end
+
+        function ph = patchEllipse(x, y, major, minor, az, color, varargin)
+            % Patch the coordinates of an ellipse
+            %
+            % SYNTAX
+            %   [xe, ye] = Core_Utils.plotEllipse(x, y, major, minor, theta)
+            [xe, ye] = Core_Utils.ellipse(x, y, major, minor, az);
+            if nargin < 7
+                varargin = {};
+            end
+            if ~iscell(varargin)
+                varargin = {varargin};
+            end
+            ph = patch(xe, ye, color, varargin{:});
+        end
+
+        function ph = m_plotEllipse(x, y, major, minor, az, varargin)
+            % Plot the coordinates of an ellipse
+            %
+            % SYNTAX
+            %   [xe, ye] = Core_Utils.plotEllipse(x, y, major, minor, theta)
+            [xe, ye] = Core_Utils.ellipse(x, y, major, minor, az);
+            if nargin < 6
+                varargin = {};
+            end
+            if ~iscell(varargin)
+                varargin = {varargin};
+            end
+            [xe, ye] = m_ll2xy(xe, ye);
+            ph = plot(xe, ye, varargin{:});
+        end
+
+        function ph = m_patchEllipse(x, y, major, minor, az, color, varargin)
+            % Patch the coordinates of an ellipse
+            %
+            % SYNTAX
+            %   [xe, ye] = Core_Utils.plotEllipse(x, y, major, minor, theta)
+            [xe, ye] = Core_Utils.ellipse(x, y, major, minor, az);
+            if nargin < 7
+                varargin = {};
+            end
+            if ~iscell(varargin)
+                varargin = {varargin};
+            end
+            [xe, ye] = m_ll2xy(xe, ye);
+            ph = patch(xe, ye, color, varargin{:});
         end
         
         %--------------------------------------------------------------------------
-        % DATA manipulators
+        %% ELEVATION MAPPING 
+        %--------------------------------------------------------------------------
+
+        function [elevation, flag] = getElevation(dlat_list, dlon_list, force_clean, sources)
+            % Get elevation from an online DTM service:
+            %
+            % INPUT
+            %   dlat_list   array of latitudes (degree)
+            %   dlon_list   array of longitude (degree)
+            %   force_clean flag T/F to clean the cache
+            %   source      possible source: etopo1 (default) 'srtm30m', 'aster30m'
+            %
+            % SYNTAX
+            %   [elevation, flag] = Core_Utils.getElevation(dlat_list, dlon_list, force_clean, sources)
+            %
+            % NOTE
+            %   The function requires an internet connection
+
+            persistent cache;
+
+            if nargin < 4 || isempty(sources)
+                sources = {'etopo1'};
+            end
+            % string to cell of strings
+            if ischar(sources)
+                sources = {sources};
+            end
+
+            if nargin < 3 || isempty(force_clean)
+                force_clean = false;
+            end
+
+
+            if numel(dlat_list) > 100
+                % I can only make 100 req at a time
+                elevation = zeros(numel(dlat_list),1, 'single');
+                flag = char(zeros(numel(dlat_list),1, 'uint8'));
+                n_parts = ceil(numel(dlat_list)/100);
+
+                for p = 1: n_parts
+                    lim = [1 0] + min(100.*[p-1 p], numel(dlat_list));
+                    
+                    [elevation(lim(1):lim(2)), flag(lim(1):lim(2))] = Core_Utils.getElevation(dlat_list(lim(1):lim(2)), dlon_list(lim(1):lim(2)), force_clean, sources);
+                    pause(1); % I need 1 seconds of pause between requests as a limit of the API
+                end
+            else
+                % There are less than 100 coordinates to get
+                elevation = [];
+                flag = [];
+
+                % Search in cache
+                id_cache = zeros(numel(dlat_list),1, 'uint32');
+                elevation = zeros(numel(dlat_list),2, 'single');
+                for i = 1:numel(dlat_list)
+                    lat = dlat_list(i);
+                    lon = dlon_list(i);
+                    if not(isempty(cache))
+                        tmp = find((round(lat,3) == round(cache(:,1),4) & round(lon,4) == cache(:,2)), 1, 'first');
+                        id_cache(i) = iif(isempty(tmp),0, tmp);
+                    else
+                        try
+                            % Load cache from file
+                            elevation_path = Core.getFilePath('elevation');
+                            load(elevation_path, 'elevation_cache');
+                            cache = elevation_cache;
+                            tmp = find((round(lat,3) == round(cache(:,1),4) & round(lon,4) == cache(:,2)), 1, 'first');
+                            id_cache(i) = iif(isempty(tmp),0, tmp);
+                        catch ex
+                            % Elevation_cache cache not found
+                            cache = [];
+                        end
+                    end
+                end
+
+                if force_clean && any(id_cache > 0)
+                    % clean the cache for the found points
+                    id_tmp = id_cache(id_cache > 0);
+                    id_ok = char(cache(id_tmp,4)) == sources{1}(2);
+                    cache(id_tmp(~id_ok,:),:) = [];
+                    id_cache(id_tmp(~id_ok)) = 0;
+                end
+
+                % Get what's already in cache
+                if any(id_cache > 0)
+                    elevation(id_cache > 0,:) = cache(id_cache(id_cache > 0), [3, 4]);
+                end
+                id_req = find(id_cache == 0); % Elevation to request
+
+                try
+                    if ~isempty(id_req)
+                        status_ok = false;
+                        cmd = '';
+                        for i = 1:numel(sources)
+                            if any(id_req)
+                                source = sources{i};
+
+                                loc_list = '';
+                                for l = id_req(:)'
+                                    loc_list = sprintf('%s|%.4f,%.4f', loc_list, dlat_list(l), dlon_list(l));
+                                end
+                                loc_list(1) = '';
+                                cmd = sprintf('https://api.opentopodata.org/v1/%s?locations=%s', source, loc_list);
+                                req = webread(cmd);
+                                if req.status(1) == 'O'
+                                    for r = 1:numel(req.results)
+                                        elevation(id_req(r),:) = [single(req.results(r).elevation), single(source(2))];
+                                    end
+                                    if any(~isnan(elevation(id_req)))
+                                        cache = [cache; round(dlat_list(id_req(~isnan(elevation(id_req)))),4), ...
+                                            round(dlon_list(id_req(~isnan(elevation(id_req)))),4), ...
+                                            elevation(id_req(~isnan(elevation(id_req))),:)];
+                                        elevation_cache = cache; 
+                                        elevation_path = Core.getFilePath('elevation');
+                                        save(elevation_path, 'elevation_cache');                            
+                                    end
+                                end
+                                id_req = id_req(isnan(elevation(id_req))); % if srtm is selected and results is nan => use aster
+                            end
+                        end
+                    end
+                catch ex
+                    Core_Utils.printEx(ex);
+                end
+                % The 4th column of elevation is flag
+                % flag is the second character of a requested source
+                if ~isempty(elevation)
+                    flag = char(elevation(:,2));
+                    elevation = single(elevation(:,1));
+                end
+            end
+        end
+
+        %--------------------------------------------------------------------------
+        %% COUNTRY MAPPING 
         %--------------------------------------------------------------------------
         
+        function [country_iso3, country_iso2, country_name, iso_id] = getCountryISO3166(alpha_code, lon)
+            % Get ISO codes of countries
+            %
+            % INPUT (variable)
+            %   alpha_code2         2char code in standard ISO3166-1 alpha2
+            %   alpha_code3         3char code in standard ISO3166-1 alpha3
+            %   lat,lon             coordinates in degrees
+            %
+            % SYNTAX
+            %   [country_iso3, country_iso2, country_name, iso_id] = Core_Utils.getCountryISO3166(alpha_code2);
+            %   [country_iso3, country_iso2, country_name, iso_id] = Core_Utils.getCountryISO3166(alpha_code3);
+            %   [country_iso3, country_iso2, country_name, iso_id] = Core_Utils.getCountryISO3166(lat, lon);
+            
+            persistent cache; % array with lat, lon, country_code
+            
+            if nargin == 1
+                % getCountryISO3166(alpha_code)
+                
+                if isnumeric(alpha_code)
+                    iso_id = alpha_code;
+                elseif size(alpha_code,2) == 2
+                    % alpha2 code
+                    iso2code = Core_Utils.code2Char2Num(reshape([Core_Utils.ISO3166{:,1}], 2, size(Core_Utils.ISO3166, 1))');
+                    for l = 1:size(alpha_code, 1)
+                        iso_id(l) =  find(iso2code == Core_Utils.code2Char2Num(alpha_code(l,:)), 1, 'last');
+                    end
+                elseif size(alpha_code,2) == 3
+                    % alpha3 code
+                    iso2code = Core_Utils.code3Char2Num(reshape([Core_Utils.ISO3166{:,2}], 3, size(Core_Utils.ISO3166, 1))');
+                    for l = 1:size(alpha_code, 1)
+                        iso_id(l) =  find(iso2code == Core_Utils.code3Char2Num(alpha_code));
+                    end
+                end
+                
+                country_iso2 = reshape([Core_Utils.ISO3166{iso_id, 1}], 2, size(alpha_code, 1))';
+                country_iso3 = reshape([Core_Utils.ISO3166{iso_id, 2}], 3, size(alpha_code, 1))';
+                country_name = Core_Utils.ISO3166(iso_id, 3);
+            elseif (nargin == 2)
+                % getCountryISO3166(lat, lon)
+                lat = alpha_code;
+                
+                country_iso3 = char(32*ones(numel(lat), 3, 'uint8'));
+                country_iso2 = char(32*ones(numel(lat), 2, 'uint8'));
+                country_name = cell(numel(lat), 1);
+                for p = 1:numel(lat)
+                    % search in cache
+                    cached = false;
+                    if not(isempty(cache))
+                        id_cache = unique(cache((round(lat(p),3) == round(cache(:,1),3) & round(lon(p),3) == round(cache(:,2),3)), 3));
+                        cached = any(id_cache);
+                    else
+                        try
+                            % Load cache from file
+                            nominatim_path = Core.getFilePath('nominatim');
+                            load(nominatim_path, 'nominatim_cache');
+                            cache = round(nominatim_cache,3);
+                            id_cache = unique(cache((round(lat(p),3) == round(cache(:,1),3) & round(lon(p),3) == round(cache(:,2),3)), 3));
+                            cached = any(id_cache);
+                        catch ex
+                            % nominatim cache not found
+                            cache = [];
+                        end
+                    end
+                    if cached
+                        [country_iso3(p,:), country_iso2(p,:), country_name(p)] = Core_Utils.getCountryISO3166(id_cache);
+                    else
+                        if isnan(lat)
+                            country_iso3(p,:) = Core_Utils.ISO3166{end,2};
+                            country_iso2(p,:) = Core_Utils.ISO3166{end,1};
+                            country_name(p,:) = Core_Utils.ISO3166(end,3);
+                        else
+                            [str_tmp] = Core_Utils.getLocationInfo(lat(p), lon(p));
+                            
+                            if isempty(str_tmp)
+                                country_iso3(p,:) = Core_Utils.ISO3166{end,2};
+                                country_iso2(p,:) = Core_Utils.ISO3166{end,1};
+                                country_name(p,:) = Core_Utils.ISO3166(end,3);
+                                str_tmp = struct('error', 'Unable to geocode');
+                            end
+                            if not(isempty(str_tmp))
+                                flag_update_cache = false;
+                                if isfield(str_tmp, 'error')
+                                    Core.getLogger.addError(sprintf('%s (%g, %g)', str_tmp.error, lat(p), lon(p)));
+                                    id_iso = size(Core_Utils.ISO3166,1); % world
+                                    country_code = 'ERR';
+                                    country_iso3(p,:) = 'ERR';
+                                    country_iso2(p,:) = Core_Utils.ISO3166{id_iso,1};
+                                    country_name(p) = Core_Utils.ISO3166(id_iso,3);
+                                    flag_update_cache = true;
+                                elseif isfield(str_tmp.address, 'country_code')
+                                    country_code = upper(str_tmp.address.country_code);
+                                    [country_iso3(p,:), country_iso2(p,:), country_name(p), id_iso] = Core_Utils.getCountryISO3166(country_code);
+                                    flag_update_cache = true;
+                                elseif isfield(str_tmp.address, 'man_made')
+                                    Core.getLogger.addError(sprintf('Man made place "%s" (%g, %g)', str_tmp.address.man_made, lat(p), lon(p)));
+                                    [country_iso3(p,:), country_iso2(p,:), country_name(p), id_iso] = Core_Utils.getCountryISO3166('OC');
+                                    flag_update_cache = true;
+                                else
+                                    try
+                                        tmp_addr = str_tmp.address.display_name;
+                                    catch
+                                        tmp_addr = 'unknown';
+                                    end
+                                    Core.getLogger.addError(sprintf('Man made place "%s" (%g, %g)', tmp_addr, lat(p), lon(p)));
+                                    [country_iso3(p,:), country_iso2(p,:), country_name(p), id_iso] = Core_Utils.getCountryISO3166('WD');
+                                    flag_update_cache = true;                                    
+                                end
+                                if flag_update_cache
+                                    cache = round([cache; round(lat(p),3), round(lon(p),3), id_iso],3);
+                                    fprintf('Adding to nominatim cache: %f, %f - %s\n', round(lat(p),3), round(lon(p),3), country_iso3(p,:))
+                                    % load old nominatim, and remove repetitions
+                                    % suboptimal intersect but faster
+                                    try
+                                        nominatim_path = Core.getFilePath('nominatim');
+                                        load(nominatim_path, 'nominatim_cache');
+                                    catch
+                                        nominatim_cache = [];
+                                    end
+                                    nominatim_cache = round([nominatim_cache; cache],3); 
+                                    [~, id_ok] = unique(nominatim_cache(:,1) + nominatim_cache(:,2)*1e8);
+                                    nominatim_cache = nominatim_cache(id_ok,:);
+                                    nominatim_path = Core.getFilePath('nominatim');
+                                    save(nominatim_path, 'nominatim_cache');
+                                    cache = nominatim_cache;
+                                end
+                            end
+                       end
+                    end
+                end
+            else
+                error('Not the right amount of inputs');
+            end
+        end
+        
+        function [marker_name, id_num] = getMarkerV3(marker_name, lat, lon)
+            % Return a markername in V3 format
+            %
+            % SYNTAX
+            %   [marker_name, id_num] = Core_Utils.getMarkerV3(marker_name9ch)
+            %   [marker_name, id_num] = Core_Utils.getMarkerV3(marker_name, coo)
+            %   [marker_name, id_num] = Core_Utils.getMarkerV3(marker_name, lat, lon)
+            
+            if isnumeric(marker_name)
+                % I suppose is a numeric marker_v3
+                marker_name = Core_Utils.markerCode2MarkerName(marker_name);
+            end
+            
+            marker_name = marker_name(1:min(9, numel(marker_name)));
+            n_char = size(marker_name, 2);
+            flag_v3 = Core_Utils.isMarkerV3(marker_name);
+                
+            if not(flag_v3)
+                marker_name = strrep([marker_name repmat(' ',1,max(0,4 -length(marker_name)))], ' ', '_');%pad(marker_name, 4);
+                marker_name = marker_name(1:4);
+                if isa(lat, 'Coordinates')
+                    [lat, lon] = lat.getMedianPos.getGeodetic();
+                    lat = lat * 180/pi;
+                    lon = lon * 180/pi;
+                end
+                country_iso3 = Core_Utils.getCountryISO3166(lat, lon);
+                marker_name = [marker_name '00' country_iso3];
+            end
+            marker_name = [marker_name repmat(' ',1,max(0,9 -length(marker_name)))];%pad(marker_name, 9);
+            if nargout == 2
+                id_num = uint64(Core_Utils.code4Char2Num(marker_name(1:4)))*2^32 + uint64(str2double(marker_name(5:6))) * 2^24 + uint64(Core_Utils.code3Char2Num(marker_name(7:9)));
+            end
+        end
+        
+        function flag_v3 = isMarkerV3(marker_name)
+            % return true if the marker is a valid RINEX3 name format
+            %
+            % SYNTAX
+            %   flag_v3 = Core_Utils.isMarkerV3(marker_name)
+            n_char = size(marker_name, 2);
+            flag_v3 = true;
+                
+            if n_char == 9
+                % Check if the format is V3
+                % 5 and 6 char must be number between 0 and 9
+                flag_v3 = flag_v3 && (marker_name(5) >= '0') && (marker_name(5) <= '9');
+                flag_v3 = flag_v3 && (marker_name(6) >= '0') && (marker_name(6) <= '9');
+                % Check if the current country code is valid
+                iso2code = Core_Utils.code3Char2Num(reshape([Core_Utils.ISO3166{:,2}], 3, size(Core_Utils.ISO3166, 1))');
+                flag_v3 = flag_v3 && not(isempty(find(iso2code == Core_Utils.code3Char2Num(marker_name(7:9)))));
+            else
+                flag_v3 = false;
+            end
+        end
+        
+        function marker_name = markerCode2MarkerName(id_num)
+            % From a numeric marker get back the string format
+            %
+            % SYNTAX 
+            %   marker_name = Core_Utils.markerCode2MarkerName(id_num)
+            
+            name = Core_Utils.num2Code4Char(bitand(id_num, uint64(sum(2.^(63:-1:32))))/2^32);
+            ant_rec = reshape(sprintf('%02d', bitand(id_num, uint64(sum(2.^(24 + 0:7))))/2^24), numel(id_num), 2);
+            country = Core_Utils.num2Code3Char(bitand(id_num, uint64(sum(2.^(23:-1:0)))));
+            marker_name = [name, ant_rec, country];
+        end
+        
+        function id_num = markerName2MarkerCode(marker_name)
+            % From a numeric marker get back the string format
+            %
+            % SYNTAX 
+            %   marker_name = Core_Utils.markerCode2MarkerName(id_num)
+            
+            [~, id_num] = Core_Utils.getMarkerV3(marker_name);
+        end
+        
+        function info = searchPlace(country, city, cap)
+            % Search for info (coordinates) o a place
+            %
+            % SINTAX
+            %     info = Core_Utils.searchPlace(country, city, cap)   
+            if nargin < 2
+                city = '';
+            end
+            if nargin < 3
+                cap = '';
+            end
+            request_url = ['https://nominatim.openstreetmap.org/search?' ...
+                        iif(isempty(country), '', ['country=' country '&']), ...
+                        iif(isempty(city), '', ['city=' city '&']), ...
+                        iif(isempty(cap), '', ['postalcode=' cap '&']), ...
+                        'format=json'];
+                    
+            info = webread(request_url,'Timeout',5);
+        end
+        
+        %--------------------------------------------------------------------------
+        %% MAP FUNCTIONS
+        %--------------------------------------------------------------------------
+        
+        function [dlat, dlon, dlat_ext, dlon_ext, nwse] = getMapBoundaries(lat, lon, margin)
+            % Given a set of points return the optimal boundaries for map visualization
+            % INPUT
+            %   dlat    latitude of the points [deg] [1 x n]
+            %   dlon    latitude of the points [deg] [1 x n]
+            %   margin  [lat lon] margin [deg]
+            %
+            % OUTPUT
+            %   dlat_lim       latitude limits [deg] for the map viualization
+            %   dlon_lim       longitude limits [deg] for the map viualization
+            %   dlat_lim_ext   longitude limits [deg] for the map download and projections
+            %   dlon_lim_ext   longitude limits [deg] for the map download and projections
+            %
+            % SYNTAX
+            %  [dlat_lim, dlon_lim, dlat_lim_ext, dlon_lim_ext] = getMapBoundaries(dlat, dlon, <margin = 0>)
+            if nargin < 3 || isempty(margin)
+                margin = 0;
+            end
+            lat = noNaN(lat);
+            lon = noNaN(lon);
+            
+            if numel(lon) == 1
+                % If there is only one station
+                dlon = minMax(lon) + [-0.05 0.05] + [-1 1] * margin(2);
+                dlat = minMax(lat) + [-0.03 0.03] + [-1 1] * margin(1);
+            else
+                % If there are more stations add a border of 1/10 of the area among the points
+                dlon = minMax(lon); dlon = dlon + [-1 1] * max(0.000015, margin(2) + (diff(dlon) / 2.5));
+                dlat = minMax(lat); dlat = dlat + [-1 1] * max(0.00001, margin(1) + (diff(dlat) / 2.5));
+            end
+            if diff(dlon) <= 0
+                dlon = dlon + [-1 1] * 0.00001;
+            end
+            if diff(dlat) <= 0
+                dlat = dlat + [-1 1] * 0.00001;
+            end
+            % Set the image proportions to be max 3/4 (I don't like images that are too long)
+            prop = 3/4;
+            if diff(dlon) > diff(dlat) / cosd(mean(dlat))
+                margin = max(diff(dlon) * prop * cosd(mean(dlat)), diff(dlat))/2;
+                dlat = [dlat(1) + diff(dlat)/2 - margin, dlat(2) - diff(dlat)/2 + margin];
+            else
+                margin = max(diff(dlat) * prop / cosd(mean(dlat)), diff(dlon))/2;
+                dlon = [dlon(1) + diff(dlon)/2 - margin, dlon(2) - diff(dlon)/2 + margin];
+            end
+            dlat = min(90, max(-90, dlat));
+            
+            nwse = [dlat(2), dlon(1), dlat(1), dlon(2)];
+            dlon_ext = nwse([2 4]) + [-0.0001 0.0001];
+            dlat_ext = max(-90, min(90, nwse([3 1]) + [-0.0001 0.0001]));
+            
+            if diff(dlat) < 0.0001  % if you make this too small drawing ticks in m_grid can screw up
+                dlat = dlat + [-0.00005 +0.00005];
+            end
+            if diff(dlon) < 0.0001  % if you make this too small drawing ticks in m_grid can screw up
+                dlon = dlon + [-0.00005 +0.00005];
+            end
+        end
+        
+        %--------------------------------------------------------------------------
+        %% DATA manipulators
+        %--------------------------------------------------------------------------
+        function [data_cleaned, dt] = remCommonClock(data)
+            dt = cumsum(nan2zero(robAdj(Core_Utils.diffAndPred(data))));
+            data_cleaned = bsxfun(@minus, data, dt);
+        end
+
+        function [data_cleaned, id_ok, noise] = reduceCommonEffect(data, time, spline_base)
+            % Reduce the common effect acting on all the columns of a dataset
+            % e.g. tropospheric parameters from many stations in the same region
+            %      contains a common effect due to satellites clock errors in PPP
+            %
+            % OUTPUT
+            %   data_cleaned    data - common effect
+            %   id_ok           column of data used to compute the common effect
+            %   data_reduction  noise that have been reduced
+            %
+            % SYNTAX
+            %   [data_cleaned, id_ok, data_reduction] = Core_Utils.reduceCommonEffect(data, time, spline_base)
+
+            if nargin < 2
+                spline_base = 3600;
+            end
+            data_cleaned = data;
+            flag_debug = false;
+            
+            % Reduce each column by spline (hourly is the default), to keep the low degrees effects
+            data_cleaned = data;
+            id_ok = true(size(data,2),1);
+            for r = 1:size(data,2)
+                if any(data(:,r))
+                    data_cleaned(:,r) = data(:,r) - splinerMat(time.getMatlabTime*86400, data(:,r), spline_base, 1e-9);
+                else
+                    id_ok(r) = false;
+                end
+            end
+
+            % Compute STD for each column to find anomalous data
+            std_data = std(data_cleaned, 'omitnan'); % Check for any anomalous data (too smooth => badly estimated)
+            thr = mean(std_data(id_ok), 2, 'omitnan');
+            id_ok = id_ok(:) & std_data(:) > thr/2 & std_data(:) < 3*thr ; % do not trust super low or high std
+
+            % If I have at least 3 usable columns
+            if sum(id_ok) > 3
+                % Common factor is computed as a robust adjastment (Huber)
+                noise = robAdj(data_cleaned(:,id_ok));
+                % It should not be necessary, but it might be useful, reduce again the noise with the same spline used to reduce the data
+                noise_splined = splinerMat(time.getMatlabTime*86400, noise, spline_base, 1e-9);
+
+                if flag_debug
+                    figure(100); clf;
+                    plot(time.getMatlabTime, median(data_cleaned,2,'omitnan')); hold on;
+                    plot(time.getMatlabTime, noise);
+                    plot(time.getMatlabTime, noise_splined);
+                end
+
+                noise = noise - noise_splined;
+                
+                if flag_debug
+                    figure(101); clf; subplot(2,1,1); plot(time.getMatlabTime, data); ax(1) = gca; subplot(2,1,2); plot(time.getMatlabTime, data - noise); ax(2) = gca; linkaxes(ax, 'x');
+                    dockAllFigures;
+                end
+                
+                data_cleaned = bsxfun(@minus, data, noise); %  compute "filtered" output
+            end
+        end
+
         function [t, data_set] = insertNan4Plots(t, data_set)
             % Insert a Nan in a regularly sampled dataset to make
             % plots interrupt continuous lines
@@ -1280,10 +2437,22 @@ classdef Core_Utils < handle
             dt = diff(t);
             rate = median(dt);
             id_in = find(dt > 1.5 * rate);
-            for x = numel(id_in) : -1 : 1
-                t = [t(1 : id_in(x)); (t(id_in(x)) + 1.5 * rate); t((id_in(x)+1) : end)];
-                data_set = [data_set(1 : id_in(x), :); nan(1, n_set); data_set((id_in(x)+1) : end, :)];
+            id_in2 = id_in(:) + (1 : numel(id_in))';
+            t2 = nan(numel(t)+numel(id_in2), 1);
+            try
+                id_ok = 1:numel(t2); id_ok(id_in2) = []; % find id in the new set of the old data
+            catch
+                keyboard
             end
+            t2(id_ok) = t;
+            data_set2 = nan(numel(t2), size(data_set,2));
+            data_set2(id_ok, :) = data_set;
+            data_set = data_set2;
+            t = t2;
+            %for x = numel(id_in) : -1 : 1
+            %    t = [t(1 : id_in(x)); (t(id_in(x)) + 1.5 * rate); t((id_in(x)+1) : end)];
+            %    data_set = [data_set(1 : id_in(x), :); nan(1, n_set); data_set((id_in(x)+1) : end, :)];
+            %end
         end
         
         function [t, data_set] = insertZeros4Plots(t, data_set)
@@ -1295,7 +2464,7 @@ classdef Core_Utils < handle
             %   data   epoch of the data [matrix of column arrays]
             %
             % SYNTAX
-            %   [t, data] = Core_Utils.insertNan4Plots(t, data)
+            %   [t, data] = Core_Utils.insertZeros4Plots(t, data)
                         
             t = t(:);
             if size(t, 1) ~= size(data_set, 1)
@@ -1457,7 +2626,102 @@ classdef Core_Utils < handle
         end
 
         %--------------------------------------------------------------------------
-        % MEMORY
+        %% SHOW FUNCTIONS
+        %--------------------------------------------------------------------------
+        function fh_list = showVMFModel(vmf_file)
+            % Show VMF file
+            %
+            % SYNTAX
+            %  fh_list = Core_Utils.showVMFModel(vmf_file)
+            
+            try
+                %%
+                [txt, lim, has_cr] = Core_Utils.readTextFile(vmf_file);
+                data_lim = str2num(txt((lim(6,1) + 22):lim(6,2))); % begin_lat begin_lon ah aw zhd zwd 
+                
+                table_dim = [diff(data_lim(1:2) / data_lim(5)) + 1, diff(data_lim(3:4) / data_lim(6)) + 1];
+                if txt((lim(3,1))+25) == '1'
+                    table_dim(2) = table_dim(2) - 1;
+                end
+                % Read the entire table in block
+                data_table = reshape(str2num(strrep((serialize(txt(lim(8,1):lim(8 + table_dim(1) * table_dim(2) - 1, 2))))', newline, ' '))', 6, table_dim(1) * table_dim(2))';
+                
+                ah = zeros(table_dim(1), table_dim(2),'single');
+                aw = zeros(table_dim(1), table_dim(2),'single');
+                zhd = zeros(table_dim(1), table_dim(2),'single');
+                zwd = zeros(table_dim(1), table_dim(2),'single');
+                
+                y = (data_table(:,1) - data_lim(1)) / data_lim(5) + 1;
+                x = (data_table(:,2) - data_lim(3)) / data_lim(6) + 1;
+                
+                id = y + (x - 1) * table_dim(1);
+                %clear x y;
+                
+                ah(id) = data_table(:,3);
+                aw(id) = data_table(:,4);
+                zhd(id) = data_table(:,5);
+                zwd(id) = data_table(:,6);
+                %clear id data_table txt lim;
+                %%
+                fh_list = figure;
+                cmap = Cmap.gat2(128);
+                subplot(2,2,1); imagesc(flipud(ah)*1e3); colorbar; colormap(cmap); title('ah'); caxis([1.1 1.3]);
+                subplot(2,2,2); imagesc(flipud(aw)*1e3); colorbar; title('aw'); caxis([0.3 0.8]);
+                subplot(2,2,3); imagesc(flipud(zhd)*1e2); colorbar; title('ZHD'); caxis([110 240]);
+                subplot(2,2,4); imagesc(flipud(zwd)*1e2); colorbar; title('ZWD'); caxis([0 45]);
+%%
+                fh_list = figure;
+                cmap = Cmap.gat2(128);
+                subplot(2,2,1); imagesc(flipud(zhd1)*1e2); colorbar; colormap(cmap); title('ZHD'); caxis([110 240]);
+                subplot(2,2,2); imagesc(flipud(zwd1)*1e2); colorbar; title('ZWD'); caxis([0 45]);
+                subplot(2,2,3); imagesc(flipud(zhd3)*1e2); colorbar; title('ZHD'); caxis([110 240]);
+                subplot(2,2,4); imagesc(flipud(zwd3)*1e2); colorbar; title('ZWD'); caxis([0 45]);
+                %%
+                cmap = Cmap.gat2(128);
+                figure; imagesc(flipud(zhd1 - zhd3)*1e2); colorbar; colormap(gat); title('ZHD diff'); %caxis([110 240]);
+                figure; imagesc(flipud(zwd1 - zwd3)*1e2); colorbar; title('ZWD diff'); %caxis([0 45]);
+                
+            catch ex
+                Core_Utils.printEx(ex);
+                Core.getLogger.addWarning(sprintf('Malformed VMF file "%s"', vmf_file));
+            end
+        end
+        
+        function fh_list = showMultiPathModel(mp_file, mp_type)
+            % Show MultiPath Maps for each receiver workspace
+            % (polar plot Zernike interpolated)
+            %
+            % INPUT:
+            %   mp_file     file containing the ant_mp struct
+            %   mp_type     type of MP to display
+            %                 case 1 % Zernike map
+            %                 case 2 % Zernike map + gridded residuals
+            %                 case 3 % Simple Gridding of size [stk_grid_step]
+            %                 case 4 % Congruent cells gridding of size [stk_grid_step]
+            %                 case 5 % Simple Gridding of size [1x1]
+            %                 case 6 % c1_map Congruent cells gridding of size [1x1]
+            %
+            % SYNTAX 
+            %   fh_list = Core_Utils.showMultiPathModelFromFile(mp_file, mp_type)
+            
+            tmp_rec = GNSS_Station;
+            try
+                if isstruct(mp_file)
+                    ant_mp = mp_file;
+                else
+                    load(mp_file, 'ant_mp');
+                end
+                ant_mp;
+            catch
+                Core.getLogger.addError('MP file not found, or corrupted');
+                return
+                fh_list = [];
+            end
+            fh_list = tmp_rec.showMultiPathModel(mp_type, ant_mp);
+        end
+        
+        %--------------------------------------------------------------------------
+        %% MEMORY
         %--------------------------------------------------------------------------
         
         function total_mem = getMem(obj, indent_lev)
@@ -1507,7 +2771,7 @@ classdef Core_Utils < handle
         end
         
         %--------------------------------------------------------------------------
-        % FILE MANAGEMENT
+        %% FILE MANAGEMENT
         %--------------------------------------------------------------------------
         
         function [txt, lim, has_cr] = readTextFile(file_path, min_line_len)
@@ -1527,7 +2791,7 @@ classdef Core_Utils < handle
             
             fid = fopen(file_path, 'rt');
             if fid <= 0
-                Core.getLogger.addError(sprintf('"%s" cannot be read', file_name));
+                Core.getLogger.addError(sprintf('"%s" cannot be read', file_path));
                 txt = [];
                 lim = [];
                 has_cr = false;
@@ -1556,21 +2820,218 @@ classdef Core_Utils < handle
                         nl = [nl; numel(txt)];
                     end
                     lim = [[1; nl(1 : end - 1) + 1] (nl - 1 - double(has_cr))];
-                    lim = [lim lim(:,2) - lim(:,1)];
+                    lim = [lim lim(:,2) - lim(:,1) + 1];
                     while lim(end,3) < min_line_len
                         lim(end,:) = [];
                     end
                     
                     % removing empty lines at end of file
-                    while (lim(end,1) - lim(end-1,1))  < 2
-                        lim(end,:) = [];
+                    if size(lim,1) > 1
+                        while (lim(end,1) - lim(end-1,1))  < 2
+                            lim(end,:) = [];
+                        end
                     end
                 end
             end
         end
         
+        function [xyz, unique_name] = readBGetterList(file_name)
+            % READBGETTERLIST Reads xyz coordinates and unique names from a file
+            %
+            % INPUTS:
+            %   - file_name: the full path to the file to be read
+            %
+            % OUTPUTS:
+            %   - xyz: an nx3 array of xyz coordinates read from the file
+            %   - unique_name: an n-element cell array of unique names read from the file
+            %
+            % SYNTAX: [xyz, unique_name] = Core_Utils.readBGetterList(file_name)
+
+            % Define the format of each line in the file
+            format_spec = '%f %f %f %s %s %s';
+
+            % Open the file for reading
+            file_id = fopen(file_name, 'r');
+
+            % Read the data from the file
+            data = textscan(file_id, format_spec, 'HeaderLines', 4);
+
+            % Close the file
+            fclose(file_id);
+
+            % Extract the xyz coordinates from the data
+            xyz = [data{1}, data{2}, data{3}];
+
+            % Extract the unique names from the data
+            unique_name = data{4};
+
+        end
+
+        function [xyz, unique_name, net_name] = getAllBGetterLists(dir_path, print_list)
+            % Reads all the .lst files in a folder and returns unique xyz coordinates
+            % and corresponding unique names.
+            %
+            % INPUT:
+            %   dir_path: string containing the path to the directory to scan
+            %   print_list: display on screen the list of read stations
+            %
+            % OUTPUT:
+            %   xyz: matrix containing the unique xyz coordinates (nx3)
+            %   unique_name: cell array containing the unique names
+            %   net_name: cell array containing the names of the files without the extension
+            %
+            % SYNTAX:
+            %   [xyz, unique_name, net_name] = getAllBGetterLists(dir_path)
+
+            % Get all .lst files in directory
+            if isempty(dir_path)
+                as = App_Settings.getInstance;
+                dir_path = join([as.getGetterInstallationPath,'CONF/LOOKUP/']);
+            end
+            lst_files = dir(fullfile(dir_path, '*.lst'));
+
+            % Initialize empty arrays
+            xyz_all = [];
+            unique_name_all = {};
+            net_name_all = {};
+
+            % Loop over .lst files
+            for i = 1:length(lst_files)
+
+                % Get file name and path
+                file_name = lst_files(i).name;
+                file_path = fullfile(dir_path, file_name);
+
+                % Get network name from file name
+                [~, net_name, ~] = fileparts(file_name);
+
+                % Read xyz and unique_name from file
+                [xyz, unique_name] = Core_Utils.readBGetterList(file_path);
+
+                % Append to arrays
+                xyz_all = [xyz_all; xyz];
+                unique_name_all = [unique_name_all; unique_name];
+                net_name_all = [net_name_all; repmat({net_name}, size(xyz, 1), 1)];
+
+            end
+
+            % Return unique arrays
+            xyz = xyz_all;
+            unique_name = unique_name_all;
+            net_name = net_name_all;
+            
+            if nargin == 2 && print_list
+                % Sort the results by unique_name
+                [unique_name, sort_idx] = sort(unique_name);
+                xyz = xyz(sort_idx, :);
+                net_name = net_name(sort_idx);
+
+                fprintf('%-20s %-25s %-15s\n', 'Network', 'Unique Name', 'XYZ Coordinates');
+                fprintf('------------------------------------------------------------\n');
+                for i = 1:length(net_name)
+                    fprintf('%-20s %-65s %14.4f %14.4f %14.4f\n', net_name{i}, unique_name{i}, xyz(i, 1), xyz(i, 2), xyz(i, 3));
+                end
+            end
+        end
+
+        function [xyz, unique_name, net_name] = getBGetterStation(marker_name, nationality, net_name_filter, print_list)
+            % Returns the list of stations in the .lst files filtered by marker_name and/or nationality
+            %
+            % INPUT:
+            %   marker_name: string containing the first 9 characters of the unique name of the station
+            %   nationality: string containing the 3 characters representing the nationality of the station
+            %   net_name: string containing the name of the file without the extension
+            %   print_list: display on screen the list of read stations
+            %
+            % OUTPUT:
+            %   xyz: matrix containing the unique xyz coordinates (nx3)
+            %   unique_name: cell array containing the unique names
+            %   net_name: cell array containing the names of the files without the extension
+            %
+            % SYNTAX:
+            %   [xyz, unique_name, net_name] = Core_Utils.getBGetterStation(marker_name, nationality, net_name)
+
+            % Load all B-GETTER station data
+            [xyz, unique_name, net_name] = Core_Utils.getAllBGetterLists([], false);
+
+            % Filter stations by marker name
+            if nargin >= 1 && exist('marker_name', 'var') && ~isempty(marker_name)
+                marker_filter = strncmp(unique_name, marker_name, length(marker_name));
+                xyz = xyz(marker_filter, :);
+                unique_name = unique_name(marker_filter);
+                net_name = net_name(marker_filter);
+            end
+
+            % Filter stations by nationality
+            if nargin >= 2 &&  exist('nationality', 'var') && ~isempty(nationality) && ~strcmp(nationality, 'All')
+                nation_filter = strncmp(cellfun(@(x) x(7:9), unique_name, 'UniformOutput', false), nationality, 3);
+                xyz = xyz(nation_filter, :);
+                unique_name = unique_name(nation_filter);
+                net_name = net_name(nation_filter);
+            end
+
+            % Filter stations by network name
+            if nargin >= 3 && exist('net_name', 'var') && ~isempty(net_name_filter) && ~strcmp(net_name_filter, 'All')
+                net_filter = strncmp(net_name, net_name_filter, length(net_name_filter));
+                xyz = xyz(net_filter, :);
+                unique_name = unique_name(net_filter);
+                net_name = net_name(net_filter);
+            end
+
+            if nargin == 4 && print_list
+                % Sort the results by unique_name
+                [unique_name, sort_idx] = sort(unique_name);
+                xyz = xyz(sort_idx, :);
+                net_name = net_name(sort_idx);
+
+                fprintf('%-20s %-25s %-15s\n', 'Network', 'Unique Name', 'XYZ Coordinates');
+                fprintf('------------------------------------------------------------\n');
+                for i = 1:length(net_name)
+                    fprintf('%-20s %-65s %14.4f %14.4f %14.4f\n', net_name{i}, unique_name{i}, xyz(i, 1), xyz(i, 2), xyz(i, 3));
+                end
+            end
+        end
+
+        function station_path = getBgetterStationPath(varargin)
+            % Returns the file paths of .rnx files for the provided marker name(s),
+            % nationality code(s), and/or network name(s) for a given year and day.
+            %
+            % INPUTS:
+            %   varargin: variable input arguments as follows (all optional):
+            %       - marker_name: beginning of unique station name (up to 9 characters)
+            %       - nationality: nationality code (3 characters in position 7-9 of unique name)
+            %       - net_name: name of the network
+            %
+            % OUTPUT:
+            %   station_path: a cell array of file paths for the matching station names
+            %       in the format 'path/to/file/<unique_name>.rnx'
+            %
+            % SYNTAX:
+            %   station_path = getBgetterStationPath(marker_name, nationality, net_name)
+            %
+            % The function calls the 'getBGetterStation' function from the 'Core_Utils'
+            % module to get the unique station names matching the input arguments, then
+            % constructs a cell array of file paths for the corresponding RINEX files.
+            % The file paths are constructed based on the year and day and
+            % the unique station name. If the unique station name contains the string '_01D_',
+            % the file is located in the STA/${YYYY}/${DOY}/ directory, otherwise it is located
+            % in the STA/2023/110/HOURLY/ directory.
+            [xyz, unique_name, net_name] = Core_Utils.getBGetterStation(varargin{:});
+            station_path = {};
+            if ~isempty(unique_name)
+                unique_name = unique(unique_name);
+                for i = 1:numel(unique_name)
+                    if contains(unique_name{1}, '_01D_')
+                        station_path{i,1} = fullfile(sprintf('%s%c/%s.rnx','/Volumes/LocalData/ArchiveGNSS/STA/${YYYY}/${DOY}/',unique_name{i}(1), unique_name{i}));
+                    else
+                        station_path{i,1} = fullfile(sprintf('%s%c/HOURLY/%s.rnx','/Volumes/LocalData/ArchiveGNSS/STA/${YYYY}/${DOY}/',unique_name{i}(1), unique_name{i}));
+                    end
+                end
+            end
+        end
+
         %--------------------------------------------------------------------------
-        % DEBUGGING FUNCTIONS
+        %% DEBUGGING FUNCTIONS
         %--------------------------------------------------------------------------
         
         function printEx(ex)
@@ -1593,7 +3054,7 @@ classdef Core_Utils < handle
         end
         
         %--------------------------------------------------------------------------
-        % SHOW FUNCTIONS
+        %% ADD SHOW FUNCTIONS
         %--------------------------------------------------------------------------
        
         function varargout = addGoogleMaps(varargin)
@@ -1603,7 +3064,7 @@ classdef Core_Utils < handle
             %   varargin    for a list of admittable args type "help plot_google_map"
             %
             % SYNTAX
-            %   Core_Utils.addGoogleMaps(varargin)
+            %   varargout = Core_Utils.addGoogleMaps(varargin)
             %
             % SEE ALSO:
             %   plot_google_map
@@ -1611,9 +3072,17 @@ classdef Core_Utils < handle
             try
                 if not(exist('api_key.mat','file'))
                     fh = gcf;
-                    answer = inputdlg(['Insert your API key to use maps' newline 'or create a file called "api_key.mat" containing the char variable "apiKey" with your google map API'], 'Google Maps API', [1 150]);
-                    if not(isempty(answer)) && not(isempty(answer{1}))
-                        apiKey = answer{1};
+                    rrm = Remote_Resource_Manager.getInstance;
+                    apiKey = rrm.getGoogleMapsAPI;
+                    if numel(apiKey) < 10
+                        answer = inputdlg(['Insert your API key to use maps' newline 'or create a file called "api_key.mat" containing the char variable "apiKey" with your google map API'], 'Google Maps API', [1 150]);
+                        if not(isempty(answer)) && not(isempty(answer{1}))
+                            apiKey = answer{1};
+                        else
+                            apiKey = '';
+                        end
+                    end
+                    if not(isempty(apiKey))
                         % find plot_google_map location 
                         gm_dir = which('plot_google_map.m');
                         if not(isempty(gm_dir))
@@ -1638,9 +3107,361 @@ classdef Core_Utils < handle
         end
         
         %--------------------------------------------------------------------------
-        % OTHER FUNCTIONS
+        %% UTILITIES FUNCTIONS
         %--------------------------------------------------------------------------
-       
+
+        function [p] = getPositiveEntries(A)
+            % Return what entry are positive in a matrix
+            % 
+            % OUTPUT
+            %   p   logical array when an entry is positive
+            %
+            % SYNTAX
+            %   [p] = getPositiveEntries(A);
+            p = zeros(size(A,1),1); 
+            for i = 1:size(A,1)
+                tmp = A(1:i, 1:i); 
+                tmp(:, p > 0) = []; 
+                tmp(p > 0, :) = []; 
+                [~, p(i)] = chol(tmp); 
+            end
+            p = p == 0;
+        end
+        
+        function uuid = getUUID()
+            % Get a unique identifier (char)
+            %
+            % SYNTAX
+            %   Core_Utils.getUUID();
+            
+            uuid = strrep(char(java.util.UUID.randomUUID),'-','');
+        end
+        
+        function sftp_par = getParSFTP(sftp_name)
+            % Get connection parameter for a SFTP server 
+            % read them from credentials.txt
+            %
+            % SYNTAX
+            %   sftp_par = Core_Utils.getParSFTP(sftp_name)
+            sftp_par = struct('name', sftp_name, ...
+                'remote_host', '', ...
+                'type', '', ...
+                'port', 22, ...
+                'username', '', ...
+                'password', '', ...
+                'folder', '');
+
+            % read credentials
+            credentials_path = Core.getFilePath('credentials');
+            if exist(credentials_path, 'file') == 0
+                Core.getLogger.addError('The "credentials.txt" file is missing.\nIt will be created as empty from "credentials.example.txt" in Breva folder');
+                try
+                    credentials_default_path = [Core.getInstallDir filesep 'credentials.example.txt'];
+                    copyfile(credentials_default_path, credentials_path);
+                    credentials = Ini_Manager(credentials_path);
+                    credentials.readFile();
+                catch
+                    credentials = Ini_Manager();
+                end
+            else
+                credentials = Ini_Manager(credentials_path);
+                credentials.readFile();
+            end
+
+            sftp_par.remote_host = credentials.getData(['rs-' sftp_name],'remote_host');
+            sftp_par.port = credentials.getData(['rs-' sftp_name],'port');
+            sftp_par.username = credentials.getData(['rs-' sftp_name],'username');
+            sftp_par.password = credentials.getData(['rs-' sftp_name],'password');
+            sftp_par.folder = credentials.getData(['rs-' sftp_name],'folder');
+            sftp_par.type = credentials.getData(['rs-' sftp_name],'type');
+        end
+
+        function pushFile(rem_loc_id, file_path, rem_folder)
+            % Push a file on a remote location
+            % At the moment it only support sftp servers
+            %
+            % INPUT
+            %   rem_loc_id    name of the entry in credentials.txt with the parameters of the remote server
+            %   file_path     path to the file to push on sftp
+            %   rem_folder    folder (it must be existing) on the remote server where to push the file,
+            %                 default = folder parameter as read from the configuration in credetials.txt
+            %
+            % SYNTAX
+            %   Core_Utils.pushFile(rem_loc_id, file_path, <rem_folder>)
+            
+            % check if there is a folder attached to the rem_loc_id           
+            rem_folder_postfix = regexp(rem_loc_id, "/.*", 'match', 'once');
+            if ~isempty(rem_folder_postfix)
+                rem_loc_id(end-length(rem_folder_postfix)+1 : end) = [];
+            end
+            % get the parameters for the connection
+            sftp_par = Core_Utils.getParSFTP(rem_loc_id);
+            
+            % set the remote path as relative to the parameter in the location ini file
+            if nargin < 3 || isempty(rem_folder)
+                rem_folder = sftp_par.folder;
+            end
+            if isempty(rem_folder)
+                rem_folder = '/';
+            end
+            if ~isempty(rem_folder_postfix)
+                rem_folder = fullfile(rem_folder, rem_folder_postfix);
+            end
+            if isempty(sftp_par.remote_host)
+                Core.getLogger.addError(sprintf('Remote location "%s" not found', rem_loc_id));
+            else
+                if isstring(file_path)
+                    file_path = {file_path};
+                end
+                last_send = 0;
+                try
+                    sh = sftp([sftp_par.remote_host ':' num2str(sftp_par.port)], sftp_par.username, "password", sftp_par.password);
+                    % Try to connect
+                    try
+                        fnp = File_Name_Processor; 
+                        core = Core.getCurrentCore; 
+                        rem_folder = fnp.dateKeyRep(rem_folder, core.getSessionCentralTime, core.getCurSession);
+                        folder_list = regexp(fullfile(rem_folder,'/'),'(?<=/)[^/]*(?=/)', 'match');
+                        if ~isempty(folder_list)
+                            path = '/';
+                            for f = 1:numel(folder_list)
+                                path = fullfile(path, folder_list{f});
+                                try
+                                    mkdir(sh, path);
+                                catch ex
+                                    % the path exist / no permission
+                                end
+                            end
+                        end
+                        cd(sh, rem_folder);
+                        for f = 1:numel(file_path)
+                            Core.getLogger.addMessage(sprintf('Pushing "%s" to "%s://%s%s"\n', file_path{f}, sftp_par.type, [sftp_par.remote_host ':' num2str(sftp_par.port)], rem_folder));
+                            mput(sh, file_path{f});
+                            last_send = last_send + 1;
+                            Core.getLogger.addStatusOk(sprintf('"%s" sent!', file_path{f}));
+                        end
+                    catch ex
+                        Core_Utils.printEx(ex);
+                        for f = (last_send+1):numel(file_path)
+                            Core.getLogger.addError(sprintf('Something went wrong "%s" not sent!', file_path{f}));
+                        end
+                        return
+                    end
+                catch
+                    Core_Utils.printEx(ex);
+                    for f = (last_send+1):numel(file_path)
+                        Core.getLogger.addError(sprintf('Something went wrong "%s" not sent!\nCheck your server parameters', file_path{f}));
+                    end
+                    return
+                end
+                close(sh);
+            end
+        end
+
+        function coords = selectPolygon(lat, lon)
+            % This function selects a polygon from an image using the mouse.
+            %
+            % INPUTS:
+            % - img: the image to select the polygon from
+            %
+            % OUTPUTS:
+            % - poly: a matrix containing the coordinates of the selected polygon
+            %
+            % SYNTAX:
+            % poly = selectPolygon(lat, lon)
+            % poly = selectPolygon(coo)
+
+            % Show map with lat/lon as center
+            if nargin == 1 
+                [lat, lon] = lat.getMedianPos.getGeodetic();
+                lat = lat * 180 / pi;
+                lon = lon * 180 / pi;                
+            end
+            fh = figure;
+            xlim([lon-0.002, lon+0.002]);
+            ylim([lat-0.002, lat+0.002]);
+            gm = Core_Utils.addGoogleMaps('alpha', 0.95, 'maptype', 'satellite');
+            plot(lon, lat, '^', 'color', Core_UI.ORANGE, 'markersize', 10, 'linewidth', 5); hold on;
+            title(sprintf('Design a polygon, create a new point by right clicking'))
+            % Initialize variables
+            coords = [];
+            h_line = line(nan, nan, 'Color', 'b', 'LineWidth', 2, 'LineStyle', '-.', 'Marker', '.', 'MarkerSize', 30, 'MarkerEdgeColor', 'b', 'MarkerFaceColor', 'b', 'Parent', gca);
+            h_patch = patch(nan, nan, 'b', 'MarkerEdgeColor', 'none', 'MarkerFaceColor', 'b', 'FaceAlpha', 0.3, 'Parent', gca);
+            set(h_line, 'XData', [], 'YData', []);
+            button_down = false;
+            
+            txt = uicontrol('Style', 'edit', 'Position', [60 5 400 20]);
+            fig_width = fh.Position(3);
+            txt.Position(3) = fig_width - txt.Position(1) - 10;
+
+            drawnow;
+            % Set up the listener for mouse clicks
+            set(gm, 'ButtonDownFcn', @mouseClickFcn);
+            set(h_patch, 'ButtonDownFcn', @mouseClickFcn);
+
+            % Add button to remove last point
+            undu = uicontrol('Style', 'pushbutton', 'String', 'Undo', 'Position', [20, 5, 40, 20], 'Callback', @undoCallback);
+
+
+            menu_action = uimenu(fh, 'Label', 'Actions');
+            mitem = uimenu(menu_action, 'Label', 'Enable Mouse grab');
+            mitem.Callback = @enableMouseGrab;
+            mitem = uimenu(menu_action, 'Label', 'Undu');
+            mitem.Callback = @undoCallback;
+
+            function enableMouseGrab(~, ~)
+                % Set up the listener for mouse clicks
+                img = findall(gca, 'Type', 'Image');
+                for i = 1:numel(img)
+                    set(img(i), 'ButtonDownFcn', @mouseClickFcn);
+                end
+                h_patch = findall(gca, 'Type', 'Patch');
+                set(h_patch, 'ButtonDownFcn', @mouseClickFcn);
+            end
+
+            function undoCallback(~, ~)
+                if ~isempty(coords)
+                    coords(end,:) = [];
+                    if isempty(coords)
+                        coords = [nan, nan];
+                    end
+                    updateLine();
+                end
+            end
+
+            function mouseClickFcn(~, event)
+                % Get coordinates of clicked point
+                pt = get(gca,'CurrentPoint');
+                pt = [pt(1,1), pt(1,2)];
+
+                % Check which button was pressed
+                switch event.Button
+                    case 3 % Right button
+                        % Add clicked point to list of polygon vertices
+                        coords(end+1,:) = pt;
+                        coords(isnan(coords(:,1)),:) = [];
+                        updateLine();
+
+                    otherwise % Ignore other buttons
+                        return;
+                end
+
+                if button_down % End dragging operation
+                    set(gcf, 'WindowButtonMotionFcn', '');
+                    button_down = false;
+                end
+            end
+
+            function updateLine()
+                % Update line with new vertices
+                set(h_line, 'XData', coords([1:end,1],1), 'YData', coords([1:end,1],2));
+                set(h_patch, 'XData', coords([1:end,1],1), 'YData', coords([1:end,1],2));
+                % Update the text field with the coordinates
+                set(txt, 'String', sprintf('poly_mask = %s', mat2str(coords, 9)));
+            end
+
+            % Wait for user to press enter or close the figure
+            uiwait(gcf);
+        end
+        
+        function in_poly_lid = inPolygon(poly_xy, x, y)
+            % This function returns a logical index for the points that fall within a polygon.
+            % Using cartesian approximation
+            %
+            % INPUTS:
+            % - coords: an n x 2 matrix containing the longitude and latitude coordinates of the polygon vertices
+            % - x:      an m x 1 array containing the longitude coordinates of the points
+            % - y:      an m x 1 array containing the latitude coordinates of the points
+            %
+            % OUTPUTS:
+            % - in_poly_lid: an m x 1 logical array indicating whether each point falls within the polygon
+            %
+            % SYNTAX
+            %   in_poly_lid = Core_Utils.inPolygon(poly_xy, x, y)
+            
+            in_poly_lid = inpolygon(x, y, poly_xy(:,1), poly_xy(:,2));
+        end
+
+        %--------------------------------------------------------------------------
+        %% EXPORT FUNCTIONS
+        %--------------------------------------------------------------------------
+        
+        function tropo = tropoAggregator(search_dir, flag_figure, flag_save)
+            % Aggregate .mat tropo export from different receiver into a unique struct
+            %
+            % SYNTAX
+            %   tropo = tropoAggregator(search_dir, flag_figure, flag_save);
+            tropo = [];
+            if nargin < 2 || isempty(flag_save)
+                flag_save = true;
+            end
+            if nargin < 3 || isempty(flag_save)
+                flag_save = false;
+            else
+                if ischar(flag_save)
+                    export_path = flag_save;
+                    flag_save = true;
+                else
+                    export_path = fullfile(Core.getState.getOutDir, [Core.getState.getPrjName, '_', GPS_Time.now.toString('yyyymmdd'), '.mat']);
+                end                
+            end
+            min_num_epochs = 0;
+            tropo = struct();
+            files = dir(fullfile(search_dir, '*.mat'));
+            lat_lim = [-90 90];
+            lon_lim = [-180 180];
+            if flag_figure
+                figure;
+            end
+            for i = 1:length(files)
+                fname = files(i).name;
+                if strfind(fname,'.mat') & (length(fname) > 4)
+                    Core.getLogger.addMessage(sprintf('Aggregating %s', fname));
+                    tropo_data = load([ search_dir '/' fname]);
+                    ztd_ok = false;% p(1) + p(2) * tropo_data.h_ortho + p(3) * tropo_data.h_ortho.^2;
+                    d_ztd = 0;%diff(tropo_data.ztd)./diff(tropo_data.utc_time)*(30/86400);
+                    mv_avg = ones(1,20)/20;
+                    md_ztd = filter(mv_avg,1,d_ztd);
+                    lon = tropo_data.lon;
+                    lon(lon > 180) = lon(lon > 180)-360;
+
+                    if false && sum(abs(tropo_data.ztd - ztd_ok) > 0.3) > 1 || sum(isnan(tropo_data.ztd)) > 1 || length(tropo_data.ztd) < min_num_epochs || max(abs(md_ztd)) > 0.005
+                        % disp([' Outlier!! ' fname(1:4)])
+                        if max(abs(md_ztd)) > 0.005 & sum(abs(tropo_data.ztd - ztd_ok) > 0.3) == 0 || sum(abs(tropo_data.ztd - ztd_ok) > 0.3) > 1
+                            disp([' Outlier!! ' fname(1:4)])
+                        else
+                            disp([' Empty or partly empty!! ' fname(1:4)])
+                            disp( [sum(isnan(tropo_data.ztd)) length(tropo_data.ztd)])
+                        end
+                    elseif tropo_data.lat > lat_lim(1) & tropo_data.lat < lat_lim(2) & lon > lon_lim(1) & lon < lon_lim(2)
+                        if flag_figure
+                            scatter(lon,tropo_data.lat);
+                            hold on;
+                        end
+                        if isfield(tropo,fname(1:4))
+                            if abs(tropo.(fname(1:4)).h_ellips - tropo_data.h_ellips) > 0.1
+                                sprintf('Warning dh = %f',(tropo.(fname(1:4)).h_ellips - tropo_data.h_ellips) );
+                            end
+                            tropo.(fname(1:4)).ztd = [tropo.(fname(1:4)).ztd ; tropo_data.ztd];
+                            tropo.(fname(1:4)).utc_time = [tropo.(fname(1:4)).utc_time ; tropo_data.utc_time];
+                        else
+                            tropo.(fname(1:4)) = tropo_data;
+                        end
+                    end
+                end
+            end
+            if ~isempty(tropo) && ~isempty(files)
+                Core.getLogger.addMarkedMessage(sprintf('Exporting to %s', export_path));
+                save(export_path, 'tropo');
+            end
+            if isempty(files)
+                Core.getLogger.addError(sprintf('No data .mat found in "%s"', search_dir));
+            end
+        end
+
+        function exportTropo()
+        end
+
         function exportCurFig(out_path, mode)
             % Eport Current Figure
             %
@@ -1673,7 +3494,9 @@ classdef Core_Utils < handle
                 Core_UI.beautifyFig(fh, mode);
             end
             if (nargin < 4) || isempty(flag_transparent)
-                flag_transparent = Go_Settings.getInstance.isExportTransparent();
+                as = App_Settings.getInstance;
+                as.reload;
+                flag_transparent = as.isExportTransparent();
             end
             col = fh.Color;
             Logger.getInstance.addMessage(sprintf('Exporting to "%s"', out_path));
@@ -1790,12 +3613,12 @@ classdef Core_Utils < handle
                     line(i).YData = line(i).YData(noZero(id_ok));
                 end
                 
-                if all(line(i).XData > datenum('1970-01-01') & line(i).XData < datenum('2070-01-01'))
-                    line(i).XData = convertDate(line(i).XData);
+                %if all(line(i).XData > datenum('1970-01-01') & line(i).XData < datenum('2070-01-01'))
+                    %line(i).XData = convertDate(line(i).XData);
                     last.flag_date(i) = true;
-                else
-                    last.flag_date(i) = false;
-                end
+                %else
+                %    last.flag_date(i) = false;
+                %end
             end            
             
             % Export to plotly
@@ -1830,6 +3653,134 @@ classdef Core_Utils < handle
             Core_UI.beautifyFig(fh);
         end
                 
+        %--------------------------------------------------------------------------
+        %% OTHER FUNCTIONS
+        %--------------------------------------------------------------------------
+
+        function str = exportNominatimCache(file_path)
+            % Export in text file the nominatim cache
+            % Load cache from file
+            nominatim_path = Core.getFilePath('nominatim');
+            load(nominatim_path, 'nominatim_cache');
+            str = sprintf('   Lat    |    Lon    | CODE\n');
+            for i = 1 : size(nominatim_cache,1)
+                str = sprintf('%s %8.4f | %9.4f | %3s\n', str, nominatim_cache(i,1), nominatim_cache(i,2), Core_Utils.getCountryISO3166(nominatim_cache(i,3)));
+            end
+            if nargin == 1
+                try
+                    fh = fopen(file_path, 'wt');
+                    fwrite(fh, str);
+                    fclose(fh);
+                catch ex
+                    Core_Utils.printEx(ex);
+                end
+            end
+        end
+
+        function [location_info] = getLocationInfo(lat, lon, type)
+            % Get reverse nominatim
+            %
+            % INPUT (variable)
+            %   lat,lon             coordinates in degrees
+            %   type                mapquest (default) / openstreetmap
+            %
+            % OUTPUT
+            %   nominatim struct
+            
+            if nargin == 2
+                type = 'auto';
+            end
+            switch type
+                case {'mapquest'}
+                    rrm = Remote_Resource_Manager.getInstance;
+                    KEY = rrm.getMapQuestAPI;
+                    if isempty(KEY)
+                        Core.getLogger.addWarning('To use mapquestapi you need to have a KEY in your credentials.txt')
+                        % Nominatim.openstreetmap
+                        fprintf('Requesting location info of (%.4f, %.4f) from openstreetmap.org\n', lat, lon);
+                        request_url = sprintf(['https://nominatim.openstreetmap.org/reverse?' ...
+                            'lat=%f&' ...
+                            'lon=%f&' ...
+                            'format=json&' ...
+                            'addressdetails=1&' ...
+                            'namedetails=0&' ...
+                            'extratags=0'], lat, lon);
+                    else
+                        fprintf('Requesting location info of (%.4f, %.4f) from mapquestapi.com\n', lat, lon);
+                        request_url = sprintf(['http://open.mapquestapi.com/nominatim/v1/reverse.php?' ...
+                            'key=%s&', ...
+                            'format=json&' ...
+                            'lat=%f&' ...
+                            'lon=%f&'], KEY, lat, lon);
+                    end
+                case {'openstreetmap', 'auto'}
+                    % Nominatim.openstreetmap
+                    request_url = sprintf(['https://nominatim.openstreetmap.org/reverse?' ...
+                        'lat=%f&' ...
+                        'lon=%f&' ...
+                        'format=json&' ...
+                        'addressdetails=1&' ...
+                        'namedetails=0&' ...
+                        'extratags=0'], lat, lon);
+            end
+            try
+                % First approach but somehow sometime it display log on screen
+                %options = weboptions; options.CertificateFilename=(''); location_info = webread(request_url,options, 'Timeout',5);
+                % Second approach:
+                location_info = jsondecode(char(Core_Utils.urlread_auth(request_url,'anonymous','')));
+                % if this test fail (raise an exception) it meas that there no coordinates have been found!
+                test = length(location_info.address.country_code) == 2;
+            catch ex
+                if strcmp(type, 'auto')
+                    try
+                        [location_info] = Core_Utils.getLocationInfo(lat, lon, 'mapquest');
+                    catch ex
+                        location_info = [];
+                    end
+                end
+            end
+        end
+        
+        function [s, info] = urlread_auth(url, user, password)
+            %URLREAD_AUTH Like URLREAD, with basic authentication
+            %
+            % [s,info] = urlread_auth(url, user, password)
+            %
+            % Returns bytes. Convert to char if you're retrieving text.
+            %
+            % Examples:
+            % sampleUrl = 'http://browserspy.dk/password-ok.php';
+            % [s,info] = urlread_auth(sampleUrl, 'test', 'test');
+            % txt = char(s)
+            % Matlab's urlread() doesn't do HTTP Request params, so work directly with Java
+            %
+            % Code found here: https://it.mathworks.com/matlabcentral/answers/376318-webread-certificate-problems-roll-your-own-java-works-webread-doesn-t-why
+            % Author's unknown  
+            jUrl = java.net.URL(url);
+            conn = jUrl.openConnection();
+            conn.setRequestProperty('Authorization', ['Basic ' matlab.net.base64encode([user ':' password])]);
+            conn.connect();
+            info.status = conn.getResponseCode();
+            info.errMsg = char(readstream(conn.getErrorStream()));
+            s = readstream(conn.getInputStream());
+            
+            function out = readstream(inStream)
+                %READSTREAM Read all bytes from stream to uint8
+                try
+                    import com.mathworks.mlwidgets.io.InterruptibleStreamCopier;
+                    byteStream = java.io.ByteArrayOutputStream();
+                    isc = InterruptibleStreamCopier.getInterruptibleStreamCopier();
+                    isc.copyStream(inStream, byteStream);
+                    inStream.close();
+                    byteStream.close();
+                    out = typecast(byteStream.toByteArray', 'uint8'); %'
+                catch err
+                    out = []; %HACK: quash
+                end
+            end
+        end
+        
+        
         function idx = findMO(find_list, to_find_el)
             % find the postion of the elements of to_find_el into find_list
             % find list should have unique elements
@@ -1988,7 +3939,7 @@ classdef Core_Utils < handle
             b=est(2);
         end
         
-        function [gh11,nh11] =variofl(x1,icode)
+        function [gh11,nh11] = variofl(x1,icode)
             % SOURCE : Marcotte, Denis. "Fast variogram computation with FFT." Computers & Geosciences 22.10 (1996): 1175-1186.
             %
             % function [gh11,nh11l=variofl(x1,icode);
@@ -2090,11 +4041,10 @@ classdef Core_Utils < handle
             % Convert a numeric value (float) of a 2 char string
             % SYNTAX
             %   str2 = Core_Utils.num2Code2ch(num)
-            num = double(num);
+            num = uint16(num);
             str2 = char(zeros(numel(num), 2));
-            str2(:,1) = char(floor(num / 2^8));
-            num = num - str2(:,1) * 2^8;
-            str2(:,2) = char(num);
+            str2(:,1) = char(bitand(num, uint16(sum(2.^(8 + (0:7))))) / 2^8);
+            str2(:,2) = char(bitand(num, uint16(sum(2.^(0:7)))));
         end
         
         function num = code3Char2Num(str3)
@@ -2109,37 +4059,60 @@ classdef Core_Utils < handle
             % Convert a numeric value (float) of a 3 char string
             % SYNTAX
             %   str3 = Core_Utils.num2Code3ch(num)
-            num = double(num);
+            num = uint32(num);
             str3 = char(zeros(numel(num), 3));
-            str3(:,1) = char(floor(num / 2^16));
-            num = num - str3(:,1) * 2^16;
-            str3(:,2) = char(floor(num / 2^8));
-            num = num - str3(:,2) * 2^8;
-            str3(:,3) = char(num);
+            str3(:,1) = char(bitand(num, uint32(sum(2.^(16 + (0:7))))) / 2^16);
+            str3(:,2) = char(bitand(num, uint32(sum(2.^(8 + (0:7))))) / 2^8);
+            str3(:,3) = char(bitand(num, uint32(sum(2.^(0:7)))));
         end
         
         function num = code4Char2Num(str4)
             % Convert a 4 char string into a numeric value (float)
             % SYNTAX
-            %   num = Core_Utils.code4ch2Num(str4);
-            
-            num = str4(:,1:4) * [2^24 2^16 2^8 1]';
+            %   num = Core_Utils.code4ch2Num(str4);            
+            num = zeros(size(str4,1),1, 'uint32');
+            for i = 1:size(str4,1)
+                num(i) = sum(uint64(str4(i,1:4)') .* uint64([2^24 2^16 2^8 1])');
+            end
         end
         
+        function num = code7Char2Num(str7)
+            % Convert a 7 char string into a numeric value (float)
+            % SYNTAX
+            %   num = Core_Utils.code7ch2Num(str7);
+            num = zeros(size(str7,1),1, 'uint64');
+            for i = 1:size(str7,1)
+                num(i) = sum(uint64(str7(i,1:7)') .* uint64([2^48 2^40 2^32 2^24 2^16 2^8 1])');
+            end
+        end
+
         function str4 = num2Code4Char(num)
             % Convert a numeric value (float) of a 4 char string
             % SYNTAX
             %   str4 = Core_Utils.num2Code4Char(num)
+            num = uint32(num);
             str4 = char(zeros(numel(num), 4));
-            str4(:,1) = char(floor(num / 2^24));
-            num = num - str4(:,1) * 2^24;
-            str4(:,2) = char(floor(num / 2^16));
-            num = num - str4(:,2) * 2^16;
-            str4(:,3) = char(floor(num / 2^8));
-            num = num - str4(:,3) * 2^8;
-            str4(:,4) = char(num);
+            str4(:,1) = char(bitand(num, uint32(sum(2.^(24 + (0:7))))) / 2^24);
+            str4(:,2) = char(bitand(num, uint32(sum(2.^(16 + (0:7))))) / 2^16);
+            str4(:,3) = char(bitand(num, uint32(sum(2.^(8 + (0:7))))) / 2^8);
+            str4(:,4) = char(bitand(num, uint32(sum(2.^(0:7)))));
         end
-        
+
+        function str7 = num2Code7Char(num)
+            % Convert a numeric value (float) of a 7 char string
+            % SYNTAX
+            %   str7 = Core_Utils.num2Code7Char(num)
+            num = uint64(num);
+            str7 = char(zeros(numel(num), 4));
+            str7(:,1) = char(bitand(num, uint64(sum(2.^(48 + (0:7))))) / 2^48);
+            str7(:,2) = char(bitand(num, uint64(sum(2.^(40 + (0:7))))) / 2^40);
+            str7(:,3) = char(bitand(num, uint64(sum(2.^(32 + (0:7))))) / 2^32);
+            str7(:,4) = char(bitand(num, uint64(sum(2.^(24 + (0:7))))) / 2^24);
+            str7(:,5) = char(bitand(num, uint64(sum(2.^(16 + (0:7))))) / 2^16);
+            str7(:,6) = char(bitand(num, uint64(sum(2.^(8 + (0:7))))) / 2^8);
+            str7(:,7) = char(bitand(num, uint64(sum(2.^(0:7)))));
+        end
+
         function str4 = unique4ch(str4)
             % Perform unique on an array of 4 char codes
             %
@@ -2187,6 +4160,9 @@ classdef Core_Utils < handle
                 aria2c_path = '.\utility\thirdParty\aria2-extra\aria2_win\aria2c.exe';
             elseif ismac()
                 aria2c_path = '/usr/local/bin/aria2c';
+                if ~exist(aria2c_path, 'file')
+                    aria2c_path = '/opt/homebrew/bin/aria2c';
+                end
             else % is linux
                 aria2c_path = '/usr/local/bin/aria2c';
                 if ~exist(aria2c_path, 'file')
@@ -2216,14 +4192,19 @@ classdef Core_Utils < handle
                     file_name = strrep(file_name,['?{' server '}'],'');
                     [s_ip, port, user,passwd] = rm.getServerIp(server);
                     switch port
-                        case {'21', '443'} 
+                        case {'21'} 
                             fnl{i} = ['ftp://' s_ip ':' port file_name fel{i}];
-                            if ~isempty(user) & ~isempty(passwd)
+                            if ~isempty(user) && ~isempty(passwd)
                                 credentials = sprintf('--ftp-user=%s  --ftp-passw=%s',user,passwd);
+                            end
+                        case {'443'}
+                            fnl{i} = ['https://' s_ip file_name fel{i}];
+                            if ~isempty(user) && ~isempty(passwd)
+                                credentials = sprintf('--http-user=%s  --http-passw=%s',user,passwd);
                             end
                         otherwise
                             fnl{i} = ['http://' s_ip ':' port file_name fel{i}];
-                            if ~isempty(user) & ~isempty(passwd)
+                            if ~isempty(user) && ~isempty(passwd)
                                 credentials = sprintf('--http-user=%s  --http-passw=%s',user,passwd);
                             end
                     end
@@ -2280,7 +4261,7 @@ classdef Core_Utils < handle
                                     log.addMessage(sprintf('Executing \n  aria2c -c -i %s -d %s\n  File download list:', file_name, old_od));
                                     log.addMessage(log.indent(sprintf('%s', str)));
                                     try
-                                        if any(strfind(str, 'ftp://garner')) || any(strfind(str, 'ftp://nfs.kasi'))
+                                       if any(strfind(str, 'ftp://garner')) || any(strfind(str, 'ftp://nfs.kasi'))
                                             str_parallel = '1';
                                         elseif any(strfind(str, 'ftp://gssc.esa')) 
                                             str_parallel = '2';
@@ -2288,11 +4269,11 @@ classdef Core_Utils < handle
                                             str_parallel = '20';
                                         end
                                         if ispc()
-                                            dos(sprintf('"%s" %s -j %s -c -i %s -d %s >nul 2>&1', aria2c_path, credentials, str_parallel, file_name, old_od)); % suppress output
-                                            %dos(sprintf('"%s" %s -j 2 -c -i %s -d %s', aria2c_path, credentials, file_name, old_od)); % do not suppress output
+                                            %dos(sprintf('"%s" %s -j %s -c -i %s -d %s >nul 2>&1', aria2c_path, credentials, str_parallel, file_name, old_od)); % suppress output
+                                            dos(sprintf('"%s" %s -j 1 -c -i %s -d %s', aria2c_path, credentials, file_name, old_od)); % do not suppress output
                                         else
-                                            dos(sprintf('%s %s -j %s -c -i %s -d %s &> /dev/null', aria2c_path, credentials, str_parallel, file_name, old_od));  % suppress output
-                                            %dos(sprintf('%s %s -j 2 -c -i %s -d %s ', aria2c_path, credentials, file_name, old_od));  % do not suppress output
+                                            %dos(sprintf('%s %s -j %s -c -i %s -d %s &> /dev/null', aria2c_path, credentials, str_parallel, file_name, old_od));  % suppress output
+                                            dos(sprintf('%s %s -j 1 -c -i %s -d %s ', aria2c_path, credentials, file_name, old_od));  % do not suppress output
                                         end
                                     catch
                                         f_status_lst = false(size(file_name_lst));
@@ -2335,18 +4316,19 @@ classdef Core_Utils < handle
                 for i = 1 : numel(fnl)
                     if strcmp(fel{i},'.Z') || strcmp(fel{i},'.gz')
                         if (isunix())
-                            system(['gzip -d -f ' ffp{i} fel{i} '&> /dev/null']);
+                            system(['gzip -d -f "' ffp{i} fel{i} '" &> /dev/null']);
                         else
                             try                                        
-                                [goGPS_path] = which('goGPS');
-                                [goGPS_dir] = fileparts(goGPS_path);
-                                [status, result] = system(['"' goGPS_dir '\utility\thirdParty\7z1602-extra\7za.exe" -y x "'   ffp{i} fel{i} '" -o"'  odl{i} '"']); %#ok<ASGLU>
+                                [app_path] = Core.getInstallDir;
+                                [status, result] = system(['"' app_path '\utility\thirdParty\7z1602-extra\7za.exe" -y x "'   ffp{i} fel{i} '" -o"'  odl{i} '"']); 
                                 if (status == 0)
                                     status = true;
+                                elseif (status > 1)
+                                    this.log.addError(sprintf('Please decompress the %s file before trying to use it in Breva!!!\nError 7za: %s', [ffp{i} fel{i}], result));
                                 end
                                 delete([ffp{i} fel{i}]);
                             catch
-                                this.log.addError(sprintf('Please decompress the %s file before trying to use it in goGPS!!!', fname));
+                                this.log.addError(sprintf('Please decompress the %s file before trying to use it in Breva!!!', [ffp{i} fel{i}]));
                                 status = false;
                             end
                         end
@@ -2373,9 +4355,14 @@ classdef Core_Utils < handle
             log = Core.getLogger();
             fnp = File_Name_Processor();
             try
-                options = weboptions;
+
+
+                auth_str = [user ':' passwd];
+                base64Str = ['Basic ' matlab.net.base64encode(auth_str)];
+                headers = {'Authorization', base64Str};
+                options = weboptions('HeaderFields',headers);
                 options.ContentType = 'text';
-                options.Timeout = 15;
+                options.Timeout = 5;
                 options.Username = user;
                 options.Password = passwd;
                 [remote_location, filename, ext] = fileparts(filename);
@@ -2390,91 +4377,150 @@ classdef Core_Utils < handle
                 if any(strfind(remote_location, 'cddis'))
                     % cddis download data even if the compression estension is not specified, but with the wrong extension name!
                     % I need to force the extension
-%                     options = matlab.net.http.HTTPOptions;
-%                     cred = matlab.net.http.Credentials('Username',user,'Password',passwd);
-%                     options.Credentials = cred;
-                    if isempty(strfind(filename,'_DCB.BSX'))
-                        filename = [filename '.Z'];
-                        compressed_name = filename;
+                    if contains(remote_location, 'igs20')
+                            filename = [filename '.gz'];
                     else
-                        filename = [filename '.gz'];
-                        compressed_name = filename;
+                            filename = [filename '.Z'];
                     end
-                    cmd = sprintf('wget --ciphers DEFAULT@SECLEVEL=1 --user %s --password %s  --no-check-certificate --auth-no-challenge %s -P %s',user,passwd, ['https://' remote_location '/' filename],out_dir);
-                    status = system(cmd);
-                    status = status == 0;
-                else
-                    try
-                        if ~https_flag
-                            txt = websave(fullfile(out_dir, filename), ['http://' remote_location '/' filename], options);
-                        else
-                            txt = websave(fullfile(out_dir, filename), ['https://' remote_location '/' filename], options);
-                        end
-                    catch ex
-                        if any(strfind(remote_location, 'cddis'))
-                            % cddis download data even if the xompression estension is not specified, but with the wrong extension name!
-                            % Remove Z extension
-                            filename = filename(1:end-2);
-                            compressed_name = '';
-                        end
-                        if instr(ex.message, '404')
-                            try
-                                compressed_name = [filename, '.gz'];
-                                if ~https_flag
-                                    txt = websave(fullfile(out_dir, compressed_name), ['http://' remote_location '/' compressed_name], options);
-                                else
-                                    txt = websave(fullfile(out_dir, compressed_name), ['https://' remote_location '/' compressed_name], options);
-                                end
-                            catch ex
-                                if instr(ex.message, '404')
-                                    try
-                                        compressed_name = [filename, '.Z'];
-                                        if ~https_flag
-                                            txt = websave(fullfile(out_dir, compressed_name), ['http://' remote_location '/' compressed_name], options);
-                                        else
-                                            txt = websave(fullfile(out_dir, compressed_name), ['https://' remote_location '/' compressed_name], options);
-                                        end
-                                    catch
-                                        status = false;
+                    compressed_name = filename;
+                end
+                if strcmp(ext, '.zip')
+                    compressed_name = filename;
+                end
+                
+                try
+                    if ~https_flag
+                        txt = websave(fullfile(out_dir, filename), ['http://' remote_location '/' filename], options);
+                    else
+                        txt = websave(fullfile(out_dir, filename), ['https://' remote_location '/' filename], options);
+                    end
+                catch ex
+                    if any(strfind(remote_location, 'cddis'))
+                        % cddis download data even if the compression estension is not specified, but with the wrong extension name!
+                        % Remove Z extension
+                        filename = filename(1:end-2);
+                        compressed_name = '';
+                    end
+                    if instr(ex.message, '404')
+                        try
+                            compressed_name = [filename, '.gz'];
+                            if ~https_flag
+                                txt = websave(fullfile(out_dir, compressed_name), ['http://' remote_location '/' compressed_name], options);
+                            else
+                                txt = websave(fullfile(out_dir, compressed_name), ['https://' remote_location '/' compressed_name], options);
+                            end
+                        catch ex
+                            if instr(ex.message, '404')
+                                try
+                                    compressed_name = [filename, '.Z'];
+                                    if ~https_flag
+                                        txt = websave(fullfile(out_dir, compressed_name), ['http://' remote_location '/' compressed_name], options);
+                                    else
+                                        txt = websave(fullfile(out_dir, compressed_name), ['https://' remote_location '/' compressed_name], options);
                                     end
+                                catch
+                                    status = false;
                                 end
                             end
-                        elseif instr(ex.message, '401')
-                            status = false;
-                            log.addError('Unauthorized, please add credentials to credentials.txt');
                         end
+                    elseif instr(ex.message, '401')
+                        status = false;
+                        log.addError('Unauthorized, please add credentials to credentials.txt');
                     end
+                end
+                if contains(txt,'.html')
+                    status = false;
+                    delete(txt);
+                    log.addError(sprintf('Unauthorized, please check credentials into "%s"', Core.getFilePath('credentials', false)));
                 end
                 if status
                     status = false;
                     if ~isempty(compressed_name)
                         compressed_name = fnp.checkPath(fullfile(out_dir, compressed_name));
-                        if (isunix())
-                            system(['gzip -d -f ' compressed_name '&> /dev/null &']);
-                        else
-                            try                                        
-                                [goGPS_path] = which('goGPS');
-                                [goGPS_dir] = fileparts(goGPS_path);
-                                [status, result] = system(['"' goGPS_dir '\utility\thirdParty\7z1602-extra\7za.exe" -y x "'   compressed_name '" -o"'  out_dir '"']); %#ok<ASGLU>
-                                if (status == 0)
-                                    status = true;
-                                end
-                                delete(compressed_name);
-                            catch
-                                log.addError(sprintf('Please decompress the %s file before trying to use it in goGPS!!!', compressed_name));
-                                status = false;
-                            end
-                        end
+                        ok_status = Core_Utils.uncompressFile(compressed_name);
                     end
                     status = true;
                     log.addMessage(' Done');
                 end
-            catch
+            catch ex
                 status = false;
             end
         end
+
+        function ok_status = uncompressFile(full_file_path)
+            % Uncompress inplace a compressed file
+            % 
+            % SYNTAX
+            %   ok_status = Core_Utils.uncompressFile(full_file_path);
+            ok_status = true;
+            [out_dir, ~, fext] = fileparts(full_file_path);
+            if strcmp(fext,'.Z') || strcmp(fext,'.gz')  || strcmp(fext,'.zip')
+                if (isunix())
+                    if strcmp(fext,'.Z') || strcmp(fext,'.gz')
+                        system(['gzip -d -f "' full_file_path '" &> /dev/null &']);
+                    else
+                        res = system(['unzip "' full_file_path '" -d "' out_dir '" &> /dev/null &']);
+                        if res == 0
+                            % delete zip file
+                            delete(full_file_path);
+                        end
+                    end
+                else
+                    try
+                        [breva_path] = Core.getInstallDir();
+                        [breva_dir] = fileparts(breva_path);
+                        [ok_status, result] = system(['"' breva_dir '\utility\thirdParty\7z1602-extra\7za.exe" -y x "' full_file_path '" -o"'  out_dir '"']); %#ok<ASGLU>
+                        if (ok_status == 0)
+                            ok_status = true;
+                            delete([fpath{1}]);
+                        end
+                    catch
+                        this.log.addError(sprintf('Please decompress the %s file before trying to use it in Breva!!!', full_file_path));
+                        ok_status = false;
+                    end
+                end
+            end
+        end
+
+        function ok_status = compressFile(full_file_path)
+            % Compress inplace an uncompressed file
+            % Uses gz compression
+            %
+            % SYNTAX
+            %   ok_status = Core_Utils.compressFile(full_file_path);
+            ok_status = true;
+            log = Logger.getInstance;
+            if exist([full_file_path '.gz'], 'file')
+                delete([full_file_path '.gz'])
+            end
+            if (isunix())
+                system(['gzip "' full_file_path '" &> /dev/null &']);
+            else
+                log = Logger.getInstance;
+                try
+                    [breva_path] = Core.getInstallDir();
+                    [breva_dir] = fileparts(breva_path);
+                    [ok_status, result] = system(['"' breva_dir '\utility\thirdParty\7z1602-extra\7za.exe" a "' full_file_path '.gz" "' full_file_path '"']); %#ok<ASGLU>
+                    if (ok_status == 0)
+                        ok_status = true;
+                        log.addStatusOk(sprintf('File "%s" compressed successfully', full_file_path));
+                    else
+                        log.addStatusOk(sprintf('File "%s" compressed successfully', full_file_path));
+                    end
+
+                catch
+                    log.addError(sprintf('gzip compression of %s is not working', full_file_path));
+                    ok_status = false;
+                end
+            end
+            if (ok_status)
+                log.addStatusOk(sprintf('File "%s" compressed successfully', full_file_path));
+            else
+                log.addError(sprintf('File "%s" was not compressed', full_file_path));
+            end
+        end
         
-        function [status, ext] = checkHttpTxtRes(filename)
+        function [status, ext] = checkHttpTxtRes(filename, user, passwd)
             ext = '';
             if isunix()
                 if any(strfind(filename, 'cddis'))
@@ -2483,10 +4529,16 @@ classdef Core_Utils < handle
                     if ismac()
                         % Sometimes mac users does not have wget'
                         rem_check_cmd = 'curl --head ';
+                        if nargin > 1 && ~isempty(user)
+                            rem_check_cmd = [rem_check_cmd sprintf('---insecure -u %s:%s ', user, passwd)];
+                        end
                     else
                         % curl seems to have some problems with matlb libraries
                         % under some Linux installations, switching to wget --spyder
                         rem_check_cmd = 'wget --spider --no-hsts --no-check-certificate ';
+                        if nargin > 1 && ~isempty(user)
+                            rem_check_cmd = [rem_check_cmd sprintf('--user=%s --password=%s ', user, passwd)];
+                        end
                     end
                     
                     [resp, txt] = system([rem_check_cmd filename]);
@@ -2540,11 +4592,11 @@ classdef Core_Utils < handle
                     try
                         % Calling dos is faster than dir with large directories
                         if isunix
-                            [~, d] = dos(['ls ' dir_path]);
+                            [~, d] = dos(['ls "' dir_path '"']);
                             dir_list = strsplit(d);
                             dir_list = dir_list(1:end-1);
                         else
-                            [~, d] = dos(['dir ' dir_path]);
+                            [~, d] = dos(['dir "' dir_path '"']);
                             dir_list = strsplit(d);
                             dir_list = dir_list(1:end-1);
                         end
@@ -2821,7 +4873,6 @@ classdef Core_Utils < handle
             % get  interpolating index
             [nlat , nlon, nt] = size(data);
             
-            
             lon(lon < first_lon) = lon(lon < first_lon) + nlon * dlon; %% to account for earth circularity
             % find indexes and interpolating length
             % time
@@ -2838,6 +4889,48 @@ classdef Core_Utils < handle
             ilone = ilons +1;
             ilone(ilone > nlon) = 1;
             slon = max(min(lon - first_lon- (ilons-1)*dlon, dlon), 0) / dlon;
+        end
+
+        function [ it, st, ilons, ilone, slon, ilat, slat] = getIntIdxRot(data, first_lat, dlat, first_lon, dlon, first_t, dt, lat, lon, t)
+            % get  interpolating index
+            [nlat , nlon, nt] = size(data);
+            
+            if isa(t, 'GPS_Time')
+                t = t.getGpsTime;
+            end  
+            if isa(first_t, 'GPS_Time')
+                first_t = first_t.getGpsTime;
+            end  
+            % find indexes and interpolating length
+            % time
+            it = max(min(floor((t - first_t)/ dt)+1,nt-1),1);
+            st = max(min(t - first_t - (it-1)*dt, dt), 0) / dt;
+            st = serialize(st);
+            
+            % lat
+            ilat = max(min(floor((lat - first_lat)/ dlat)+1,nlat-1),1);
+            slat = min(max(lat - first_lat - (ilat-1)*dlat, dlat), 0) / dlat;
+            
+            % Correct for Earth rotation 
+            rot.rate = 360 * (dt/86400);    % degree per time step (dt)
+            rot.prev = + rot.rate * st;     % move East (ahead in time) the past map
+            rot.next = - rot.rate * (1-st);  % move West (back in time) the future map
+
+            % Previous map lon
+            lon(lon < (first_lon - rot.prev)) = lon(lon < (first_lon - rot.prev)) + nlon * dlon; %% to account for earth circularity            
+            
+            ilons(:,1) = max(min(floor((lon - (first_lon - rot.prev))/ dlon)+1,nlon),1);
+            ilone(:,1) = ilons(:,1) + 1;
+            ilone(ilone(:,1) > nlon,1) = mod(ilone(ilone(:,1) > nlon,1)+1, nlon)-1;
+            slon(:,1) = max(min(lon - (first_lon - rot.prev)- (ilons(:,1)-1)*dlon, dlon), 0) / dlon;
+
+            % Next map lon
+            lon(lon < (first_lon - rot.next)) = lon(lon < (first_lon - rot.next)) + nlon * dlon; %% to account for earth circularity            
+            
+            ilons(:,2) = max(min(floor((lon - (first_lon - rot.next))/ dlon)+1,nlon),1);
+            ilone(:,2) = ilons(:,2) + 1;
+            ilone(ilone(:,2) > nlon,2) = mod(ilone(ilone(:,2) > nlon,2)+1, nlon)-1;
+            slon(:,2) = max(min(lon - (first_lon - rot.next)- (ilons(:,2)-1)*dlon, dlon), 0) / dlon;
         end
         
         function response = permutedEqual(str1, str2)
@@ -3134,46 +5227,51 @@ classdef Core_Utils < handle
             amb_idx = Core_Utils.remEmptyAmbIdx(amb_idx);
         end
         
-        function createEmptyProject(base_dir, prj_name, prj_type)
+        function createEmptyProject(prj_dir, prj_name, prj_type)
             % create empty config file
             %
             % SYNTAX
-            %    createEmptyProject(base_dir, prj_name)
+            %    createEmptyProject(prj_dir, prj_name)
             %    createEmptyProject(prj_name)
             
             fnp = File_Name_Processor();
             
             if nargin == 3
-                state = Prj_Settings('', fnp.checkPath([base_dir filesep prj_name]));
+                state = Prj_Settings('', fnp.checkPath(prj_dir));
             else
                 state = Prj_Settings('');
             end
             
             if nargin == 1
-                prj_name = base_dir;
-                base_dir = fnp.getFullDirPath([state.getHomeDir filesep '..']);
+                prj_name = prj_dir;
+                prj_dir = fnp.getFullDirPath([state.getHomeDir filesep '..']);
+            end
+            
+            if iscell(prj_dir)
+                
             end
             
             log = Core.getLogger();
-            log.addMarkedMessage(sprintf('Creating a new project "%s" into %s', prj_name, [base_dir filesep prj_name]));
+            log.addMarkedMessage(sprintf('Creating a new project "%s" into %s', prj_name, prj_dir));
             
-            [status, msg, msgID] = mkdir(fnp.checkPath([base_dir filesep prj_name]));
-            [status, msg, msgID] = mkdir(fnp.checkPath([base_dir filesep prj_name filesep 'config']));
-            [status, msg, msgID] = mkdir(fnp.checkPath([base_dir filesep prj_name filesep 'out']));
-            [status, msg, msgID] = mkdir(fnp.checkPath([base_dir filesep prj_name filesep 'out/log']));
-            [status, msg, msgID] = mkdir(fnp.checkPath([base_dir filesep prj_name filesep 'RINEX']));
-            [status, msg, msgID] = mkdir(fnp.checkPath([base_dir filesep prj_name filesep 'station']));
-            [status, msg, msgID] = mkdir(fnp.checkPath([base_dir filesep prj_name filesep 'station/CRD']));
-            [status, msg, msgID] = mkdir(fnp.checkPath([base_dir filesep prj_name filesep 'station/ocean']));
-            [status, msg, msgID] = mkdir(fnp.checkPath([base_dir filesep prj_name filesep 'station/MET']));
-            state.setPrjHome(fnp.checkPath([base_dir filesep prj_name]));
+            [status, msg, msgID] = mkdir(fnp.checkPath([prj_dir]));
+            [status, msg, msgID] = mkdir(fnp.checkPath([prj_dir filesep 'config']));
+            [status, msg, msgID] = mkdir(fnp.checkPath([prj_dir filesep 'out']));
+            [status, msg, msgID] = mkdir(fnp.checkPath([prj_dir filesep 'out/log']));
+            [status, msg, msgID] = mkdir(fnp.checkPath([prj_dir filesep 'RINEX']));
+            [status, msg, msgID] = mkdir(fnp.checkPath([prj_dir filesep 'station']));
+            [status, msg, msgID] = mkdir(fnp.checkPath([prj_dir filesep 'station/CRD']));
+            [status, msg, msgID] = mkdir(fnp.checkPath([prj_dir filesep 'station/ocean']));
+            [status, msg, msgID] = mkdir(fnp.checkPath([prj_dir filesep 'station/MET']));
+            [status, msg, msgID] = mkdir(fnp.checkPath([prj_dir filesep 'antenna']));
+            [status, msg, msgID] = mkdir(fnp.checkPath([prj_dir filesep 'antenna/custom']));
+            state.setPrjHome(fnp.checkPath([prj_dir]));
             state.prj_name = prj_name;
             state.setOutDir('./out');
             state.setObsDir('./RINEX');
             state.setMetDir('./station/MET');
             state.setCrdDir('station/CRD');
-
-                
+                            
             crd_file = state.getCrdFile;
             if ~exist(crd_file, 'file')
                 try
@@ -3197,7 +5295,7 @@ classdef Core_Utils < handle
                 end
             end
             
-            config_path = fnp.checkPath([base_dir filesep prj_name filesep 'config' filesep 'config.ini']);
+            config_path = fnp.checkPath([prj_dir filesep 'config' filesep 'config.ini']);
             if nargin == 3
                 switch prj_type
                     case 1 % PPP for tropo
@@ -3260,6 +5358,8 @@ classdef Core_Utils < handle
             % SYNTAX:
             %  Core_Utils.cubicSplic(t)
             switch order
+                case 0
+                    val = ones(size(t));
                 case 1
                     val = Core_Utils.linearSpline(t);
                 case 2
@@ -3318,11 +5418,7 @@ classdef Core_Utils < handle
                     if isempty(id_stop_bad)
                         idx_ko(size(idx_ko, 1) + 1 - (id_start_bad(i) : size(idx_ko, 1)), s) = true;
                     else
-                        try
                         idx_ko(size(idx_ko, 1) + 1 - (id_start_bad(i) + (0 : (id_stop_bad - 1))), s) = true;
-                        catch
-                            keyboard
-                        end
                     end
                 end
             end % ----------------
@@ -3436,24 +5532,189 @@ classdef Core_Utils < handle
             %   nwse(2)     West  [deg: -180:180]
             %   nwse(3)     South [deg: -90:90]
             %   nwse(4)     East  [deg: -180:180]
-            %   res         resolution ('high' / 'low') - default low
+            %   res         resolution ('maximum' / 'high' / 'medium' / 'low' / 'v1' / 'v3') - default low
+            %
+            % For res low 'maximum' to 'low'
+            % If the DTM is not found in the DTM folder of the project
+            % download it from -> use http://www.marine-geo.org/services/
+            %
+            % For res low '1' to '3' (they have higher resolutions)
+            % If the DTM is not found in the DTM folder 
+            % download it from -> use http://viewfinderpanoramas.org/
+            %
+            % SYNTAX
+            %  [dtm, lat, lon, georef, info] = Core_Utils.getDTM(nwse, res)
+            
+            if nargin <= 1 || isempty(res)
+                res = 'low';
+            end
+                        
+            switch res(end)
+                case '1'
+                    [dtm, lat, lon, georef, info] = Core_Utils.getViewFinderPanoDTM(nwse, '1');
+                    % Fallback to lower resolution
+                    if ~any(dtm(:))
+                        [dtm, lat, lon, georef, info] = Core_Utils.getViewFinderPanoDTM(nwse, '3');
+                    end
+                case '3'
+                    [dtm, lat, lon, georef, info] = Core_Utils.getViewFinderPanoDTM(nwse, '3');
+                    % Fallback to lower resolution
+                    if ~any(dtm(:))
+                        [dtm, lat, lon, georef, info] = Core_Utils.getMarineGeoDTM(nwse, 'high');
+                    end
+                otherwise
+                    [dtm, lat, lon, georef, info] = Core_Utils.getMarineGeoDTM(nwse, res);
+            end
+        end
+
+        function [dtm, lat, lon, georef, info] = getViewFinderPanoDTM(nwse, res)
+            % Get the dtm of an area delimited by geographical coordinates nwse
+            %
+            % INPUT
+            %   nwse(1)     North [deg: -90:90]
+            %   nwse(2)     West  [deg: -180:180]
+            %   nwse(3)     South [deg: -90:90]
+            %   nwse(4)     East  [deg: -180:180]
+            %   res         resolution ('1', '3') - high to low
             %
             % If the DTM is not found in the DTM folder of the project
             % download it from -> use http://www.marine-geo.org/services/
             %
             % SYNTAX
-            %  [dtm, lat, lon, georef, info] = Core_Utils.getDTM(nwse, res)
+            %  [dtm, lat, lon, georef, info] = Core_Utils.getViewFinderPanoDTM(nwse, res)
             
-            if nargin == 1
+            if nargin < 2 || isempty(res)
+                res = '1';
+            end
+            dtm = zeros(2,2);
+            georef = [];
+            lat = nwse([3 1]);
+            lon = nwse([2 4]);
+            info = [];
+            %%
+            
+            if res == '1'
+                patch_size = 3601;
+            else
+                patch_size = 1201;
+            end
+
+            % Determine path of storage
+            dtm_path = File_Name_Processor.getFullDirPath(fullfile(Core.getInstallDir(), '../data/reference/DTM/VFP1'));            
+            % Use local storage dir, because DTM data can be shared among projects
+            local_dtm_path = fullfile(Core.getLocalStorageDir, 'reference' , 'DTM', ['VFP' res]);
+            if ~(exist(dtm_path, 'dir') == 7)
+                dtm_path = local_dtm_path;
+            end
+
+            %%
+            % Determine the patches to load
+            lim_x = sort(floor(nwse([2 4]))); lim_y = sort(floor(nwse([1 3])));
+            [X, Y] = meshgrid(lim_x(1):lim_x(2), lim_y(1):lim_y(2));
+            X = mod(X+180, 360)-180;
+            patch_prefix = 'NSWE';
+            patches = [patch_prefix(1 + uint8(Y(:)<0))' num2str(abs(Y(:)), '%02d') patch_prefix(3 + uint8(X(:)>=0))' num2str(abs(X(:)), '%03d')];
+            file_list = {};
+            folder_list = {};
+            file_exist = [];
+            for p = 1:size(patches,1)
+                folder_list{p} = [iif(Y<0,'S', '') char('A' + (abs(Y(p))/4)) num2str(floor((X(p) + 180)/6) + 1,'%02d')];
+                file_list{p,1} = fullfile(dtm_path, folder_list{p}, [patches(p,:) '.hgt']);
+                file_exist(p,1) = (exist(file_list{p}, 'file') == 2);
+            end
+
+            % Prepare to download missing files
+            missing_files = unique(folder_list(~file_exist));
+            for i = 1 : numel(missing_files)
+                file_to_download = sprintf('viewfinderpanoramas.org/dem%s/%s.zip', res, missing_files{i});
+                Core.getLogger.addMarkedMessage(sprintf('Trying to download: "%s",\n this file is big it might require some time depending on your internet connection',file_to_download));
+                Core_Utils.downloadHttpTxtResUncompress(file_to_download,dtm_path);
+            end
+            
+            % Recheck file presence
+            for p = 1:size(patches,1)
+                file_exist(p,1) = (exist(file_list{p}, 'file') == 2);
+            end
+            
+            %%
+            if any(file_exist)
+                n_y = (diff(minMax(Y))+1);
+                n_x = (diff(minMax(X))+1);
+                full_dtm = nan(n_y * (patch_size(1)-1) + 1, n_x * (patch_size(end)-1) + 1, 'single');
+                lat = linspace(min(Y(:)),max(Y(:))+1, size(full_dtm,1))';
+                lon = linspace(min(X(:)),max(X(:))+1, size(full_dtm,2))';
+                for p = 1:size(patches,1)
+                    % Not considering Earth as a "cylinder"
+                    p_x = X(p) - min(X(:)) + 1; % index of the patch in the merged DTM
+                    p_y = Y(p) - min(Y(:)) + 1; % index of the patch in the merged DTM
+                    file_name = file_list{p};
+                    try
+                        fid = fopen(file_name,'rb','ieee-be');
+                        dtm = single(fread(fid,'*int16'));
+                        dtm(dtm == -32768) = nan;
+                        dtm = reshape(dtm, patch_size(1), patch_size(end));
+                        dtm = rot90(dtm);
+                        fclose(fid);
+                        full_dtm((p_y-1)*(patch_size(1)-1) + [1:patch_size(1)]', ...
+                            (p_x-1)*(patch_size(end)-1) + [1:patch_size(end)]') = dtm;
+                    catch ex
+                        Core.getLogger.addError(sprintf('Something went wrong reading "%s"', file_name));
+                        Core_Utils.printEx(ex)
+                    end
+                end
+
+                % Cut the DTM as requested
+                id_lat = (find(lat < nwse(3), 1, 'last'):find(lat < nwse(1), 1, 'last'))';
+                id_lat = max(min(id_lat, numel(lat)), 1);
+                id_lon = (find(lon < nwse(2), 1, 'last'):find(lon < nwse(4), 1, 'last'))';
+                id_lon = max(min(id_lon, numel(lon)), 1);
+
+                lat = lat(id_lat);
+                lon = lon(id_lon);
+                dtm = flipud(fillmissing(full_dtm(id_lat, id_lon),'linear','EndValues','none'));
+                clear full_dtm;
+            end
+            
+            if ~any(dtm(:))
+                Logger.getInstance.addError(sprintf('Failed to download the required DTM file or missing files at this resolution'));
+                dtm = zeros(2,2);
+                georef = [];
+                lat = nwse([3 1]);
+                lon = nwse([2 4]);
+                info = [];
+            end
+        end
+
+        function [dtm, lat, lon, georef, info] = getMarineGeoDTM(nwse, res)
+            % Get the dtm of an area delimited by geographical coordinates nwse
+            %
+            % INPUT
+            %   nwse(1)     North [deg: -90:90]
+            %   nwse(2)     West  [deg: -180:180]
+            %   nwse(3)     South [deg: -90:90]
+            %   nwse(4)     East  [deg: -180:180]
+            %   res         resolution ('maximum' / 'high' / 'medium' / 'low') - default low
+            %
+            % If the DTM is not found in the DTM folder of the project
+            % download it from -> use http://www.marine-geo.org/services/
+            %
+            % SYNTAX
+            %  [dtm, lat, lon, georef, info] = Core_Utils.getMarineGeoDTM(nwse, res)
+            
+            if nargin < 2 || isempty(res)
                 res = 'low';
             end
             
             dtm_path = File_Name_Processor.getFullDirPath(fullfile(Core.getInstallDir(), '../data/reference/DTM/'));
+            nwse = [ceil(nwse(1)*1e3)/1e3 floor(nwse(2)*1e3)/1e3 floor(nwse(3)*1e3)/1e3 ceil(nwse(4)*1e3)/1e3]; % Reduce duplicates with small variation of coordinates
+            
             local_dtm_path = fullfile(Core.getState.getHomeDir, 'reference' , 'DTM');
+            dtm_name = sprintf('dtm_N%06dW%07d_S%06dE%07d_%s.tiff', round(1e2*nwse(1)), round(1e2*nwse(2)), round(1e2*nwse(3)), round(1e2*nwse(4)), res);
+
             if ~(exist(dtm_path, 'dir') == 7)
                 dtm_path = local_dtm_path;
             end
-            dtm_name = sprintf('dtm_N%06dW%07d_S%06dE%07d_%s.tiff', round(1e2*nwse(1)), round(1e2*nwse(2)), round(1e2*nwse(3)), round(1e2*nwse(4)), res);
+            
             if ~exist(dtm_path, 'dir')
                 try
                     mkdir(dtm_path);
@@ -3471,6 +5732,10 @@ classdef Core_Utils < handle
                     end
                 end
             end
+            [file_info] = dir(fullfile(dtm_path, dtm_name));
+            if ~isempty(file_info) && (file_info(1).bytes == 0)
+                delete(fullfile(dtm_path, dtm_name)); % remove empty files
+            end
             if ~exist(fullfile(dtm_path, dtm_name), 'file')
                 if exist(fullfile(local_dtm_path, dtm_name), 'file')
                     dtm_path = local_dtm_path;
@@ -3479,15 +5744,32 @@ classdef Core_Utils < handle
                         aria2c_path = '.\utility\thirdParty\aria2-extra\aria2_win\aria2c.exe';
                     elseif ismac()
                         aria2c_path = '/usr/local/bin/aria2c';
-                    else % is linux
-                        aria2c_path = '/usr/local/bin/aria2c';
                         if ~exist(aria2c_path, 'file')
-                            aria2c_path = '/usr/bin/aria2c';
+                            aria2c_path = '/opt/homebrew/bin/aria2c';
+                        end
+                    else % is linux
+                        aria2c_path = '/usr/bin/aria2c';
+                        if ~exist(aria2c_path, 'file')
+                            aria2c_path = '/usr/local/bin/aria2c';
                         end
                     end
-                    aria_call = sprintf('%s "%snorth=%f&west=%f&south=%f&east=%f%s%s" --dir="%s" --out="%s"', aria2c_path, 'https://www.gmrt.org/services/GridServer.php?', nwse(1), nwse(2), nwse(3), nwse(4) , '&layer=topo&format=geotiff&resolution=', res, dtm_path, dtm_name);
-                    Logger.getInstance.addMarkedMessage(['Executing: "' aria_call '"']);
-                    dos(aria_call)
+                    if exist(aria2c_path, 'file')
+                        aria_call = sprintf('%s "%snorth=%f&west=%f&south=%f&east=%f%s%s" --dir="%s" --out="%s"', aria2c_path, 'https://www.gmrt.org/services/GridServer.php?', nwse(1), nwse(2), nwse(3), nwse(4) , '&layer=topo&format=geotiff&resolution=', res, dtm_path, dtm_name);
+                        Logger.getInstance.addMarkedMessage(['Executing: "' aria_call '"']);
+                        dos(aria_call)
+                        [file_info] = dir(fullfile(dtm_path, dtm_name));
+                        if ~isempty(file_info) && (file_info(1).bytes == 0)
+                            delete(fullfile(dtm_path, dtm_name)); % remove empty files
+                        end
+                    end
+                    if ~exist(aria2c_path, 'file') || ~exist(fullfile(dtm_path, dtm_name), 'file')
+                        Logger.getInstance.addWarning('Aria2c failed, try executing websave');
+                        url = sprintf('%snorth=%f&west=%f&south=%f&east=%f%s%s', 'https://www.gmrt.org/services/GridServer.php?', nwse(1), nwse(2), nwse(3), nwse(4) , '&layer=topo&format=geotiff&resolution=', res);
+                        % Use websave
+                        option = weboptions('timeout', 25, 'UserAgent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:53.0) Gecko/20100101 Firefox/94.1');
+                        res = websave(fullfile(dtm_path, dtm_name), url, option);
+                    end
+
                 end
             end
             

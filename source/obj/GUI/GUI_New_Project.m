@@ -15,10 +15,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti
 %  Contributors:      Andrea Gatti
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -99,7 +99,7 @@ classdef GUI_New_Project < GUI_Unique_Win
                 delete(old_win);
             end
             
-            win = figure( 'Name', 'Create an new project', ...
+            win = figure( 'Name', 'Create a new project', ...
                 'Visible', 'off', ...
                 'DockControls', 'off', ...
                 'MenuBar', 'none', ...
@@ -162,7 +162,9 @@ classdef GUI_New_Project < GUI_Unique_Win
             image(logo_ax, ones(size(logo)), 'AlphaData', transparency);
             logo_ax.XTickLabel = [];
             logo_ax.YTickLabel = [];
+            axis equal;
             axis off;
+            
             
             Core_UI.insertEmpty(left_bv, Core_UI.DARK_GREY_BG);
             
@@ -186,8 +188,12 @@ classdef GUI_New_Project < GUI_Unique_Win
                 'BackgroundColor', Core_UI.DARK_GREY_BG);
             Core_UI.insertEmpty(new_field, Core_UI.DARK_GREY_BG);
             new_field.Widths = 25;
-            [~, this.prj_type] = Core_UI.insertPopUpDark(new_field, 'Project type', {'PPP - Precise Point Positioning', 'NET (short baselines) no iono - no tropo', 'NET (medium baselines) no iono', 'NET (long baselines) iono - free network'}, 'prj_type', @this.none, [143 300]);
-            
+            [~, this.prj_type] = Core_UI.insertPopUpDark(new_field, 'Project type', ...
+                {'PPP - Precise Point Positioning', ...
+                'NET (short baselines) no iono - no tropo', ...
+                'NET (medium baselines) no iono', ...
+                'NET (long baselines) iono - free network'}, 'prj_type', @this.none, [143 300]);
+
             % Folder
             [~, dir_base] = Core_UI.insertDirBoxDark(panel_g_border, 'Where to create', 'prj_home', @this.none, [25 150 -1 25]);
             dir_base.String = fnp.getFullDirPath((fullfile(this.state.getHomeDir, '..')));
@@ -295,7 +301,7 @@ classdef GUI_New_Project < GUI_Unique_Win
             try
                 log = Core.getLogger;
                 log.addMarkedMessage(sprintf('Creating a new project: "%s"\ninto: "%s"', this.prj_name.String, this.dir_base.String));
-                Core_Utils.createEmptyProject(this.dir_base.String, this.prj_name.String, this.prj_type.Value);
+                Core_Utils.createEmptyProject([this.dir_base.String filesep this.prj_name.String], this.prj_name.String, this.prj_type.Value);
                 this.init();
                 state = Core.getCurrentSettings;
                 obs_path = this.dir_rin.String;
@@ -327,6 +333,7 @@ classdef GUI_New_Project < GUI_Unique_Win
                     if this.rin_op.Value < 4                        
                         state.setObsName(Core_Utils.getStationList(state.getObsDir, 'oO', true));
                     end
+                    state.crd_name = 'stations.crd';
                 end
                         
                 close(this.win);

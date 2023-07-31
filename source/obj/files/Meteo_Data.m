@@ -16,10 +16,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti
 %  Contributors:      Andrea Gatti, Giulio Tagliaferro ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -52,6 +52,10 @@ classdef Meteo_Data < handle
         RI_ID = sum(uint16('RI').*uint16([1 256]));     % Internal id of Rain increment (1/10 mm): Rain accumulation since last measurement
         RR_ID = sum(uint16('RR').*uint16([1 256]));     % Internal id of Rain Rate (mm/h): Rain rate
         HI_ID = sum(uint16('HI').*uint16([1 256]));     % Internal id of Hail indicator non-zero: Hail detected since last measurement
+        SL_ID = sum(uint16('SL').*uint16([1 256]));     % Internal id of Snow level (cm) (non standard parameter)
+        WG_ID = sum(uint16('WG').*uint16([1 256]));     % Internal id of Water gauge (cm) (non standard parameter)
+
+
 
         % Array of all the meteorological data types
         DATA_TYPE_ID = [Meteo_Data.PR_ID, ...
@@ -64,11 +68,13 @@ classdef Meteo_Data < handle
                         Meteo_Data.WS_ID, ...
                         Meteo_Data.RI_ID, ...
                         Meteo_Data.RR_ID, ...
-                        Meteo_Data.HI_ID];
+                        Meteo_Data.HI_ID, ...
+                        Meteo_Data.SL_ID, ...
+                        Meteo_Data.WG_ID];
     end
 
     properties (Constant)
-        DATA_TYPE = ['PR'; 'TD'; 'HR'; 'ZW'; 'ZD'; 'ZT'; 'WD'; 'WS'; 'RI'; 'RR'; 'HI'];
+        DATA_TYPE = ['PR'; 'TD'; 'HR'; 'ZW'; 'ZD'; 'ZT'; 'WD'; 'WS'; 'RI'; 'RR'; 'HI'; 'SL'; 'WG'];
         DATA_TYPE_EXT = { 'Pressure [mbar]', ...
                           'Dry temperature [deg Celsius]', ...
                           'Relative humidity [percent]', ...
@@ -79,7 +85,9 @@ classdef Meteo_Data < handle
                           'Wind speed [m/s]', ...
                           'Rain increment [1/10 mm]: Rain accumulation since last measurement', ...
                           'Rain Rate (mm/h): Rain rate', ...
-                          'Hail indicator non-zero: Hail detected since last measurement'};
+                          'Hail indicator non-zero: Hail detected since last measurement', ...
+                          'Snow Level (cm) (non standard)', ...
+                          'Water Gauge (cm)'};
 
         PR = 1;     % Numeric id of Pressure [mbar]
         TD = 2;     % Numeric id of Dry temperature (deg Celsius)
@@ -90,8 +98,10 @@ classdef Meteo_Data < handle
         WD = 7;     % Numeric id of Wind azimuth (deg) from where the wind blows
         WS = 8;     % Numeric id of Wind speed (m/s)
         RI = 9;     % Numeric id of Rain increment (1/10 mm): Rain accumulation since last measurement
-        RR = 10;     % Numeric id of Rain Rate (mm/h): Rain rate'
+        RR = 10;    % Numeric id of Rain Rate (mm/h): Rain rate'
         HI = 11;    % Numeric id of Hail indicator non-zero: Hail detected since last measurement
+        SL = 12;    % Numeric id of Snow level (cm)
+        WG = 13;    % Numeric id of Water Gauge (cm)
     end
 
     properties (SetAccess = protected, GetAccess = protected)
@@ -100,12 +110,14 @@ classdef Meteo_Data < handle
 
     properties (SetAccess = private, GetAccess = public)
         % contains an object to read the RINEX file
-        file;   % init this with File_Rinex('filename')
-        rin_type       % rinex version format
+        file;               % init this with File_Rinex('filename')
+        rin_type            % rinex version format
 
         marker_name = '';   % name of the station
+        description = '';   % Station description
+        id_sta = 0;         % Compatibility layer with some imports
         n_type = 0;         % number of observation types
-        type = 1:11;        % supposing to have all the fields
+        type = [];          % supposing to have no fields
 
         time = GPS_Time();  % array of observation epochs
         rate                % observations rate;
@@ -118,7 +130,7 @@ classdef Meteo_Data < handle
         
         max_bound = 90;     % Max bound to extrapolate
         
-        smoothing = [900 300 300 0 0 0 0 0 0 0 0]; % Spline base for smoothing (in seconds)
+        smoothing = [900 300 300 0 0 0 0 0 0 0 0 0 0]; % Spline base for smoothing (in seconds)
     end
     
     methods (Access = private)
@@ -186,6 +198,7 @@ classdef Meteo_Data < handle
                 else
                     this.marker_name = strtrim(txt(lim(fln, 1) + (0:59)));
                 end
+                this.description = this.marker_name;
                 % 3) 'SENSOR MOD/TYPE/ACC'
                 % ignoring
                 % 4) 'SENSOR POS XYZ/H'
@@ -197,7 +210,7 @@ classdef Meteo_Data < handle
                     this.xyz = iif(isempty(tmp) || ~isnumeric(tmp) || (numel(tmp) ~= 3), [0 0 0], tmp);          % check value integrity
                     if sum(abs(this.xyz)) > 0
                         [phi, lam, h] = cart2geod(this.xyz(1), this.xyz(2), this.xyz(3));
-                        this.amsl = h - getOrthometricCorr(phi, lam);
+                        this.amsl = round(h - getOrthometricCorr(phi, lam), 5);
                     else
                         this.amsl = 0;
                     end
@@ -444,7 +457,117 @@ classdef Meteo_Data < handle
             % SYNTAX
             %   this.setMaxBound(max_bound)
             this.max_bound = max_bound;
-        end      
+        end
+
+        function setId(this, id)
+            % Set station id
+            %
+            % SYNTAX
+            %   this.setId(id)
+            
+            this.id_sta = id;
+        end
+
+        function setName(this, name)
+            % Set station name
+            %
+            % SYNTAX
+            %   this.setName(name)
+            
+            this.marker_name = name;
+        end
+
+        function setType(this, type)
+            % Set station type
+            %
+            % SYNTAX
+            %   this.setType(type)
+            
+            this.type = type;
+        end
+
+        function setDescription(this, descriptiono)
+            % Set station description
+            %
+            % SYNTAX
+            %   this.setDescription(descriptiono)
+            
+            this.description = descriptiono;
+        end
+
+        function setCoordinates(this, xyz)
+            % Set station coordinates(xyz)
+            %
+            % SYNTAX
+            %   this.setCoordinates(xyz)
+            
+            this.xyz = xyz;
+            [~, ~, ~, h_ortho] = Coordinates.fromXYZ(this.xyz).getGeodetic();
+            this.amsl = round(h_ortho, 5);
+        end
+
+        function setRinType(this, rin_type)
+            % Set RINEX type ( for output purposes)
+            %
+            % SYNTAX
+            %   this.setRinType(rin_type)
+            
+            this.rin_type = rin_type;
+        end
+
+        function setData(this, time, data, type)
+            % Set data
+            %
+            % SYNTAX
+            %   this.setData(time, data, type)
+
+            this.time = time.getCopy;
+            this.rate = time.getRate;
+            this.data = data;
+            this.type = type;
+            this.n_type = numel(type);
+        end
+
+
+        function insertData(this, utc_date, type, value)
+            % Insert a single new value
+            %
+            % INPUT
+            %   utc_date   date in datenum format UTC
+            %   type       data_type
+            %   value      new data entry
+            %
+            % SYNTAX
+            %   this.insertData(utc_time, type, value)
+            % Check if the parameter type is already enabled
+            if ~any(this.type == type)
+                % Add the new parameter to the type array
+                this.type(end + 1) = type;
+                this.n_type = numel(this.type);
+
+                % Add a new column to the data matrix filled with NaN values
+                this.data(:, end + 1) = NaN(size(this.data, 1), 1);
+            end
+
+            % Check if the date already exists in the time array
+            [this.time, idx1, idx2] = this.time.injectBatch(GPS_Time(utc_date, [], false));
+
+            if idx1 ~= idx2 % the time is new
+                % Extend the data matrix with a new row filled with NaN values
+                this.data = [this.data(1:idx2,:); nan(1, numel(this.type)); this.data((idx2+1):end,:)];
+                this.rate = this.time.getRate;
+            end
+            this.data(idx1, this.type == type) = value;
+        end
+
+        function setValid(this, is_valid)
+            % Set station validity
+            %
+            % SYNTAX
+            %   this.setValid(is_valid)
+            
+            this.is_valid = is_valid;
+        end
     end
 
     % =========================================================================
@@ -460,6 +583,8 @@ classdef Meteo_Data < handle
             % SYNTAX
             %   this = Meteo_Data(file_name, type, verbosity_lev)
             switch nargin
+                case 0
+                    return % Manually imported from other networks
                 case 1
                     this.init(file_name);
                 case 2
@@ -584,10 +709,9 @@ classdef Meteo_Data < handle
                         str = sprintf(['%s%s%' num2str(60 - (this.n_type + 1) * 6) 's# / TYPES OF OBSERV\n'], str, line, '');
                         str = sprintf('%s%14.4f%14.4f%14.4f%14.4f PR SENSOR POS XYZ/H\n', str, this.xyz, this.amsl);
                         str = [str '                                                            END OF HEADER' 10]; %#ok<*AGROW>
-                        fwrite(fid, str);
                         epochs = this.time.getEpoch(id).toString(' yyyy mm dd HH MM SS ')';
-                        str = [epochs; reshape(sprintf('%7.1f', this.data(id,:)'), 7 * size(this.data(id,:),2), size(this.data(id,:),1)); 10 * ones(1, size(this.data(id,:),1))];
-                        fwrite(fid, str);
+                        str_data = [epochs; reshape(sprintf('%7.1f', this.data(id,:)'), 7 * size(this.data(id,:),2), size(this.data(id,:),1)); 10 * ones(1, size(this.data(id,:),1))];
+                        fwrite(fid, [str(:); str_data(:)]');
                         fclose(fid);
                     catch ex
                         this.log.addError(sprintf('Export failed - %s', ex.message));
@@ -642,15 +766,62 @@ classdef Meteo_Data < handle
             
             % SYNTAX
             %   validity = isValid()
-            validity = this.file.isValid();
+            validity = this.is_valid;
         end
-                
+
+        function [req_mds, id_mds] = getFromId(md_list, id_sta)
+            % Get the meteo data station with a certain id name (case unsensitive)
+            %
+            % SYNTAX
+            %   req_rec = md_list.get(id_sta)
+            %
+            id_mds = find(strcmp({md_list.id_sta}, id_sta));
+            req_mds = md_list(id_mds);            
+        end
+
+        function [req_mds, id_mds] = get(md_list, id_sta)
+            % Get the meteo data station with a certain Marker name (case unsensitive)
+            %
+            % SYNTAX
+            %   req_rec = md_list.get(marker_name)
+            %
+            req_mds = [];
+            id_mds = [];
+
+            for r = 1 : numel(md_list)
+                mds = md_list(r);
+                if not(mds.isEmpty)
+                    if strcmpi(mds(1).getMarkerName, id_sta)
+                        id_mds = [id_mds r];
+                        req_mds = [req_mds md_list(r)];
+                        return
+                    end
+                end
+            end
+        end
+           
+        function id = getId(this)
+            % Get the id of the station
+            %
+            % SYNTAX
+            %   id = this.getId()
+            id = this.id_sta;
+        end
+
         function name = getMarkerName(this)
             % Get the name of the station
             %
             % SYNTAX
-            %   time = this.getMarkerName()
+            %   name = this.getMarkerName()
             name = this.marker_name;
+        end
+
+        function name = getDescription(this)
+            % Get the description of the station
+            %
+            % SYNTAX
+            %   time = this.getDescription()
+            name = this.description;
         end
         
         function time = getTime(this)
@@ -885,6 +1056,128 @@ classdef Meteo_Data < handle
     end
 
     % =========================================================================
+    %  VISUALIZATION
+    % =========================================================================
+    methods
+        function show(md_list, type_list)
+            % Show in multiple suplots the data of the station
+            %
+            % SYTNAX 
+            %   md_list.show(type_list)  
+            if nargin == 1
+                type_list = md_list(1).type;
+            end
+            fh = figure; 
+            for i = 1 : numel(type_list)
+                subplot(numel(type_list),1,i);
+            end
+
+            % Get the logical index of the column to plot
+            n_sta = numel(md_list);
+            s = 0;
+            for md = md_list(:)'
+                s = s+1;
+                [type_lid, type_sequence]  = ismember(md.type, type_list);
+                type_id = find(type_lid);
+                type_sequence = type_sequence(type_lid);
+                for i = 1:numel(type_sequence)
+                    setAxis(fh, type_sequence(i));
+                    time = md.time;
+                    data = md.getComponent(md.type(type_id(i)));
+                    if not(isempty(data))
+                        plot(md.time.getDateTime, data, 'color', Core_UI.getColor(n_sta, s)); hold on;
+                    else
+                        plot(nan,nan);
+                    end
+                end
+            end
+
+            for i = 1 : numel(type_sequence)
+                setAxis(fh, type_sequence(i));
+                title(md_list(1).DATA_TYPE_EXT(type_list(type_sequence(i))));
+            end
+        end
+
+        function showMap(md_list, coo)
+            %%
+            xyz = reshape([md_list.xyz],3,[])';
+            for i = 1:size(xyz,1)
+                coo_met(i) = Coordinates.fromXYZ(xyz(i,:));
+                coo_met(i).setName(md_list(i).marker_name,md_list(i).marker_name);
+            end
+            fh = coo_met.showMap('proj', 'none');
+            lh = flipud(findall(fh.Children(end).Children, 'Type', 'Line', 'Marker', 'o'));
+            
+            for l = 1:numel(lh)
+                lh(l).Visible = 'off';
+                if any(md_list(l).getPressure)
+                    plot(lh(l).XData, lh(l).YData, 'Marker', '.', 'MarkerSize', 40, 'Color', Core_UI.BLUE);
+                end
+                if any(md_list(l).getTemperature)
+                    plot(lh(l).XData, lh(l).YData, 'Marker', '.', 'MarkerSize', 25, 'Color', Core_UI.GREEN);
+                end
+                if any(md_list(l).getHumidity)
+                    plot(lh(l).XData, lh(l).YData, 'Marker', '.', 'MarkerSize', 10, 'Color', Core_UI.RED);
+                end
+            end
+            if nargin == 2
+                coo.showMap('new_fig', false, 'proj', 'none');
+            end
+        end
+
+        function showSync(md_list, type_list)
+            % Show in multiple suplots the data of the station
+            %
+            % SYTNAX 
+            %   md_list.show(type_list)  
+            if nargin == 1
+                type_list = md_list(1).type;
+            end
+            fh = figure; 
+            n_type = numel(type_list);
+            
+
+            time_list = GPS_Time;
+            s = 0;
+            for md = md_list(:)'
+                s = s + 1;
+                time_list(s) = md.time;
+            end
+            [time_new, id_sync] = time_list.getSyncedTime;
+
+            data_sync = nan(size(id_sync,1), size(id_sync,2), numel(type_list));
+
+            % Get the logical index of the column to plot
+            n_sta = numel(md_list);
+            s = 0;
+            for md = md_list(:)'
+                s = s+1;
+                [type_lid, type_sequence]  = ismember(md.type, type_list);
+                type_id = find(type_lid);
+                type_sequence = type_sequence(type_lid);
+                for i = 1:numel(type_sequence)
+                    data = md.getComponent(type_list(type_id(i)));
+                    data_sync(~isnan(id_sync(:,s)),s, type_sequence(i)) = data(noNaN(id_sync(:,s)));
+                end
+            end
+
+            t = tiledlayout(1,n_type);
+            for i = 1 : n_type
+                %subplot(1,n_type,i);                
+                nexttile;
+                imagesc(data_sync(:,:,i)');
+                if i == 1
+                    ylabel('Stations');
+                end
+                colorbar('location', 'southoutside')
+                title(md_list(1).DATA_TYPE_EXT(type_list(i)));                
+                colormap([0.30, 0.95, 0.30; flipud(Cmap.get('RdBu'))])
+            end            
+           title(t,sprintf('Meteorological data\n(missing values in green)'))
+        end
+    end
+
+    % =========================================================================
     %  STATIC
     % =========================================================================
     methods (Static)
@@ -1085,6 +1378,8 @@ classdef Meteo_Data < handle
         function [ temperature_adj ] = temperatureAdjustment( temperature , obs_h, pred_h)
             % Barometric formula taken from Bai and Feng, 2003.
             % The parameter value is taken from Realini et al., 2014
+            % An observation campaign of precipitable water vapor with multiple 
+            % GPS receivers in western Java, Indonesia (Formula 14)
             % Parameter definition
             %
             % SYNTAX

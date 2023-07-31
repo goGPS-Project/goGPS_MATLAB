@@ -16,10 +16,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti
 %  Contributors:      Andrea Gatti, Giulio Tagliaferro
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -64,18 +64,19 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         ui_sss_start
         ui_sss_stop
         
-        coo_tbl     % table of coordinates
-        j_settings  % Java settings panel
-        j_cmd       % Java command list panel
-        ini_path    % ini path text box
-        check_boxes % List of chgoGPS
-        pop_ups     % List of drop down menu
-        rpop_up     % Remote resources pup-up
-        ropref      % Remote Orbit Preferences
-        ripref      % Remote Iono preferences
-        rv2pref     % Remote VMF source preferences
-        j_rrini     % ini resources file
-        edit_texts  % List of editable text
+        coo_tbl         % table of coordinates
+        j_settings      % Java settings panel
+        j_cmd           % Java command list panel
+        ini_path        % ini path text box
+        check_boxes     % List of check boxes
+        weight_boxes    % List of constellation weight boxes
+        pop_ups         % List of drop down menu
+        rpop_up         % Remote resources pup-up
+        ropref          % Remote Orbit Preferences
+        ripref          % Remote Iono preferences
+        rv2pref         % Remote VMF source preferences
+        j_rrini         % ini resources file
+        edit_texts      % List of editable text
         edit_texts_array % list of editable text array
         flag_list   % list of all the flags
         
@@ -236,6 +237,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
 
                 % empty cur_lists
                 this.check_boxes = {}; % List of all the checkboxes
+                this.weight_boxes = {}; % List of constellation weight
                 this.pop_ups = {};     % List of drop down menu
                 this.rpop_up = {};     % Remote resources pup-up
                 this.ropref = {};      % Remote Orbit Preferences
@@ -282,8 +284,9 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 
                 % Logo/title box -------------------------------------------------------------------------------------------
 
-                Core_UI.insertLogoGUI(left_bv);
-                left_bv.Heights = 94;
+                % No logo in goGPS interface
+                % Core_UI.insertLogoGUI(left_bv);
+                % left_bv.Heights = 94;
                 
                 % Main Panel -----------------------------------------------------------------------------------------------
                 
@@ -309,10 +312,11 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
 
                 this.insertRecList(left_bv);
 
-                %this.updateRec(left_bv);
+                % this.updateRec(left_bv);
 
                 session_height = sum(left_bv.Children(2).Heights);
-                left_bv.Heights = [94 session_height -1];                                
+                %left_bv.Heights = [94 session_height -1];       
+                left_bv.Heights = [session_height -1];  % no logo
 
                 % Tab creation  --------------------------------------------------------------------------------------------
                 
@@ -412,7 +416,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             
             this.win.Visible = 'on';
             core = Core.getInstance(false, true);
-            core.setGUIMode(1);
+            core.setModeGUI(1);
             drawnow;
             
             % the update of the command list is repeated here because at
@@ -739,7 +743,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                         
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Max code positioning err', 'pp_spp_thr', 'm', @this.onEditChange, [200 40 5 50], color_bg);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Max code observation err', 'pp_max_code_err_thr', 'm', @this.onEditChange, [200 40 5 50], color_bg);
-            this.check_boxes{end+1} = Core_UI.insertCheckBox(err_box_g, 'Remove obseravtions from eclipsing or eclipsed satellites', 'remove_eclipsing_satellites', @this.onCheckBoxChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(err_box_g, 'Remove obseravations from eclipsing or eclipsed satellites', 'remove_eclipsing_satellites', @this.onCheckBoxChange, color_bg);
             err_box_g.Heights = (Core_UI.LINE_HEIGHT * ones(1,3));
                                                             
             this.uip.tab_pre_proc = tab;
@@ -1003,27 +1007,77 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         function rin2Crd(this, caller, event)
             % Add a new row to the CRD table            
             rec_path = Core.getState.getRecPath();
-            data = this.coo_tbl.Data;            
+            data = this.coo_tbl.Data;      
+            % Extract existing names
+            if isempty(data)
+                all_markers = {};
+            else
+                all_markers = data(:,1);
+                for i = 1:numel(all_markers)
+                    all_markers{i} = all_markers{i}(end-3:end);
+                end
+                all_markers = unique(all_markers);
+            end
             for r = 1 : numel(rec_path)
                 f = numel(rec_path{r});
                 coo_found = false;
                 while f > 0 && ~coo_found
-                    fr = File_Rinex(rec_path{r}{f}, 100);
-                    if fr.isValid()
-                        name = fr.marker_name{1};
-                        name = name(1:min(4, numel(name)));
-                        xyz = median(fr.coo.getXYZ,1,'omitnan');
-                        coo_found = any(xyz);
-                        %time_start = fr.first_epoch.first.toString('yyyy-mm-dd HH:MM:SS');
-                        %time_stop = fr.last_epoch.last.toString('yyyy-mm-dd HH:MM:SS');
-                        
-                        time_start = GPS_Time('1980-01-07').toString('yyyy-mm-dd HH:MM:SS');
-                        time_stop = GPS_Time('2080-12-31').toString('yyyy-mm-dd HH:MM:SS');
-                        if ~isempty(xyz)
-                            if ~isempty(data)
-                                data = [data; {name, xyz(1), xyz(2), xyz(3), Core_Reference_Frame.FLAG_STRING{2}, 50, 50, time_start, time_stop, 0, 0, 0}];
-                            else
-                                data = {name, xyz(1), xyz(2), xyz(3), Core_Reference_Frame.FLAG_STRING{2}, 50, 50,  time_start, time_stop, 0, 0, 0};
+                    flag_add = true;
+                    try
+                        % Get marker 4ch from filename (it's fast)
+                        [~, filename] = fileparts(rec_path{r}{f});
+                        flag_add = ~ismember(filename(1:4), all_markers);
+                        if not(flag_add)
+                            %Core.getLogger.addMessage(sprintf('Skipping analysis of "%s", the station seems already present', filename));
+                            fprintf('Skipping analysis of file "%s", the station seems already present\n', rec_path{r}{f});
+                        end
+                    catch ex
+                        % who cares
+                        Core_Utils.printEx(ex);
+                    end
+                    if not(exist(rec_path{r}{f},'file'))
+                        flag_add = false;
+                    end
+                    if flag_add
+                        fr = File_Rinex(rec_path{r}{f}, 100);
+                        if fr.isValid()
+                            name = [fr.marker_name{1} char(ones(1,max(0,4-numel(fr.marker_name{1})), 'uint8')*32)];
+                            flag_add = true;
+                            try
+                                % Get marker 4ch from filename (it's fast)
+                                flag_add = ~ismember(name(1:4), all_markers);
+                                if not(flag_add)
+                                    %Core.getLogger.addMessage(sprintf('Skipping analysis of "%s", the station seems already present', rec_path{r}{f}));
+                                    fprintf('Skipping analysis of "%s", the station seems already present\n', rec_path{r}{f});
+                                end
+                            catch ex
+                                % who cares
+                                Core_Utils.printEx(ex);
+                            end
+                            try
+                                % Add current station to exclusion list
+                                [~, filename] = fileparts(rec_path{r}{f});
+                                all_markers = unique([all_markers; {filename(1:4)}]);
+                            catch
+                            end
+
+                            if flag_add
+                                name = name(1:min(4, numel(name)));
+                                all_markers = unique([all_markers; {name(1:4)}]);
+                                xyz = median(fr.coo.getXYZ,1,'omitnan');
+                                coo_found = any(xyz);
+                                %time_start = fr.first_epoch.first.toString('yyyy-mm-dd HH:MM:SS');
+                                %time_stop = fr.last_epoch.last.toString('yyyy-mm-dd HH:MM:SS');
+
+                                time_start = GPS_Time('1980-01-07').toString('yyyy-mm-dd HH:MM:SS');
+                                time_stop = GPS_Time('2080-12-31').toString('yyyy-mm-dd HH:MM:SS');
+                                if ~isempty(xyz)
+                                    if ~isempty(data)
+                                        data = [data; {name, xyz(1), xyz(2), xyz(3), Core_Reference_Frame.FLAG_STRING{2}, 50, 50, time_start, time_stop, 0, 0, 0}];
+                                    else
+                                        data = {name, xyz(1), xyz(2), xyz(3), Core_Reference_Frame.FLAG_STRING{2}, 50, 50,  time_start, time_stop, 0, 0, 0};
+                                    end
+                                end
                             end
                         end
                     end
@@ -1037,35 +1091,46 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             % Inspect Rinex Trackings
 
             rec_path = Core.getState.getRecPath();
-            data = [];
+            trk_pr = [];
+            trk_ph = [];
             data_chk = [];
             for r = 1 : numel(rec_path)
                 f = numel(rec_path{r});
                 while f > 0
                     fr = File_Rinex(rec_path{r}{f}, 100);
                     if fr.isValid()
+                        Core.getLogger.addMessage(sprintf('Found valid "%s"', rec_path{r}{f}));
                         name = fr.marker_name{1};
-                        trk_aval = fr.trck_availability;
-                        Core.getLogger.addMessage(sprintf('Inspecting %s',name));
+                        trk_aval = fr.trk_availability_pr;
                         if any(trk_aval)
-                            if ~isempty(data)
-                                data = [data; trk_aval'];
+                            Core.getLogger.addMessage(sprintf('Found valid non empty %s', name));
+                            if ~isempty(trk_pr)
+                                trk_pr = [trk_pr; trk_aval'];
                                 names = [names; {name}];
                             else
-                                data = [trk_aval'];
+                                trk_pr = [trk_aval'];
                                 names = {name};
                             end
                         end
+                        trk_aval = fr.trk_availability_ph;
+                        if any(trk_aval)
+                            Core.getLogger.addMessage(sprintf('Found valid non empty %s', name));
+                            if ~isempty(trk_ph)
+                                trk_ph = [trk_ph; trk_aval'];
+                            else
+                                trk_ph = [trk_aval'];
+                            end
+                        end
+                        f = 0; % Force exit (keep the first valid file)
                     end
                     f = f - 1;
                 end
             end
-            if ~isempty(data)
-                idx_el = sum(data) == 0;
-                data(:,idx_el) = [];
-                datac = char(double(data));
-                datac(data) = 'o';
-                datac(~data) = '.';
+            if ~isempty(trk_pr)
+                idx_el_pr = sum(trk_pr) == 0;
+                trk_pr(:,idx_el_pr) = [];
+                datac_pr = [char(uint8(trk_pr))];
+                datac_pr([trk_pr]) = 'o'; datac_pr(~[trk_pr]) = '.';
                 f = figure( 'Name', 'Rinex Tracking Inspector', ...
                     'Visible', 'on', ...
                     'MenuBar', 'none', ...
@@ -1073,20 +1138,20 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                     'NumberTitle', 'on', ...
                     'Position', [0 0 1500 800], ...
                     'Resize', 'on');
-                trtab = uitable('Position',[10 10 1480 780]);
-                gd = Core_Sky.group_delays_flags;
-                gd(idx_el,:) = [];
-                datas = [names{1} num2cell(datac(1,:))];
+                trtab_pr = uitable('Position',[10 395 1480 385]);
+                gd_pr = [Core_Sky.GROUP_DELAYS_FLAGS;];
+                gd_pr(idx_el_pr,:) = [];
+                datas_pr = [names{1} num2cell(datac_pr(1,:))];
                 for i = 2 : length(names)
-                    datas = [datas; [names{i} num2cell(datac(i,:))]];
+                    datas_pr = [datas_pr; [names{i} num2cell(datac_pr(i,:))]];
                 end
-                col_names = [{'Marker Name'};cellstr(gd)];
-                
-                for i = 1 : size(datas,1)
-                    for j = 1 : size(datas,2)
+                col_names_pr = [{'Marker Name'}; cellstr(gd_pr)];
+                                
+                for i = 1 : size(datas_pr,1)
+                    for j = 1 : size(datas_pr,2)
                         if j > 1
-                            sys_c = col_names{j}(1);
-                            band =  col_names{j}(3);
+                            sys_c = col_names_pr{j}(1);
+                            band =  col_names_pr{j}(3);
                             clr = GUI_Edit_Settings.getColorTrck(sys_c,band,rem(i,2));
                         else
                             if rem(i,2) == 1
@@ -1096,14 +1161,51 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                             end
                         end
                         
-                        datas(i,j) = {[['<html><body bgcolor="' clr '" text="#000000" width="35px"><center>'] ,datas{i,j},'</center>']};
+                        datas_pr(i,j) = {[['<html><body bgcolor="' clr '" text="#000000" width="35px"><center>'] ,datas_pr{i,j},'</center>']};
                     end
                 end
-                
-                trtab.ColumnName = col_names;
-                trtab.ColumnFormat =['char' repmat({'char'},1,size(gd,1))];
-                trtab.ColumnWidth = repmat({45},1,size(gd,1)+1);
-                trtab.Data = datas;
+                                trtab_pr.ColumnName = col_names_pr;
+                trtab_pr.ColumnFormat = ['char' repmat({'char'},1,size(gd_pr,1))];
+                trtab_pr.ColumnWidth = repmat({45},1,size(gd_pr,1)+1);
+                trtab_pr.Data = datas_pr;
+                trtab_pr.Units = 'normalized';
+            end
+            if ~isempty(trk_ph)
+                idx_el_ph = [sum(trk_ph) == 0];
+                trk_ph(:,idx_el_ph) = [];
+                datac_ph = [char(uint8(trk_ph))];
+                datac_ph([trk_ph]) = 'o'; datac_ph(~[trk_ph]) = '.';
+                trtab_ph = uitable('Position',[10 10 1480 385]);
+                gd_ph = [Core_Sky.CARRIER_PHASES_FLAGS];
+                gd_ph(idx_el_ph,:) = [];
+                datas_ph = [names{1} num2cell(datac_ph(1,:))];
+                for i = 2 : length(names)
+                    datas_ph = [datas_ph; [names{i} num2cell(datac_ph(i,:))]];
+                end
+                col_names_ph = [{'Marker Name'}; cellstr(gd_ph)];
+
+                for i = 1 : size(datas_ph,1)
+                    for j = 1 : size(datas_ph,2)
+                        if j > 1
+                            sys_c = col_names_ph{j}(1);
+                            band =  col_names_ph{j}(3);
+                            clr = GUI_Edit_Settings.getColorTrck(sys_c,band,rem(i,2));
+                        else
+                            if rem(i,2) == 1
+                                clr = '#fffffff';
+                            else
+                                clr = '#ededed';
+                            end
+                        end
+
+                        datas_ph(i,j) = {[['<html><body bgcolor="' clr '" text="#000000" width="35px"><center>'] ,datas_ph{i,j},'</center>']};
+                    end
+                end
+                trtab_ph.ColumnName = col_names_ph;
+                trtab_ph.ColumnFormat = ['char' repmat({'char'},1,size(gd_ph,1))];
+                trtab_ph.ColumnWidth = repmat({45},1,size(gd_ph,1)+1);
+                trtab_ph.Data = datas_ph;
+                trtab_ph.Units = 'normalized';
             end
         end
         
@@ -1275,11 +1377,18 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             err_box_g = uix.VBox('Parent', dopt_vbox, ...
                 'BackgroundColor', color_bg);
 
-            dopt_vbox.Heights = [18 10 168 10 -1];
+            dopt_vbox.Heights = [18 10 186 10 -1];
 
             field_dim = [280 40 5 50];
             [grd, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Min satellites per epoch', 'min_n_sat', 'n', @this.onEditChange, field_dim, color_bg);
             [grd, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Min percentage of required epochs [0-100]', 'min_p_epoch', '%', @this.onEditChange, field_dim, color_bg);
+            ttip = 'This is not kept in case of snooping';
+            if verLessThan('matlab','9.5')
+                grd.Children(end).TooltipString = ttip;
+            else
+                grd.Children(end).Tooltip = ttip;
+            end
+            [grd, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Max percentage of bad observations [0-100]', 'max_bad_obs', '%', @this.onEditChange, field_dim, color_bg);
             ttip = 'This is not kept in case of snooping';
             if verLessThan('matlab','9.5')
                 grd.Children(end).TooltipString = ttip;
@@ -1298,32 +1407,45 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             end
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(err_box_g, 'Min arc length', 'min_arc', 's', @this.onEditChange, field_dim, color_bg);
             Core_UI.insertEmpty(err_box_g, color_bg);            
-            err_box_g.Heights = [Core_UI.LINE_HEIGHT * ones(6,1); -1];            
+            err_box_g.Heights = [Core_UI.LINE_HEIGHT * ones(7,1); -1];            
         end
         
         function ss_panel = insertSatSelector(this, container, color_bg)
             % Constellation selection
             ss_vbox = uix.VBox('Parent', container, ...
                 'BackgroundColor', color_bg);
-            ss_panel = Core_UI.insertPanel(ss_vbox, 'Constellation Selection', color_bg);
+            ss_panel = Core_UI.insertPanel(ss_vbox, 'Constellation Selection and Weights', color_bg);
             ss_panel.FontWeight = 'normal';
             Core_UI.insertEmpty(ss_vbox, color_bg);            
-            ss_vbox.Heights = [168 -1];
+            ss_vbox.Heights = [186 -1];
             
-            h_box_cc = uix.HBox('Parent', ss_panel, ...
+            v_box_cc = uix.VBox('Parent', ss_panel, ...
                 'BackgroundColor', color_bg);
+            
+            uicontrol('Parent', v_box_cc, ...
+                'Style', 'Text', ...
+                'String', 'Constellation Weights must be between 0.001 and 100 - they are used to scale observation variances', ...
+                'ForegroundColor', Core_UI.BLACK, ...
+                'HorizontalAlignment', 'left', ...
+                'FontSize', Core_UI.getFontSize(8), ...
+                'BackgroundColor', color_bg);
+            
+            h_box_cc = uix.HBox('Parent', v_box_cc, ...
+                'BackgroundColor', color_bg);
+            
+            v_box_cc.Heights = [18 -1];
             
             v_but_bx_cc = uix.VButtonBox('Parent', h_box_cc, ...
-                'ButtonSize', [100 20], ...
+                'ButtonSize', [160 20], ...
                 'BackgroundColor', color_bg);
             
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'GPS',     'G_is_active', @this.onCheckBoxConstChange, color_bg);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'GLONASS', 'R_is_active', @this.onCheckBoxConstChange, color_bg);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'Galileo', 'E_is_active', @this.onCheckBoxConstChange, color_bg);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'QZSS',    'J_is_active', @this.onCheckBoxConstChange, color_bg);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'Beidou',  'C_is_active', @this.onCheckBoxConstChange, color_bg);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'IRNSS',   'I_is_active', @this.onCheckBoxConstChange, color_bg);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(v_but_bx_cc, 'SBAS',    'S_is_active', @this.onCheckBoxConstChange, color_bg);
+            [this.check_boxes{end+1}, this.weight_boxes{end+1}] = Core_UI.insertSelectorCC(v_but_bx_cc, 'GPS',     'G_is_active', @this.onCheckBoxConstChange, 'G_weight', @this.onEditCCChange, color_bg);
+            [this.check_boxes{end+1}, this.weight_boxes{end+1}] = Core_UI.insertSelectorCC(v_but_bx_cc, 'GLONASS', 'R_is_active', @this.onCheckBoxConstChange, 'R_weight', @this.onEditCCChange, color_bg);
+            [this.check_boxes{end+1}, this.weight_boxes{end+1}] = Core_UI.insertSelectorCC(v_but_bx_cc, 'Galileo', 'E_is_active', @this.onCheckBoxConstChange, 'E_weight', @this.onEditCCChange, color_bg);
+            [this.check_boxes{end+1}, this.weight_boxes{end+1}] = Core_UI.insertSelectorCC(v_but_bx_cc, 'QZSS',    'J_is_active', @this.onCheckBoxConstChange, 'J_weight', @this.onEditCCChange, color_bg);
+            [this.check_boxes{end+1}, this.weight_boxes{end+1}] = Core_UI.insertSelectorCC(v_but_bx_cc, 'Beidou',  'C_is_active', @this.onCheckBoxConstChange, 'C_weight', @this.onEditCCChange, color_bg);
+            [this.check_boxes{end+1}, this.weight_boxes{end+1}] = Core_UI.insertSelectorCC(v_but_bx_cc, 'IRNSS',   'I_is_active', @this.onCheckBoxConstChange, 'I_weight', @this.onEditCCChange, color_bg);
+            [this.check_boxes{end+1}, this.weight_boxes{end+1}] = Core_UI.insertSelectorCC(v_but_bx_cc, 'SBAS',    'S_is_active', @this.onCheckBoxConstChange, 'S_weight', @this.onEditCCChange, color_bg);
             this.check_boxes{end}.Enable = 'off'; % disable SBAS
 
             Core_UI.insertVBar(h_box_cc, color_bg, Core_UI.DARK_GREY_BG);
@@ -1331,7 +1453,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             %%% frequency selection
             v_bx_freq = uix.VBox('Parent', h_box_cc, ...
                 'BackgroundColor', color_bg);
-            h_box_cc.Widths = [80 20 -1];
+            h_box_cc.Widths = [150 15 -1];
 
             n_b_gps = uix.HButtonBox('Parent', v_bx_freq, ...
                 'HorizontalAlignment', 'left', ...
@@ -1381,19 +1503,18 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_gal, '(L8) E5 ', 'GAL_E5', @this.onCheckBoxCCChange, color_bg);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_gal, '(L6) E6 ', 'GAL_E6', @this.onCheckBoxCCChange, color_bg);
             
-           
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_qzs, '(L1) L1', 'QZS_L1', @this.onCheckBoxCCChange, color_bg);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_qzs, '(L2) L2', 'QZS_L2', @this.onCheckBoxCCChange, color_bg);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_qzs, '(L5) L5', 'QZS_L5', @this.onCheckBoxCCChange, color_bg);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_qzs, '(L6) L6', 'QZS_LEX6', @this.onCheckBoxCCChange, color_bg);
             
             
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_bei, '(L2) B1',   'BDS_B1', @this.onCheckBoxCCChange, color_bg);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_bei, '(L1) B1C',  'BDS_B1C', @this.onCheckBoxCCChange, color_bg);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_bei, '(L5) B2a',  'BDS_B2a', @this.onCheckBoxCCChange, color_bg);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_bei, '(L7) B2b',  'BDS_B2b', @this.onCheckBoxCCChange, color_bg);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_bei, '(L8) B2ab', 'BDS_B2ab', @this.onCheckBoxCCChange, color_bg);
-            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_bei, '(L6) B3',   'BDS_B3', @this.onCheckBoxCCChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_bei, '(L2) C1',   'BDS_B1', @this.onCheckBoxCCChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_bei, '(L1) C1C',  'BDS_B1C', @this.onCheckBoxCCChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_bei, '(L5) C2a',  'BDS_B2a', @this.onCheckBoxCCChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_bei, '(L7) C2b',  'BDS_B2b', @this.onCheckBoxCCChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_bei, '(L8) C2ab', 'BDS_B2ab', @this.onCheckBoxCCChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_bei, '(L6) C3',   'BDS_B3', @this.onCheckBoxCCChange, color_bg);
             
             
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_irn, '(L5) L5', 'IRN_L5', @this.onCheckBoxCCChange, color_bg);
@@ -1585,7 +1706,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             
             
             Core_UI.insertText(tab_rec_tropo, 'Diff. reg. [m/sqrt(h)]', 8, color_bg,  Core_UI.BLACK, 'center');
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'areg_grad_ppp', '', @this.onEditChange, [0 -1 0 0],color_bg);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'dreg_ztd_ppp', '', @this.onEditChange, [0 -1 0 0],color_bg);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'dreg_grad_ppp', '', @this.onEditChange, [0 -1 0 0],color_bg);
             
             tab_rec_tropo.Heights = [21 25 25];            
@@ -1750,7 +1871,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             
             
             Core_UI.insertText(tab_rec_tropo, 'Diff. reg. [m/sqrt(h)]', 8, color_bg,  Core_UI.BLACK, 'center');
-            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'areg_grad_net', '', @this.onEditChange, [0 -1 0 0],color_bg);
+            [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'dreg_ztd_net', '', @this.onEditChange, [0 -1 0 0],color_bg);
             [~, this.edit_texts{end+1}] = Core_UI.insertEditBox(tab_rec_tropo, '', 'dreg_grad_net', '', @this.onEditChange, [0 -1 0 0],color_bg);
             Core_UI.insertText(tab_rec_tropo, '', 8, color_bg,  Core_UI.BLACK, 'center');
             
@@ -1906,7 +2027,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             this.check_boxes{end+1} = Core_UI.insertCheckBoxLight(tab_bv, 'Allow automatic download of missing resources', 'flag_download', @this.onCheckBoxChange);
 
             try
-                r_man = Remote_Resource_Manager.getInstance(state.getRemoteSourceFile());
+                r_man = Remote_Resource_Manager.getInstance(state.getRemoteSourceFile()); r_man.update();
                 [tmp, this.rpop_up{end+1}] = Core_UI.insertPopUpLight(tab_bv, 'Orbit Center', r_man.getCenterListExtended, 'selected_orbit_center', @this.onResourcesPopUpChange, [200 -1]);                
             catch
                 str = sprintf('[!!] Resource file missing:\n"%s"\nnot found\n\ngoGPS may not work properly', state.getRemoteSourceFile);
@@ -1961,8 +2082,9 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             this.ripref{5} = Core_UI.insertCheckBoxLight(box_v1pref, 'Broadcast', 'iono5', @this.onResourcesPrefChange);
             this.ripref{5}.TooltipString = 'Klobuchar ionospheric parameters';
             box_v1pref.Widths = [250 -1 -1 -1 -1 -1];
+                 
             [tmp, this.rpop_up{end+1}] = Core_UI.insertPopUpLight(tab_bv, 'Bias Center', r_man.getCenterListExtended(2), 'selected_bias_center', @this.onResourcesPopUpChange, [200 -1]);
-          
+
             % vmf source
             box_v2pref = uix.HBox( 'Parent', tab_bv, ...
                 'Spacing', 5, ...
@@ -2011,15 +2133,8 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             uicontrol( 'Parent', but_line, ...
                 'String', 'Download orbits now', ...
                 'TooltipString', 'Download orbits and clock if available', ...
-                'Callback', @this.downloadOrbits);
-            
-            if Core.isReserved
-                uicontrol( 'Parent', but_line, ...
-                'String', 'Download Stations now', ...
-                'TooltipString', 'Download missing or partially downloaded stations now', ...
-                'Callback', @this.downloadStations);
-            end
-            
+                'Callback', {@this.download, 'eph'});
+                        
             rr_box.Heights = [30];
             
             Core_UI.insertEmpty(bottom_box);
@@ -2132,8 +2247,8 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             %     'Callback', @this.onSessionChange);
             %
             % this.session_info.Heights = [26 2 5 50 30];
-            this.session_info.Heights = [30 5 165];
-            sss_g.Heights = [55 5 55 5 55];
+            this.session_info.Heights = [30 5 185];
+            sss_g.Heights = [80 5 55 5 55];
         end
         
         function insertRecList(this, container)
@@ -2342,7 +2457,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         end       
         
         function onCheckBoxConstChange(this, caller, event)
-            % if the check box of one constalelation is ticked tick all the frequency of the constallation and call thei events
+            % if the check box of one constallation is ticked tick all the frequency of the constallation and call the events
             this.onCheckBoxCCChange(caller, event);
             const = Constellation_Collector.constToAbb(caller.String);
             for i = 1 : length(this.check_boxes)
@@ -2546,8 +2661,23 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 this.updateCooTable();
             end
             if strcmp(caller.UserData, 'obs_name') || strcmp(caller.UserData, 'obs_dir')
-                this.updateRecList()
+                this.updateRecList(true)
             end
+        end
+
+        function onEditCCChange(this, caller, event)
+            cc = Core.getConstellationCollector;
+            prop = cc.getProperty(caller.UserData);
+            if ~isnumeric(prop)
+                cc.setProperty(caller.UserData, caller.String);
+            else
+                cc.setProperty(caller.UserData, str2num(caller.String));
+            end
+            
+            cc.check();
+            caller.String = cc.getProperty(caller.UserData);            
+            this.updateINI();
+            this.checkFlag();            
         end
         
         function onEditArrayChange(this, caller, event)
@@ -2578,20 +2708,17 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         function showOrbitsAvailability(this, caller, event)
             sky = Core.getCoreSky; sky.showOrbitsAvailability;
         end
-        
-        
-        function downloadOrbits(this, caller, event)
-            fw = File_Wizard;
-            fw.downloadResource('eph',Core.getState.getSessionsStartExt, Core.getState.getSessionsStopExt);
-        end
-        
-        function downloadStations(this, caller, event)
+                
+        function downloadStations(this, caller, event, type)
             % Download the stations here present
             % This function is restricter for GReD internally usage
             % it will not work without GReD utilities
             
             % You don't need this function
-            GReD_Utility.getStations();
+            if (nargin == 3)
+                type = 'ALL';
+            end
+            GReD_Utility.getStations([], type);
         end
         
         function resetResDir(this, caller, event)
@@ -2674,6 +2801,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                             case {'PP'}
                                 this.insertTabPrePro(tab, color_bg);
                                 this.updateEditFromState();
+                                this.updateCheckBoxFromState();
                             case {'GO'}
                                 this.insertGenericOpt(tab, color_bg);
                                 this.updatePopUpsState();
@@ -2706,7 +2834,8 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         
         function refreshCmdList(this, caller, event)
             persistent cache_txt
-            txt = strrep(char(this.j_cmd.getText()),'"', '''');
+            %txt = strrep(char(this.j_cmd.getText()),'"', '''');
+            txt = char(this.j_cmd.getText());
             if isempty(cache_txt) || ~strcmp(cache_txt, txt)
                 cache_txt = txt;
                 if ~isempty(txt)
@@ -2740,14 +2869,6 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             Core_UI.checkFlag(this.flag_list)
         end
         
-        function setCheckBox(this, name_prop, value)
-            for i = 1 : length(this.check_boxes)
-                if this.check_boxes{i}.isvalid && strcmp(name_prop, this.check_boxes{i}.UserData)
-                    this.check_boxes{i}.Value = double(value);
-                end
-            end
-        end
-
         function updateCmdList(this)
             if ~isempty(this.win) && isvalid(this.win) && this.is_gui_ready
                 if this.j_cmd.isValid
@@ -2784,16 +2905,21 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             for i = 1 : length(active)
                 this.setCheckBox([sys_c(i) '_is_active'], active(i));
                 ss = state.cc.getSys(sys_c(i));
+                if i <= numel(this.weight_boxes)
+                    this.weight_boxes{i}.String = num2str(ss.getWeight());
+                end
                 for j = 1: length( ss.flag_f)
                     f = ss.flag_f(j);
                     this.setCheckBox([Constellation_Collector.sysCToAbb(sys_c(i)) '_' Constellation_Collector.rin3ToBand(['L' ss.CODE_RIN3_2BAND(j) ], sys_c(i))], f);
                 end
             end
+
         end
         
         function updateCheckBoxFromState(this)
             for i = 1 : length(this.check_boxes)
                 value = Core.getCurrentSettings.getProperty(this.check_boxes{i}.UserData);
+                this.check_boxes{i}.UserData;
                 if ~isempty(value)
                     this.check_boxes{i}.Value = double(value(1));
                 end
@@ -2882,7 +3008,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 end
             end
             
-             % read current iono center
+             % Read current iono center
             [center_list, center_ss] = r_man.getCenterList(1);
             cur_center = state.getCurIonoCenter;
             if isempty(cur_center)
@@ -2897,10 +3023,6 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             if ~isempty(value)
                 this.rpop_up{2}.Value = value;
             end
-%             
-%             % Update constellation Available for the center
-%             this.rpop_up{2}.Parent.Children(2).String = sprintf('Supported satellites: "%s"', center_ss{value});
-%             
             
             % Update Iono Preferences
             available_iono = r_man.getIonoType(cur_center{1});
@@ -2913,6 +3035,23 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                     this.ripref{i}.Value = this.ripref{i}.Value | flag_preferred_iono(i);
                 end
             end
+            
+             % Read current bias center
+            [center_list, center_ss] = r_man.getCenterList(2);
+            cur_center = state.getCurBiasCenter;
+            if isempty(cur_center)
+                cur_center = {'none'};
+            end
+            value = 1;
+            while (value < numel(center_list)) && ~strcmp(center_list{value}, cur_center)
+                value = value + 1;
+            end
+            
+            % display resources tree of the current center
+            if ~isempty(value)
+                this.rpop_up{3}.Value = value;
+            end
+            
             % Update VMF source Preferences
             available_vmf = r_man.getVMFSourceType();
             for i = 1 : 3
@@ -2972,7 +3111,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             state.updateObsFileName;
             core = Core.getCurrentCore;
             core.updateRinFileList(true, true);
-            core.plotRecList();
+            core.showRinList();
             
             Core.getLogger.addMessage('File availability plotted');
         end
@@ -2982,11 +3121,23 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             goInspector;
         end
         
+        function openSetUpSlaves(this, caller, event)
+            % Open SetUpSlaves
+            App_Settings.setUpSlaves;
+        end
+        
         function openDownloader(this, caller, event)
-            % open goGPS Resources Downloader            
+            % open goGPS Resources Downloader
             GUI_Downloader.getInstance;
             this.close;
         end
+
+        function download(this, caller, event, par_type)
+            % open goGPS Resources Downloader
+            fw = File_Wizard;         
+            fw.downloadResource(par_type,Core.getState.getSessionsStartExt, Core.getState.getSessionsStopExt);
+        end
+        
         
         function createNewProject(this, caller, event)
             % Create a new project            
@@ -3107,7 +3258,17 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 Core.getLogger.addError(sprintf('Export failed!\n%s', ex.message));
             end
         end
-                
+        
+        function close(this, caller, event)
+            
+            % This is closing definitively, I prefer to hide this interface, it takes a while to restore it
+            %delete(this.win);
+            if isvalid(this.win)
+                this.win.Visible = 'off';
+                uiresume(this.win);
+            end            
+        end
+        
         function go(this, caller, event)
             
             if isvalid(this.win)
@@ -3129,18 +3290,6 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 this.close();
             end
         end
-        
-        function close(this, caller, event)
-            
-            % This is closing definitively, I prefer to hide this interface, it takes a while to restore it
-            %delete(this.win);
-            if isvalid(this.win)
-                this.win.Visible = 'off';
-                uiresume(this.win);
-            end
-        end
-                
-        % UPDATES
         
         function updateUI(this)
             if isvalid(this.win)
@@ -3185,8 +3334,10 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             
             state = Core.getCurrentSettings();
             state.updateObsFileName;
+            
             n_rec = state.getRecCount;
             rec_path = state.getRecPath;
+
             t0 = tic;
             
             % Get the maximum number of session to check
@@ -3228,6 +3379,9 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                     % back-up cache
                     old_unique_dir = iif(flag_force, cell(0), unique_dir);
                     old_dir_list = iif(flag_force, cell(0), dir_list);
+                    if isempty(dir_list)
+                        old_unique_dir = {};
+                    end
                     dir_list = cell(0);
                     for d = 1 : numel(cur_unique_dir)
                         id_old = find(strcmp(old_unique_dir, cur_unique_dir(d)));
@@ -3343,10 +3497,11 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 [~,doy_en] = state.sss_date_stop.getDOY;
                 week_en =  state.sss_date_stop.getGpsWeek;
                 this.session_summary.start.String = sprintf( ...
-                    ['Start Date/Time:\n',...
+                    ['Session count: %d\n\n', ...
+                    'Start Date/Time:\n',...
                     '  %s\n',...
                     '  week: %d doy: %d\n'], ...
-                    state.sss_date_start.toString('yyyy-mm-dd  HH:MM:SS'), week_st, doy_st);
+                    state.getSessionCount, state.sss_date_start.toString('yyyy-mm-dd  HH:MM:SS'), week_st, doy_st);
                 this.session_summary.stop.String = sprintf( ...
                     ['End Date/Time:\n', ...
                     '  %s\n', ...
@@ -3382,6 +3537,13 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             end            
         end
         
+        function setCheckBox(this, name_prop, value)
+            for i = 1 : length(this.check_boxes)
+                if this.check_boxes{i}.isvalid && strcmp(name_prop, this.check_boxes{i}.UserData)
+                    this.check_boxes{i}.Value = double(value);
+                end
+            end
+        end
     end
     
     methods
@@ -3390,6 +3552,9 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             uimenu(this.menu.goGPS, ...
                 'Label', 'About', ...
                 'Callback', @this.about);
+            uimenu(this.menu.goGPS, ...
+                'Label', 'Run Parallelism Set Up', ...
+                'Callback', @this.openSetUpSlaves);
             uimenu(this.menu.goGPS, ...
                 'Label', 'Open Inspector', ...
                 'Callback', @this.openInspector);
@@ -3422,6 +3587,44 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             uimenu(this.menu.project, ...
                 'Label', 'Save As', ...
                 'Callback', @this.saveAsState);
+            this.menu.download = uimenu(this.win, 'Label', 'Download');
+            uimenu(this.menu.download, ...
+                'Label', 'Open Downloader', ...
+                'Callback', @this.openDownloader);
+            uimenu(this.menu.download, ...
+                'Separator', 'on');
+            uimenu(this.menu.download, ...
+                'Label', 'Update igs14.atx', ...
+                'Callback', {@this.download, 'igsatx14'});
+            uimenu(this.menu.download, ...
+                'Label', 'Update igs20.atx', ...
+                'Callback', {@this.download, 'igsatx20'});
+            uimenu(this.menu.download, ...
+                'Separator', 'on');
+            uimenu(this.menu.download, ...
+                'Label', 'Get ephemeris', ...
+                'Callback', {@this.download, 'eph'});
+            uimenu(this.menu.download, ...
+                'Label', 'Get biases', ...
+                'Callback', {@this.download, 'bias'});
+            uimenu(this.menu.download, ...
+                'Label', 'Get CRX (sat problems)', ...
+                'Callback', {@this.download, 'crx'});
+            uimenu(this.menu.download, ...
+                'Label', 'Get atmospheric loading', ...
+                'Callback', {@this.download, 'atm'});
+            uimenu(this.menu.download, ...
+                'Label', 'Get VMF', ...
+                'Callback', {@this.download, 'vmf'});
+            uimenu(this.menu.download, ...
+                'Label', 'Get ionospheric maps', ...
+                'Callback', {@this.download, 'iono'});
+            uimenu(this.menu.download, ...
+                'Label', 'Get ionospheric broadcast parameters', ...
+                'Callback', {@this.download, 'iono_brdc'});
+            uimenu(this.menu.download, ...
+                'Label', 'Get atmospheric loading', ...
+                'Callback', {@this.download, 'atm'});
         end
     end
     

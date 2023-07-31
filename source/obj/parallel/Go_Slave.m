@@ -15,10 +15,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti
 %  Contributors:      Andrea Gatti, Giulio Tagliaferro ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -60,7 +60,7 @@ classdef Go_Slave < Com_Interface
     end
     
     properties (SetAccess = private, GetAccess = private)
-        rnd_id = 0;     % personal serial number of the slave
+        uuid = '';     % personal serial number of the slave
         slave_type = 1; % 0 for session worker
                         % 1 for target worker
     end
@@ -71,7 +71,7 @@ classdef Go_Slave < Com_Interface
         % Concrete implementation.  See Singleton superclass.
         function this = Go_Slave(com_dir)
             % Core object creator
-            this.id = '';
+            this.id = 'unborn';
             this.initComDir(com_dir);
             this.init();
             this.log.addMarkedMessage('Creating goGPS Slave');
@@ -145,22 +145,22 @@ classdef Go_Slave < Com_Interface
             % SYNTAX:
             %   this.die();
             
-            if ~isempty(this.id)
+            if not(isempty(this.id)) && this.id(1) ~= 'u' 
                 this.log.addMarkedMessage('Closing goGPS Slave');
                 this.deleteMsg();
                 this.sendMsg(this.MSG_DIE, sprintf('I was "%s", goodbye cruel world!', this.id));
             end
             if nargin > 1 && ~isempty(reborn) && reborn
-                if this.rnd_id == 0
+                if isempty(this.uuid)
                     rng('shuffle', 'simdTwister');
-                    this.rnd_id = randi(1e15);
+                    this.uuid = Core_Utils.getUUID();
                 end
-                this.id = [this.SLAVE_WAIT_PREFIX sprintf('%015d', this.rnd_id)];
+                this.id = [this.SLAVE_WAIT_PREFIX this.uuid];
             else
                 Go_Slave.getInstance([], true)
             end
         end
-        
+
         function msg = checkMsg(this, msg, remove_msg, check_revive, wait_until_received)
             % Wait for a specific order
             %
@@ -244,15 +244,16 @@ classdef Go_Slave < Com_Interface
                         core.initPreloadSession();
                         core.clearSingletons();
                         core.initSimpleHandlers();
-                        core.setGUIMode(1);
+                        core.setModeGUI(1);
                         core.initLocalPath();
                         this.checkMsg([Parallel_Manager.BRD_STATE Parallel_Manager.ID], false, false); % WAIT WORK MESSAGE
                         tmp = load(fullfile(this.getComDir, 'state.mat'), 'geoid', 'state', 'reference_frame', 'atx', 'cur_session', 'rin_list', 'met_list', 'slave_type');
                         this.slave_type = tmp.slave_type;
                         core.state = tmp.state; % load the state
+                        core.setCurrentSettings(tmp.state); % load the state
+                        core.setCurrentCore(core);
                         core.rf = tmp.reference_frame;
                         core.atx = tmp.atx;   % load the antenna manager
-                        core.setCurrentSettings(tmp.state); % load the state
                         core.initGeoid(tmp.geoid); % load the geoid
                         core.state.setCurSession(tmp.cur_session); % load the current session number
                         core.rin_list = tmp.rin_list; % load the rinex list of files
@@ -261,7 +262,6 @@ classdef Go_Slave < Com_Interface
                         % No colormode for slaves (faster execution)
                         core.log = this.log; % Use slave logger
                         core.log.setColorMode(0);
-                        core.log.enableFileOut();
                         log_path = fullfile(core.state.getComDir, 'log', sprintf('goGPS_slave_%s_run_%s_${NOW}.log', strrep(core.state.getPrjName, ' ', '_'), this.id));
                         log_path = strrep(log_path, '${NOW}', GPS_Time.now.toString('yyyymmdd_HHMMSS'));
                         core.log.setOutFile(log_path); % <= to enable project logging
@@ -269,9 +269,11 @@ classdef Go_Slave < Com_Interface
                         this.log = core.log;
                         this.log.addMarkedMessage('Logging to file');
                         
-                        this.id = regexp(msg, [Go_Slave.SLAVE_READY_PREFIX iif(this.slave_type == 1, this.SLAVE_TARGET_PREFIX, this.SLAVE_SESSION_PREFIX) '[0-9]*'], 'match', 'once');
+                        this.id = regexp(msg, [Go_Slave.SLAVE_READY_PREFIX iif(this.slave_type == 1, this.SLAVE_TARGET_PREFIX, this.SLAVE_SESSION_PREFIX) '[0-9,a-z]*'], 'match', 'once');
                         
                         this.log.addMarkedMessage('State updated');
+                        core.setCurrentCore(core);
+                        core.logCurrentSettings();
                         clear tmp;
                         if this.isTargetWorker()
                             this.checkMsg([Parallel_Manager.BRD_SKY Parallel_Manager.ID], false, true); % WAIT WORK MESSAGE
@@ -296,21 +298,20 @@ classdef Go_Slave < Com_Interface
                         active_ps = true;
                         while active_ps
                             try
-                                core.log.enableFileOut();
                                 msg = this.checkMsg([this.id '_' Parallel_Manager.MSG_DO '*' Parallel_Manager.ID], true, true); % WAIT ACK MESSAGE
                                 if isnumeric(msg)
                                     active_ps = false;
                                 else
                                     cmd_file = load(fullfile(this.getComDir, 'cmd_list.mat'));
                                     % get request id
-                                    req_id = str2double(regexp(msg, '[0-9]*(?=_MASTER)', 'match', 'once'));
+                                    req_id = str2double(regexp(msg, '[0-9,a-z]*(?=_MASTER)', 'match', 'once'));
                                     
                                     % prepare receivers
                                     state = core.getState();
                                     clear rec
                                     n_rec = core.state.getRecCount;
                                     for r = 1 : n_rec
-                                        rec(r) = GNSS_Station(state.getDynMode() == 0); %#ok<AGROW>
+                                        rec(r) = GNSS_Station(state.getDynMode() == 0 ); %#ok<AGROW>
                                     end
                                     core.rec = rec;
                                     
@@ -443,7 +444,10 @@ classdef Go_Slave < Com_Interface
                                     pause(0.1); % be sure that the file is saved correctly
                                     core.rec = []; % empty space
                                     clear rec;
-                                    this.sendMsg(this.MSG_JOBREADY, sprintf('Work done!'));
+                                    % If for any reason the message DO was not removed, do it now it (might happen on Windows)
+                                    msg = this.checkMsg([this.id '_' Parallel_Manager.MSG_DO '*' Parallel_Manager.ID], true, false, false); 
+                                    % Send JOBREADY message
+                                    this.sendMsg([this.MSG_JOBREADY sprintf('%04d_', req_id)], sprintf('Work done!'));
                                 end
                             catch ex
                                 % Export work
@@ -468,8 +472,10 @@ classdef Go_Slave < Com_Interface
                                 core.rec = []; % empty space
                                 clear rec;
                                 
+                                % If for any reason the message DO was not removed, do it now it (might happen on Windows)
+                                msg = this.checkMsg([this.id '_' Parallel_Manager.MSG_DO '*' Parallel_Manager.ID], true, false, false);
                                 % If something bad happen during work restart
-                                this.sendMsg(this.MSG_JOBREADY, sprintf('Work done!'));
+                                this.sendMsg([this.MSG_JOBREADY sprintf('%04d_', req_id)], sprintf('Work done!'));
                                 Core_Utils.printEx(ex);
                                 this.log.addError(sprintf('Something bad happened: %s\n', ex.message));
                             end

@@ -17,10 +17,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti, Giulio Tagliaferro
 %  Contributors:      Andrea Gatti, Giulio Tagliaferro...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -48,7 +48,7 @@ classdef Core < handle
     %% PROPERTIES CONSTANTS
     % ==================================================================================================================================================
     properties (Constant)
-        GO_GPS_VERSION = '1.0 RC1';
+        APP_VERSION = '1.0';
         GUI_MODE = 0; % 0 means text, 1 means GUI, 5 both
     end
 
@@ -58,7 +58,20 @@ classdef Core < handle
         is_reserved = false;
     end
    
-        %% PROPERTIES SINGLETON POINTERS
+    %% PROPERTIES MISC
+    % ==================================================================================================================================================
+    properties (GetAccess = private, SetAccess = private) % Public Access
+        local_storage = '';
+        
+        creation_time = GPS_Time(now);
+        uick = false;       % UI working check
+        is_advanced = true;
+        
+        session_list = [];  % in the go function this variable is update to keep the list of session to compute
+        preloaded_session = 0;  % Current preloaded session in Core (for meteo, orbits, and other data)
+    end
+    
+    %% PROPERTIES SINGLETON POINTERS
     % ==================================================================================================================================================
     properties % Utility Pointers to Singletons
         gui_mode    % GUI_mode  % 0 means text, otherwise means GUI
@@ -66,7 +79,7 @@ classdef Core < handle
         log_gui     % Message window
         w_bar       % Wait_Bar handler
         
-        gocfg       % goGPS config ini
+        app_cfg   % Breva config ini
         
         state       % state
         sky         % Core_Sky handler
@@ -83,19 +96,6 @@ classdef Core < handle
         
         isValid = true; % must be converted into a function
     end
-    
-    %% PROPERTIES MISC
-    % ==================================================================================================================================================
-    properties (GetAccess = private, SetAccess = private) % Public Access
-        local_storage = '';
-        
-        creation_time = GPS_Time(now);
-        uick = false;       % UI working check
-        
-        session_list = [];  % in the go function this variable is update to keep the list of session to compute
-        preloaded_session = 0;  % Current preloaded session in Core (for meteo, orbits, and other data)
-    end
-    
     %% PROPERTIES RECEIVERS
     % ==================================================================================================================================================
     properties % Utility Pointers to Singletons        
@@ -271,13 +271,6 @@ classdef Core < handle
             end
         end
         
-        function [go_dir] = getLocalStorageDir()
-            % Get local storage
-            core = Core.getInstance(false, true);
-            
-            go_dir = core.local_storage;
-        end       
-
         function geoid = getRefGeoid()
             % Get reference geoid
             core = Core.getInstance(false, true);
@@ -291,7 +284,7 @@ classdef Core < handle
             geoid = core.geoid;
         end
         
-        function [dtm, lat, lon, georef, info] = getRefDTM(nwse, mode, res)
+        function [dtm, lat, lon, georef, info] = getRefDTM(nwse, mode, res, flag_2x)
             % Get the dtm of an area delimited by geographical coordinates NSWE
             % DTM can be requested as orthometric or ellipsoidal heights
             %
@@ -319,6 +312,9 @@ classdef Core < handle
                 res = 'low';
             end
             [dtm, lat, lon, georef, info] = Core_Utils.getDTM(nwse, res);
+            if res(1) ~= 'l' && res(1) ~= 'h'
+                dtm = flipud(dtm);
+            end
 
             switch mode
                 case 'ellips'
@@ -326,9 +322,35 @@ classdef Core < handle
                     geoid = Core.getRefGeoid();
                     tic; N(:) = getOrthometricCorr(lat, lon', geoid, 'grid_cubic'); toc
                     dtm = dtm + N; % dtm_ellips =  dtm_ortho - N;
-            end            
+            end
+            
+            % Remove NaN lines
+            y_ok = any(dtm');
+            x_ok = any(dtm);
+            lat = lat(y_ok);
+            lon = lon(x_ok);
+            dtm = dtm(y_ok, x_ok);
+            
+            if nargin == 4 && flag_2x
+                % Resize DTM (2x)
+                dtm  = Core_Utils.resize2(dtm, size(dtm) * 2);
+                step_lon = median(diff(lon)) / 2;
+                step_lat = median(diff(lat)) / 2;                
+                lon = ((lon(1) - (step_lon / 2)) : step_lon : (lon(end) + (step_lon / 2)))';
+                lat = ((lat(1) - (step_lat / 2)) : step_lat : (lat(end) + (step_lat / 2)))';
+            end
         end
         
+	function [is_adv] = isAdvanced()
+            % Get the status of usage (normal/advanced)
+            %
+            % SYNTAX:
+            %   this.isAdvanced()
+            core = Core.getInstance(false, true);
+            
+            is_adv = core.is_advanced;
+        end  
+
         function [uick] = isUICK()
             % Get the status of usage (normal/advanced)
             %
@@ -500,20 +522,20 @@ classdef Core < handle
             core.is_reserved = is_reserved;
         end        
         
-        function setGUIMode(mode)
+        function setModeGUI(mode)
             % Set false if no GUI is used
             %
             % SYNTAX
-            %   core.setGUIMode(mode)
+            %   core.setModeGUI(mode)
             core = Core.getInstance(false, true);
             core.gui_mode = mode;
         end
         
-        function mode = getGUIMode()
+        function mode = getModeGUI()
             % Get GUI status
             %
             % SYNTAX
-            %   mode = core.getGUIMode()
+            %   mode = core.getModeGUI()
             core = Core.getInstance(false, true);
             mode = core.gui_mode;
             if isempty(mode)
@@ -541,7 +563,10 @@ classdef Core < handle
             % SYNTAX
             %   [cur_session, session_list, cur_pos] = Core.getCurrentSession()
             core = Core.getInstance(false, true);
-            cur_session = core.state.getCurSession;
+            if isempty(core.state)
+                core.state = Prj_Settings();
+            end
+            cur_session = core.state.getCurSession();
             if nargout >= 2
                 session_list = core.session_list;
                 if nargout >= 3
@@ -560,21 +585,21 @@ classdef Core < handle
             met_list = core.met_list;
         end              
         
-        function gocfg = getGoConfig(ini_settings_file)
-            % Get the persistent goGPS config
+        function app_cfg = getGoConfig(ini_settings_file)
+            % Get the persistent app config
             %
             % SYNTAX
-            %   gocfg = Core.getCurrentSettings(<ini_settings_file>)
+            %   app_cfg = Core.getCurrentSettings(<ini_settings_file>)
             
             core = Core.getInstance(false, true);
             if isempty(core.state)
-                core.gocfg = Go_Settings.getInstance();
+                core.app_cfg = App_Settings.getInstance();
             end
             if nargin == 1 && ~isempty(ini_settings_file)
-                core.gocfg = Go_Settings.getInstance(ini_settings_file);
+                core.app_cfg = App_Settings.getInstance(ini_settings_file);
             end
             % Return the handler to the object containing the current settings
-            gocfg = handle(core.gocfg);
+            app_cfg = handle(core.app_cfg);
         end
         
         function state = getState()
@@ -622,10 +647,9 @@ classdef Core < handle
             %
             % SYNTAX
             %   cmd = Core.getCommandInterpreter()
-            
-            core = Core.getInstance(false, true);
+            core = Core.getCurrentCore;
             if isempty(core.cmd)
-                core.cmd = Command_Interpreter(core);
+                core.cmd = Command_Interpreter();
             end
             cmd = core.cmd;
         end
@@ -668,6 +692,18 @@ classdef Core < handle
             core.log = log;
         end
         
+	function setAdvanced(mode)
+            % Set the status of usage (normal/advanced)
+            %
+            % SYNTAX:
+            %   this.setAdvanced(<mode>)
+            core = Core.getInstance(false, true);
+            if nargin == 0
+                mode = true;
+            end
+            core.is_advanced = mode;
+        end
+
         function setUICK(uick)
             % Set the status of usage (normal/advanced)
             %
@@ -786,11 +822,12 @@ classdef Core < handle
             this.sky = Core_Sky(force_clean);
             this.atmo = Atmosphere();
             this.rf = Core_Reference_Frame();
-            this.cmd = Command_Interpreter(this);
+            this.cmd = Command_Interpreter();
             if force_clean
                 this.gui_mode = this.GUI_MODE;
                 this.preloaded_session = 0;
                 this.state.setCurSession(0);
+                this.rin_list = [];
                 this.rec = [];
                 this.net = [];
             end
@@ -841,7 +878,7 @@ classdef Core < handle
             this.log.setOutMode([], false, []);
             if ispc, fclose('all'); end
             this.w_bar = Go_Wait_Bar.getInstance(100, 'Welcome to goGPS', Core.GUI_MODE);  % 0 means text, 1 means GUI, 5 both
-            this.cmd = Command_Interpreter(this);
+            this.cmd = Command_Interpreter();
         end
         
         function initConfiguration(this)
@@ -958,7 +995,7 @@ classdef Core < handle
             log.addMessageToFile('============================================================================================\n');
         end
         
-        function exportMat(core, out_file_name)
+        function out_file_name = exportMat(core, out_file_name)
             % export the core as a .mat file
             %
             % SYNTAX:
@@ -1008,14 +1045,20 @@ classdef Core < handle
                 flag_preload = false;
             end
             
+            log = Core.getLogger();
+            
             session = session_number;
+            old_session = Core.getState.getCurSession;
             if ~flag_preload
                 this.state.setCurSession(session_number);
-                
-                this.log.newLine;
-                this.log.simpleSeparator();
-                this.log.addMessage(sprintf('Starting session %d of %d', session, this.state.getSessionCount()));
-                
+                log = this.log;
+                log.newLine;
+                log.simpleSeparator();
+                log.addMessage(sprintf('Starting session %d of %d', session, this.state.getSessionCount()));
+                if log.isGUIOut
+                    fprintf(sprintf(' ** %s Starting session %d of %d --------------------------------\n', GPS_Time.now.toString('yyyy-mm-dd HH:MM:SS'), session, this.state.getSessionCount())); % write the command in console too
+                end
+                    
                 if isempty(this.rec)
                     rec = GNSS_Station;
                 else
@@ -1028,15 +1071,19 @@ classdef Core < handle
             end
             
             rin_list = this.getRinFileList();
+
             if ~this.state.isRinexSession()
                 if ~isempty(rin_list)
                     [buff_lim, out_limits] = this.state.getSessionLimits(session);
                     time_lim_large = buff_lim;
+                    rin_list = rin_list.getCopy;
+                    rin_list.keepValid();
+                    rin_list.keepFiles(buff_lim.first, buff_lim.last);
                 end
             else
                 [out_limits, time_lim_large] = this.getRecTimeSpan(session);
             end
-                        
+            
             if out_limits.length < 2 || (out_limits.last - out_limits.first) < 0 || (~this.state.isRinexSession() && ~rin_list.isValid) || ((time_lim_large.last - time_lim_large.first) < 0) % && ~rin_list_chk.isValid
                 is_empty = true;
                 this.log.addMessage(sprintf('No valid receivers are present / session not valid %d', session));
@@ -1046,27 +1093,63 @@ classdef Core < handle
                 this.log.addMessage(sprintf('Begin %s', out_limits.first.toString()));
                 this.log.addMessage(sprintf('End   %s', out_limits.last.toString()));
                 this.log.simpleSeparator();
-                
                 if ~flag_preload
                     for r = 1 : this.state.getRecCount()
-                        this.log.addMessage(sprintf('[ -- ] Preparing receiver %d of %d', r, this.state.getRecCount()));
                         if (numel(rec) < r) || rec(r).isEmpty
+                            this.log.addMessage(sprintf('[ -- ] Preparing empty receiver %d of %d', r, this.state.getRecCount()));
                             rec(r) = GNSS_Station(this.state.getDynMode() == 0);
                         else
-                            buf = min(round(rec(r).work.state.getBuffer / rec(r).work.getRate), rec(r).work.length);
-                            if buf == 0
-                                rec(r).work.resetWorkSpace();
-                                rec(r).old_work = Receiver_Work_Space(rec(r).work.parent);
+                            if session_number - old_session == 1
+                                buf = min(round(rec(r).work.state.getBuffer / rec(r).work.getRate), rec(r).work.length);
+                                if buf == 0
+                                    rec(r).work.resetWorkSpace();
+                                    rec(r).old_work = Receiver_Work_Space(rec(r).work.parent);
+                                else
+                                    % keep the old work
+                                    rec(r).old_work = rec(r).work;
+                                    rec(r).old_work.keepEpochs(rec(r).work.length + ((-buf + 1) : 0));
+                                    % reset the new work
+                                    rec(r).work = Receiver_Work_Space(rec(r).work.parent);
+                                    this.log.addMessage(sprintf('[ -- ] Receiver %d of %d already ok', r, this.state.getRecCount()));
+                                end
                             else
-                                % keep the old work
-                                rec(r).old_work = rec(r).work;
-                                rec(r).old_work.keepEpochs(rec(r).work.length + ((-buf + 1) : 0));
-                                % reset the new work
-                                rec(r).work = Receiver_Work_Space(rec(r).work.parent);
+                                if rec(r).isEmptyWork_mr || ...
+                                        rec(r).work.time.length == 0 || ...
+                                        rec(r).work.time.first < this.state.getSessionsStartExt || ...
+                                        rec(r).work.time.last > this.state.getSessionsStopExt
+                                    this.log.addMessage(sprintf('[ -- ] Preparing receiver %d of %d', r, this.state.getRecCount()));
+                                    if (numel(rec) < r) || rec(r).isEmpty
+                                        rec(r) = GNSS_Station(this.state.getDynMode() == 0);
+                                    else
+                                        % Check if the receiver is already initialuzed for the current session:
+                                        buf = min(round(this.state.getBuffer / rec(r).work.getRate), rec(r).work.length);
+                                        if buf == 0
+                                            rec(r).work.resetWorkSpace();
+                                            rec(r).old_work = Receiver_Work_Space(rec(r).work.parent);
+                                        else
+                                            % keep the old work
+                                            rec(r).old_work = rec(r).work;
+                                            rec(r).old_work.keepEpochs(rec(r).work.length + ((-buf + 1) : 0));
+                                            % reset the new work
+                                            rec(r).work = Receiver_Work_Space(rec(r).work.parent);
+                                        end
+                                    end
+                                else
+                                    this.log.addMessage(sprintf('[ -- ] Receiver %d of %d already ok', r, this.state.getRecCount()));
+                                    if (numel(rec) < r) || rec(r).isEmpty
+                                        rec(r) = GNSS_Station(this.state.getDynMode() == 0);
+                                    else
+                                        rec(r).work.resetWorkSpace();
+                                    end
+                                end
                             end
                         end
-                        if strcmp(rec(r).marker_name, 'unknown') && ~isempty(rin_list(r).marker_name{1})
+                        if strcmp(rec(r).marker_name, 'unknown') && rin_list(r).isValid && ~isempty(rin_list(r).marker_name{1})
                             rec(r).marker_name = rin_list(r).marker_name{1};
+                        else
+                            % Try to recover the name of the receiver from the file_name
+                            [~, tmp_name, ~] = fileparts(this.state.obs_name{r});
+                            rec(r).marker_name = tmp_name(1:min(4, length(tmp_name)));
                         end
                     end
                 end
@@ -1077,7 +1160,7 @@ classdef Core < handle
                     end
                                         
                     % Init Meteo and Sky objects
-                    if ~this.state.isNoResources() && ((session ~= this.preloaded_session) || this.sky.isEmpty)
+                    if ~this.state.isNoResources() && ((session ~= this.preloaded_session) || this.sky.isEmpty || isempty(this.atmo.ionex.data))
                         this.initSkySession(time_lim_large);
                         this.log.newLine();
                         if this.state.isMet()
@@ -1090,8 +1173,13 @@ classdef Core < handle
                             this.atmo.initVMF(time_lim_large.first,time_lim_large.last);
                         end
                         if this.state.needIonoMap() && ~this.state.isIonoBroadcast()
-                            this.atmo.initIonex(time_lim_large.first,time_lim_large.last);
-                            %this.atmo.initZHOIC(time_lim_large.first,time_lim_large.last);
+                            iono_center = this.state.getCurIonoCenter;
+                            if strcmp(iono_center{1}, 'none')
+                                log.addWarning('No iono Center is selected but ionosphere processing is needed, this will be ignored');
+                            else
+                                this.atmo.initIonex(time_lim_large.first,time_lim_large.last);
+                                %this.atmo.initZHOIC(time_lim_large.first,time_lim_large.last);
+                            end
                         end
                         this.preloaded_session = session;
                     end
@@ -1146,10 +1234,13 @@ classdef Core < handle
             %   this.go(session_num)
             
             t0 = tic;
-            
+            this.log = Core.getLogger;
+            if this.log.isGUIOut
+                this.getMsgGUI.bringOnTop();
+            end
             % init refererecne frame object            
             this.rf.init();
-            
+            this.rin_list.keepValid();
             this.exec(this.state.cmd_list);
             
             this.log.newLine;
@@ -1157,7 +1248,7 @@ classdef Core < handle
             this.log.newLine;          
         end
         
-        function exec(this, cmd_list)
+        function exec(this, cmd_list, loop_level_add)
             % Execute a list of commands on the current session
             %
             % SYNTAX
@@ -1166,9 +1257,13 @@ classdef Core < handle
             % EXAMPLE
             %   core.exec({'LOAD T*', 'PREPRO T*', 'PPP T*'})
             if isempty(this.cmd)
-                this.cmd = Command_Interpreter(this);
+                this.cmd = Command_Interpreter();
             end
-            this.cmd.exec(this, cmd_list);
+            if nargin == 3
+                this.cmd.exec(this, cmd_list, loop_level_add);
+            else
+                this.cmd.exec(this, cmd_list);
+            end
         end                    
     end
     
@@ -1293,7 +1388,7 @@ classdef Core < handle
             
             err_code.go = 0; % Global ok check
             
-            state = this.state;
+            state = this.getState;
             if (level < 5) || (level > 10)
                 err_code.home  = state.checkDir('prj_home', 'Home dir', flag_verbose);
                 if any(state.obs_dir == '$')
@@ -1391,7 +1486,7 @@ classdef Core < handle
                         
                         if (level == 1) || (level > 10)
                             %[n_ok, n_ko] = this.checkMetFileList();
-                            [n_ok, n_ko] = this.checkFileList(this.state.met_dir, this.state.met_name, [], 0);
+                            [n_ok, n_ko] = this.checkFileList(state.met_dir, state.met_name, [], 0);
                             if sum(n_ok) > 0
                                 if sum(n_ko) > 0
                                     if flag_verbose
@@ -1451,7 +1546,9 @@ classdef Core < handle
                         if flag_verbose
                             this.log.addError('Observation files are missing!!!');
                         end
-                        err_code.obs_f = min(-1, -sum(n_ko));
+                        % This no more make the sistem crash
+                        %err_code.obs_f = min(-1, -sum(n_ko));
+                        err_code.obs_f = 1;
                     end
                 end
             end
@@ -1485,23 +1582,21 @@ classdef Core < handle
     
     %% RIN FILE LIST
     % ==================================================================================================================================================
-    methods
-        function showRinList(this)
-            state = Core.getCurrentSettings();
-            state.updateObsFileName;
-            this = Core.getCurrentCore;
-            this.updateRinFileList(true, true);
-            this.plotRecList();
-        end
-        
-        function  plotRecList(this)
+    methods        
+        function  fh_list = showRinList(this)
             % plot receiver availability
             %
             % SYNTAX
             %   updateAndPlotRecList(this)
-            state = this.getCurrentSettings();
-            n_rec = state.getRecCount;
-            rec_path = state.getRecPath;
+            fh_list = [];   
+            this.state = this.getState;
+            n_rec = this.state.getRecCount;
+            rec_path = this.state.getRecPath;
+            if isempty(this.getRinLists)
+                % If the list is empty update it
+                this.state.updateObsFileName;
+                this.updateRinFileList(true, true);            
+            end
             if ~isempty(this.getRinLists)
                 fr = this.getRinLists();
                 sta_name = {};
@@ -1516,7 +1611,7 @@ classdef Core < handle
                     catch
                         try
                             name = File_Name_Processor.getFileName(rec_path{r}{1});
-                            sta_name{end+1} = name(1:4);
+                            sta_name{end+1} = upper(name(1:4));
                         catch
                             sta_name{end+1} = 'NONE';
                         end
@@ -1533,8 +1628,8 @@ classdef Core < handle
                 end
             end
             
-            sss_strt = state.getSessionsStartExt;
-            sss_stop = state.getSessionsStopExt;
+            sss_strt = this.state.getSessionsStartExt;
+            sss_stop = this.state.getSessionsStopExt;
             for year = sss_strt.getDOY : sss_stop.getDOY
                 y_strt = GPS_Time([year 1 1 0 0 0]);
                 y_stop = GPS_Time([year+1 1 1 0 0 0]);
@@ -1545,7 +1640,10 @@ classdef Core < handle
                 
                 y_strt = y_strt.getMatlabTime();
                 y_stop = y_stop.getMatlabTime();
-                fh = figure; fh.Name = sprintf('%03d: Daily RINEX File Availability %d', fh.Number, year); fh.NumberTitle = 'off'; hold on;
+                fh = figure('Visible', 'off'); fh.Name = sprintf('%03d: RINEX File Availability %d', fh.Number, year); fh.NumberTitle = 'off'; hold on;
+                fig_name = sprintf('RINEX_File_Availability_%d_%s', year,sss_stop.toString('yyyymmdd_HHMM'));
+                fh.UserData = struct('fig_name', fig_name);
+
                 line([week_time week_time], [0 n_rec+1],'Color',[0.9 0.9 0.9],'LineStyle',':');
                 min_t = sss_stop;
                 max_t = sss_strt;
@@ -1553,7 +1651,7 @@ classdef Core < handle
                     if sum(fr(r).is_valid_list) > 0
                         central_time = GPS_Time.getMeanTime(fr(r).first_epoch , fr(r).last_epoch).getMatlabTime;
                         central_time = central_time(central_time >= y_strt & central_time <= y_stop);
-                        line([y_strt y_stop], [r r],'Color',[0.6 0.6 0.6],'LineStyle',':', 'LineWidth', 1);
+                        line([y_strt y_stop], [r r],'Color',[0.6 0.6 0.6],'LineStyle','-', 'LineWidth', 1);
                         plot(central_time, r * ones(size(central_time)),'.', 'MarkerSize', 20, 'Color', Core_UI.getColor(r, n_rec));
                         if ~isempty(fr(r).first_epoch) && ~isempty(fr(r).last_epoch)
                             % Build a unique line
@@ -1568,27 +1666,82 @@ classdef Core < handle
                             plot(serialize(t'), serialize(r * [ones(size(t,1),2) nan(size(t,1),1)]'), '-', 'Color', Core_UI.getColor(r, n_rec), 'LineWidth', 4);
                         end
                     end
-                end
-                Core_UI.addExportMenu(fh); Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'light');
+                end                
                 x_lims = [(max(sss_strt.getMatlabTime, min_t.getMatlabTime) - 0.01) (min(sss_stop.getMatlabTime, max_t.getMatlabTime) + 0.01)];
+                x_lims = min(datenum(sprintf('%d-01-00', year+1)), max(datenum(sprintf('%d-01-01', year)), x_lims));
                 months_time = months_time(months_time > x_lims(1) & months_time < x_lims(2));
-                xlim(x_lims);
-                ylim([0 n_rec + 1]);
-                h = ylabel('STATION'); h.FontWeight = 'bold';
-                ax = gca(); ax.YTick = 1:n_rec;
-                ax.YTickLabel = sta_name;
-                setTimeTicks(ax);
-                drawnow
-                % set(ax,'XGrid','on')
-                % title(sprintf('Rinex data avaliability %d',year));
-                % if numel(months_time) > 1
-                % ax.XTick = months_time;
-                % end
-                % datetick('x','dd/mm/yyyy HH','keepticks');
-                % ax.XTickLabelRotation = 45;
+                if diff(x_lims) == 0
+                    delete(fh)
+                else
+                    xlim(x_lims);
+                    ylim([0 n_rec + 1]);
+                    h = ylabel('STATION'); h.FontWeight = 'bold';
+                    ax = gca(); ax.YTick = 1:n_rec;
+                    ax.YTickLabel = sta_name;
+                    setAxis(fh);
+                    setTimeTicks(28);
+
+                    fh_list = [fh_list fh];
+                    Core_UI.beautifyFig(fh);
+                    Core_UI.addExportMenu(fh);
+                    Core_UI.addBeautifyMenu(fh);
+                    fh.Visible = iif(Core_UI.isHideFig, 'off', 'on'); drawnow;
+                end
             end
         end
         
+        function fh_list = showOutCooStatus(this, base_dir, n_obs, flag_cur_session)
+            if nargin < 2 || isempty(base_dir)
+                base_dir = this.getState.getOutDir();
+            end
+            if nargin < 4 || isempty(flag_cur_session)
+                flag_cur_session = false;
+            end
+            file_list = dir(fullfile(base_dir, '*_coo.mat'));
+            all_coo = Coordinates; all_coo(1) = [];
+            for f = 1:numel(file_list)
+                fprintf('Load "%s"\n', fullfile(file_list(f).folder, file_list(f).name));
+                coo = Coordinates.fromMatFile(fullfile(file_list(f).folder, file_list(f).name));
+                all_coo = [all_coo coo];
+                id_ko = false(numel(coo),1);
+                for c = 1:numel(coo)
+                    name = coo(c).getNameV3;
+                    if strcmp(name(7:9), 'WRD')
+                        id_ko(c) = true;
+                        fprintf('Bad coordinate: %s\n', name);
+                    end
+                end
+                if any(id_ko)
+                    coo(id_ko) = [];
+                    keyboard
+                    save((fullfile(file_list(f).folder, file_list(f).name)), 'coo');
+                end
+            end
+            id_ko = false(numel(all_coo),1);
+            for c = 1:numel(all_coo)
+                name = all_coo(c).getNameV3;
+                if strcmp(name(7:9), 'WRD')
+                    id_ko(c) = true;
+                    fprintf('Bad coordinate: %s\n', name);
+                end
+            end
+            all_coo(id_ko) = [];
+            if flag_cur_session
+                all_coo.keep(GPS_Time(0), this.state.getSessionsStopExt);
+            end
+            if nargin < 3 || isempty(n_obs)
+                [bl,br] = this.getState.getBuffer;                 
+                n_obs = (bl + br + this.getState.getSessionDuration) / 3600;
+            end
+            if ~isempty(all_coo)
+                fh_list = all_coo.showErrCodes(n_obs, false);
+                for fh = fh_list(:)0
+                    setAxis(fh);
+                    setTimeTicks(28);
+                end
+            end
+        end
+
         function [n_ok, n_ko] = updateRinFileList(this, force_update, verbosity)
             % Update and check rinex list
             %
@@ -1603,7 +1756,7 @@ classdef Core < handle
             if verbosity
                 this.log.addMarkedMessage('Checking RINEX input files');
             end
-            this.state.updateObsFileName;
+            this.getState.updateObsFileName;
             n_rec = this.state.getRecCount;
             rec_path = this.state.getRecPath;
             
@@ -1616,9 +1769,9 @@ classdef Core < handle
             for r = 1 : n_rec
                 name = File_Name_Processor.getFileName(rec_path{r}{1});
                 if verbosity
-                    this.log.addMessage(this.log.indent(sprintf('- %s ...checking...', upper(name(1:4)))));
+                    this.log.addMessage(this.log.indent(sprintf('%d/%d) %s ...checking...', r, n_rec, upper(name(1:4)))));
                 end
-                if force_update
+                if force_update || r > numel(fr)
                     fr(r) = File_Rinex(rec_path{r}, 100);
                     fr(r).checkCoordinates();
                 end
@@ -1940,6 +2093,19 @@ classdef Core < handle
             [ext_limits, sss_limits] = this.state.getSessionLimits(cur_session);
         end
         
+        function central_time = getSessionCentralTime(this)
+            % Get the central time of the current session
+            %
+            % OUTPUT
+            %   central_time     time at the center of the session
+            %
+            % SYNTAX
+            %   [central_time] = this.getSessionCentralTime()
+            [~, sss_limits] = this.getCurSessionLimits();
+            central_time = sss_limits.first;
+            central_time.addIntSeconds((sss_limits.last - sss_limits.first + 1) / 2);
+        end
+        
         function id = getStationId(this, marker_name)
             % Given a marker_name get the sequencial id of a station
             %
@@ -2017,6 +2183,8 @@ classdef Core < handle
         end
     end
 
+    %% METHODS UTILITIES
+    % ==================================================================================================================================================
     methods (Static) % Public Access        
         function clearSingletons()
             % clear all singletons
@@ -2037,6 +2205,141 @@ classdef Core < handle
             % SYNTAX
             %   install_dir = Core.getInstallDir()
             [install_dir, name, ext] = fileparts(which('goGPS'));
+        end
+        
+        function [local_storage] = getLocalStorageDir()
+            % Get local storage dir 
+            % 
+            % SYNTAX
+            %   local_storage = Core.getLocalStorageDir();
+            core = Core.getInstance(false, true);
+            
+            if isempty(core.local_storage)
+                core.initLocalPath();
+            end
+            local_storage = core.local_storage;
+
+        end
+
+        function updateAppFiles()
+            % Copy all the settings/cache file to the local storage dir
+            Core.getFilePath('app_settings', true);
+            Core.getFilePath('resources', true);
+            Core.getFilePath('credentials', true);
+            %Core.getFilePath('nominatim', true);
+            %Core.getFilePath('elevation', true);
+        end
+
+        function createLocalStorageLink()  
+            % Try to create a link to the local storage folder
+            %
+            % SYNTAX
+            %   Core.createLocalStorageLink();
+            local_storage = Core.getLocalStorageDir();
+            cmd = sprintf('ln -s "%s" "%s"', local_storage, fullfile(Core.getInstallDir, 'toLocalStorage'));
+            Core.getLogger.addMarkedMessage(sprintf('Trying to create local storage link, executing\n%s', cmd));
+            try 
+                system(cmd);
+            catch ex
+                Core_Utils.printEx(ex);
+            end
+        end
+
+        function file_path = getFilePath(type, force_copy)
+            % The function getsome settings file path and, if needed,
+            % copy the file in the local storage dir
+            %
+            % SYNTAX
+            %   file_path = Core.getFilePath(type, flag_force_copy)
+            %
+            % SEE ALSO
+            %   Core.getLocalStorage
+            file_path = '';
+
+            local_storage = Core.getLocalStorageDir();
+            file_name = '';
+            switch type
+                case 'app_settings'  
+                    storage_path = fullfile(local_storage, 'config');
+                    file_name = 'app_settings.ini';
+                case 'resources' 
+                    storage_path = fullfile(local_storage, 'config');
+                    file_name = 'remote_resource.ini';
+                case 'credentials'  
+                    storage_path = fullfile(local_storage, 'config');
+                    file_name = 'credentials.txt';
+                    if ~exist(file_name, 'file')
+                        copyfile('credentials.example.txt', file_name);
+                    end
+                case 'nominatim'                    
+                    storage_path = fullfile(local_storage, 'cache');
+                    file_name = 'nominatim_cache.mat';
+                case 'elevation'                    
+                    storage_path = fullfile(local_storage, 'cache');
+                    file_name = 'elevation_cache.mat';
+            end
+
+            if isempty(file_name)
+                Core.getLogger.addError(sprintf('Unknown settigns file "%s"', type));
+            else
+                if ~exist(storage_path, 'dir')
+                    try
+                        mkdir(storage_path);
+                    catch
+                        % file_system error
+                    end
+                end
+
+                file_path = fullfile(storage_path, file_name);
+
+                if ~exist(file_path, 'file') && ~exist(file_name, 'file')
+                    Core.getLogger.addError(sprintf('File "%s" cannot be copied to "%s"\nThe file does not exist!', file_name,  file_path));
+                else
+                    file_is_missing = ~exist(file_path, 'file');
+                    if file_is_missing || ...
+                            ((nargin == 2) && ~isempty(force_copy) && force_copy)
+                        % copy the file to local storage dir
+                        [status, message] = copyfile(file_name, file_path, 'f');
+                        if ~status
+                            Core.getLogger.addError(sprintf('File "%s" cannot be copied to "%s"\n%s', file_name,  file_path, message));
+                            file_path = file_name;
+                        else
+                            Core.getLogger.addStatusOk(sprintf('File "%s" copied to "%s"', file_name,  file_path));
+                        end
+                    end
+                end
+            end
+        end
+
+        function runtime_path = getRuntimeDir()
+            % Get the runtime path that contains goGPS.m aka the install dir
+            %
+            % SYNTAX
+            %   install_dir = Core.getInstallDir()
+            if isdeployed
+                if isunix
+                    if ismac
+                        runtime_path = regexp(getenv('DYLD_LIBRARY_PATH'),'.*(?=\/runtime)','match');
+                    else
+                        runtime_path = regexp(getenv('LD_LIBRARY_PATH'),'.*(?=\/runtime)','match');
+                    end
+                else
+                    % Windows to be managed
+                    runtime_path = '';
+                end
+                
+                if isempty(runtime_path)
+                    runtime_path = matlabroot;                
+                else
+                    if iscell(runtime_path)
+                        runtime_path = runtime_path{1};
+                    end
+                    runtime_path = strsplit(runtime_path, ':');
+                    runtime_path = runtime_path{end};
+                end
+            else
+                runtime_path = matlabroot;
+            end
         end
         
         function core = load(file_name)
@@ -2086,14 +2389,18 @@ classdef Core < handle
                 end
                 
                 try
+                    core.initLocalPath();
                     Core.setCurrentCore(core);
                     core.initGeoid();
-                    core.gocfg = Go_Settings.getInstance();
+                    core.app_cfg = App_Settings.getInstance();
                     if ~isdeployed
                         % Export into workspace
                         rec = core.rec;
+                        coo = rec.getCoo();
+                        
                         assignin('base', 'core', core);
                         assignin('base', 'rec', rec);
+                        assignin('base', 'coo', coo);
                     end
                 catch ex
                     Core_Utils.printEx(ex);

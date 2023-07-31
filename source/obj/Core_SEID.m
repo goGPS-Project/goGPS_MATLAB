@@ -16,10 +16,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti
 %  Contributors:      Andrea Gatti, Giulio Tagliaferro
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -265,15 +265,16 @@ classdef Core_SEID < handle
                         % Create a unique matrix containing all the pierce_points/mf of the ref receivers (sat by sat) ------- AND INTERPOLATE!!!!! ------------
                         % It is necessary to better sync satellites in view
                         % this part of the code needs to be improved
+                        max_n_sat = max(trg(t).go_id);
                         if strcmp(method, 'ls')
-                            trg_gf = nan(trg(t).time.length, max(trg_go_id));
+                            trg_gf = nan(trg(t).time.length, max_n_sat);
                         else
-                            trg_pr_gf = nan(trg(t).time.length, max(trg_go_id));
-                            trg_ph_gf = nan(trg(t).time.length, max(trg_go_id));
+                            trg_pr_gf = nan(trg(t).time.length, max_n_sat);
+                            trg_ph_gf = nan(trg(t).time.length, max_n_sat);
                         end
-                        wl1 = zeros(max(trg_go_id),1);
-                        wl2 = zeros(max(trg_go_id),1);
-                        band = char(zeros(max(trg_go_id),1));
+                        wl1 = zeros(max_n_sat,1);
+                        wl2 = zeros(max_n_sat,1);
+                        band = char(zeros(max_n_sat,1));
                         
                         for s = 1 : numel(trg_go_id)
                             mf_sat = nan(size(id_sync{t},1), numel(ref));
@@ -406,7 +407,7 @@ classdef Core_SEID < handle
                         
                         % Remove the L2 stored in the object
                         for sys = systems
-                            bnd = unique(band(Core.getConstellationCollector.getSysPrn(1:max(trg_go_id)) == sys));
+                            bnd = unique(band(Core.getConstellationCollector.getSysPrn(1:max_n_sat) == sys));
                             bnd(bnd == 0) = [];
                             [~, id_ph] = trg(t).getObs(['L' bnd],sys);
                             if ~isempty(id_ph)
@@ -416,7 +417,7 @@ classdef Core_SEID < handle
                         end
                         
                         for sys = systems
-                            bnd = unique(band(Core.getConstellationCollector.getSysPrn(1:max(trg_go_id)) == sys));
+                            bnd = unique(band(Core.getConstellationCollector.getSysPrn(1:max_n_sat) == sys));
                             bnd(bnd == 0) = [];
                             [~, id_pr] = trg(t).getObs(['C' bnd],sys);
                             if ~isempty(id_pr)
@@ -591,7 +592,7 @@ classdef Core_SEID < handle
                         [lat_pp, lon_pp, iono_mf] = Atmosphere.getPiercePoint(lat / 180 * pi, lon / 180 * pi, h_ortho, trg(t).sat.az(:, trg_go_id) / 180 * pi, zero2nan(trg(t).sat.el(:, trg_go_id) / 180 * pi), 350*1e3);
                         
                         % It is necessary to better sync satellites in view
-                        iono_trg = nan(trg(t).time.length, max(trg_go_id));
+                        iono_trg = nan(trg(t).time.length, max_n_sat);
                         for s = 1 : numel(trg_go_id)
                             lat_sat = nan(size(id_sync{t},1), numel(ref));
                             lon_sat = nan(size(id_sync{t},1), numel(ref));

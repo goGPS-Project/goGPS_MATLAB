@@ -14,10 +14,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Andrea Gatti, Giulio Tagliaferro ...
 %  Contributors:      Andrea Gatti, Giulio Tagliaferro ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -112,14 +112,17 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
         tge      % tropospheric gradient east          double   [n_epoch x n_sat]
         
         tzer     % zernike modeling of the tropo
+
+        thin_shell_height % thin shell height used to compute vtec;
+        vtec           % vertical tec
     end
-    
+     
     % ==================================================================================================================================================
     %% PROPERTIES QUALITY INDEXES
     % ==================================================================================================================================================
     
     properties
-        quality_info = struct('s0', [], 's0_ip', [], 'n_epochs', [], 'n_obs', [], 'n_out', [], 'n_sat', [], 'n_sat_max', [], 'n_spe', [], 'fixing_ratio', [], 'C_pos_pos', []);
+        quality_info = struct('s0', [], 's0_ip', [], 'n_epochs', [], 'n_obs', [], 'n_out', [], 'n_sat', [], 'n_sat_max', [], 'n_spe', [], 'fixing_ratio', [], 'C_pos_pos', [], 'dop', []);
         a_fix
         s_rate
         n_sat_ep
@@ -163,7 +166,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             this.h_ellips = [];
             this.h_ortho = [];
             
-            this.quality_info = struct('s0', [], 's0_ip', [], 'n_epochs', [], 'n_obs', [], 'n_out', [], 'n_sat', [], 'n_sat_max', [], 'n_spe', [], 'fixing_ratio', [], 'C_pos_pos', []);
+            this.quality_info = struct('s0', [], 's0_ip', [], 'n_epochs', [], 'n_obs', [], 'n_out', [], 'n_sat', [], 'n_sat_max', [], 'n_spe', [], 'fixing_ratio', [], 'C_pos_pos', [], 'dop', []);
             
             this.a_fix = [];
             this.s_rate = [];
@@ -178,6 +181,8 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             
             this.tgn = [];
             this.tge = [];
+
+            this.vtec = struct('time', GPS_Time, 'value', single([]), 'ref', single([]), 'lat_ipp', single([]), 'lon_ipp', single([]), 'ant_id', '');
         end
     end
     % ==================================================================================================================================================
@@ -193,22 +198,30 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             cc = Core.getState.getConstellationCollector;
         end
         
-        function is_fixed = isFixed(this)
+        function is_fixed = isFixed(this, epoch)
             % Is the position of this station fixed?
             %
             % SYNTAX
             %   is_fixed = this.isFixed()
             rf = Core.getReferenceFrame;
-            is_fixed = rf.isFixed(this.parent.getMarkerName4Ch);
+            if nargin == 2
+                is_fixed = rf.isFixed(this.parent.getMarkerName4Ch, epoch);
+            else
+                is_fixed = rf.isFixed(this.parent.getMarkerName4Ch);
+            end
         end
-        
-        function is_fixed = isFixedPrepro(this)
+
+        function is_fixed = isFixedPrepro(this, epoch)
             % Is the position of this station fixed for pre-processing?
             %
             % SYNTAX
             %   is_fixed = this.isFixedPrepro()
             rf = Core.getReferenceFrame;
-            is_fixed = rf.isFixedPrepro(this.parent.getMarkerName4Ch);
+            if nargin == 2
+                is_fixed = rf.isFixedPrepro(this.parent.getMarkerName4Ch, epoch);
+            else
+                is_fixed = rf.isFixedPrepro(this.parent.getMarkerName4Ch);
+            end
         end
         
         function toStringPos(this)
@@ -223,7 +236,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
         end
         
         function is_empty = isEmpty(this)
-            % Return if the object does not cantains any observation
+            % Return if the object does not contains any time
             %
             % SYNTAX
             %   is_empty = this.isEmpty();
@@ -288,7 +301,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             %   coo     coordinates object
             %
             % SYNTAX
-            %   coo = this.getPos()
+            %   coo = this.getPos(flag_add_coo)
             
             if nargin == 1 || isempty(flag_add_coo)
                 flag_add_coo = 0;
@@ -296,10 +309,10 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             
             if flag_add_coo == -100
                 % Get it from PrePro (or old PPP)
-                if ~isempty(this.xyz)
+                if any(this.xyz)
                     coo = Coordinates.fromXYZ(this.xyz);
                 elseif ~isempty(this.parent.work.xyz)
-                    coo = Coordinates.fromXYZ(this.parent.work.xyz);
+                    coo = Coordinates.fromXYZ(this.parent.work.xyz, this.parent.work.getPositionTime());
                 else
                     coo = Coordinates.fromXYZ([0 0 0]);
                 end
@@ -313,8 +326,19 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 coo.info.n_epo = this.quality_info.n_epochs;
                 coo.info.n_obs = this.quality_info.n_obs;
                 coo.info.s0 = this.quality_info.s0;
+                if isempty(coo.info.s0)
+                    coo.info.s0 = nan;
+                end
+                if isempty(coo.info.obs_used)
+                    coo.info.obs_used = nan;
+                end
+                
                 coo.info.s0_ip = this.quality_info.s0_ip;
-                coo.info.flag = 0;
+                if isa(this, 'Receiver_Work_Space')
+                    coo.info.flag = this.pp_status;
+                else
+                    coo.info.flag = uint8(0);
+                end
                 coo.info.fixing_ratio = 0;
                 if isempty(coo.info.s0_ip) || all(isnan(coo.info.s0_ip))
                     coo.info.coo_type = 'G';
@@ -327,16 +351,25 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     coo.Cxx = nan(3); % Unknown coordinate covariance NaN
                 end
                 coo.info.rate = this.time.getRate;
-                coo.info.master_name = categorical({this.parent.getMarkerName4Ch});
+                [~, coo.info.master_name] = this.parent.getMarkerNameV3();
+                coo.info.master_name = coo.info.master_name;
             elseif flag_add_coo == 0
                 coo = this.coo;
                 % Fallback (in case of empty coo)
-                if isempty(coo)
-                    coo = this.getPos(-100);
+                if isempty(coo) || ~any(coo.xyz(:))
+                    if isempty(coo) || ~any(coo.xyz(:))
+                        coo = this.getPos(-100);
+                    end
+                    if  isempty(coo) && isa(this,'Receiver_Output')
+                        if ~isempty(this.parent.work)
+                            % get it from work
+                            coo = this.parent.work.getPos();
+                        end
+                    end
                 end
             else
                 if ~isempty(this.add_coo)
-                    coo = this.add_coo(min(numel(this.add_coo), flag_add_coo)).coo;
+                    coo = this.add_coo(min(numel(this.add_coo), flag_add_coo)).coo.getCopy;
                     if coo.time.isEmpty
                         coo.setTime(this.add_coo(min(numel(this.add_coo), flag_add_coo)).coo.time);
                     end
@@ -550,7 +583,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 time = time{1};
             end
         end
-           
+        
         function [mfh, mfw, grad_term] = getSlantMFGen(this, id_sync)
             % Get Mapping function for the satellite slant
             %
@@ -591,6 +624,8 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             [mfh, mfw] = atmo.vmf_grd(this.time, lat./180*pi, lon./180*pi, (this.sat.el)./180*pi, h_ellipse,3);
                         elseif this.state.mapping_function == Prj_Settings.MF_GMF
                             [mfh, mfw] = atmo.gmf(this.time, lat./180*pi, lon./180*pi, h_ortho, zero2nan(this.sat.el)./180*pi);
+                        elseif this.state.mapping_function == Prj_Settings.MF_COSEL
+                            [mfh, mfw] = deal(cosd(zero2nan(this.sat.el)));
                         end
                        
                         if ~isempty(id_sync)
@@ -630,27 +665,6 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             slant_td = zeros(size(this.sat.el)); % Slant Total Delay
             slant_wd = zeros(size(this.sat.el)); % Slant Wet Delay
             
-            zwd = nan2zero(this.getZwd);
-            apr_zhd = single(this.getAprZhd);
-            cosaz = zero2nan(cosd(this.sat.az(id_sync, :)));
-            sinaz = zero2nan(sind(this.sat.az(id_sync, :)));
-          
-            [gn ,ge] = this.getGradient();
-            if ~isempty(this.tzer)
-                [mfh, mfw, grad_term] = this.getSlantMF();
-            else
-                if ~isempty(zwd)
-                    if any(ge(:))
-                        [mfh, mfw, grad_term] = this.getSlantMF();
-                    else
-                        [mfh, mfw] = this.getSlantMF();
-                    end
-                else
-                    mfh = [];
-                    mfw = [];
-                end
-            end
-
             if nargin < 2 || isempty(go_id) || strcmp(go_id, 'all')
                 this.log.addMessage(this.log.indent('Updating tropospheric errors'))
                 try
@@ -661,41 +675,64 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 end
             else
                 go_id = serialize(go_id)';
-            end            
+            end
             
-            % Computing delays
-            if any(mfh(:)) && any(mfw(:))
-                if any(ge(:))
-                    for g = go_id
-                        slant_wd(id_sync, g) = mfw(:,g) .* zwd + gn .* grad_term(:,g) .* cosaz(:,g) + ge .* grad_term(:,g) .* sinaz(:,g);
-                        slant_td(id_sync, g) = mfh(:,g) .* apr_zhd + slant_wd(id_sync, g);
-                    end
+            if not(isempty(this.sat.el))
+                zwd = nan2zero(this.getZwd);
+                apr_zhd = single(this.getAprZhd);
+                cosaz = zero2nan(cosd(this.sat.az(id_sync, :)));
+                sinaz = zero2nan(sind(this.sat.az(id_sync, :)));
+                
+                [gn ,ge] = this.getGradient();
+                if ~isempty(this.tzer)
+                    [mfh, mfw, grad_term] = this.getSlantMF();
                 else
-                    for g = go_id
-                        slant_wd(id_sync, g) = mfw(:,g).*zwd;
-                        slant_td(id_sync, g) = mfh(:,g) .* apr_zhd + slant_wd(id_sync, g);
+                    if ~isempty(zwd)
+                        if any(ge(:))
+                            [mfh, mfw, grad_term] = this.getSlantMF();
+                        else
+                            [mfh, mfw] = this.getSlantMF();
+                        end
+                    else
+                        mfh = [];
+                        mfw = [];
                     end
                 end
-                % If Zernike have been used rebuild delays in this way:
-                if ~isempty(this.tzer)
-                    degree = ceil(-3/2 + sqrt(9/4 + 2*(Prj_Settings.getNumZerTropoCoef  -1)));
-                    el = this.sat.el(id_sync,:);
-                    
-                    rho = (90 - el)/(90);
-                    zer_val = nan(size(this.sat.err_tropo,1),size(this.sat.err_tropo,2),Prj_Settings.getNumZerTropoCoef);
-                    
-                    az = this.sat.az(id_sync,:);
-                    idx = el>0;
-                    for  g = go_id
-                        zer_val(idx(:,g),g,:) = Core_Utils.getAllZernike(degree, az(idx(:,g),g)/180*pi, rho(idx(:,g),g));
+                
+                % Computing delays
+                if any(mfh(:)) && any(mfw(:))
+                    if any(ge(:))
+                        for g = go_id
+                            slant_wd(id_sync, g) = mfw(:,g) .* zwd + gn .* grad_term(:,g) .* cosaz(:,g) + ge .* grad_term(:,g) .* sinaz(:,g);
+                            slant_td(id_sync, g) = mfh(:,g) .* apr_zhd + slant_wd(id_sync, g);
+                        end
+                    else
+                        for g = go_id
+                            slant_wd(id_sync, g) = mfw(:,g).*zwd;
+                            slant_td(id_sync, g) = mfh(:,g) .* apr_zhd + slant_wd(id_sync, g);
+                        end
                     end
-                    for i = 4 : Prj_Settings.getNumZerTropoCoef
-                        slant_td(id_sync,:) = slant_td(id_sync,:) + zero2nan(repmat(this.tzer(:,i-3),1,size(el,2)).*grad_term.*zer_val(:,:,i));
+                    % If Zernike have been used rebuild delays in this way:
+                    if ~isempty(this.tzer)
+                        degree = ceil(-3/2 + sqrt(9/4 + 2*(Prj_Settings.getNumZerTropoCoef  -1)));
+                        el = this.sat.el(id_sync,:);
+                        
+                        rho = (90 - el)/(90);
+                        zer_val = nan(size(this.sat.err_tropo,1),size(this.sat.err_tropo,2),Prj_Settings.getNumZerTropoCoef);
+                        
+                        az = this.sat.az(id_sync,:);
+                        idx = el>0;
+                        for  g = go_id
+                            zer_val(idx(:,g),g,:) = Core_Utils.getAllZernike(degree, az(idx(:,g),g)/180*pi, rho(idx(:,g),g));
+                        end
+                        for i = 4 : Prj_Settings.getNumZerTropoCoef
+                            slant_td(id_sync,:) = slant_td(id_sync,:) + zero2nan(repmat(this.tzer(:,i-3),1,size(el,2)).*grad_term.*zer_val(:,:,i));
+                        end
                     end
                 end
             end
         end
-                
+        
         function [slant_td] = getSlantTD_AzEl(this, time, az , el )
             % Get the slant total delay
             %
@@ -745,40 +782,6 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 ztd = nan(size(this.getIdSync));
             else
                 ztd = this.ztd(this.getIdSync);
-            end
-        end
-        
-        function [zwd, p_time, id_sync, tge, tgn] = getZwd_mr(sta_list)
-            % Get synced data of zwd
-            % MultiRec: works on an array of receivers
-            %
-            % SYNTAX
-            %  [zwd, p_time, id_sync] = this.getZwd_mr()
-            %  [zwd, p_time, id_sync, tge, tgn] = this.getZwd_mr()
-            
-            [p_time, id_sync] = Receiver_Commons.getSyncTimeExpanded(sta_list);
-            
-            id_ok = any(~isnan(id_sync),2);
-            id_sync = id_sync(id_ok, :);
-            p_time = p_time.getEpoch(id_ok);
-            
-            n_rec = numel(sta_list);
-            zwd = nan(size(id_sync));
-            for r = 1 : n_rec
-                id_rec = id_sync(:,r);
-                id_rec(id_rec > length(sta_list(r).zwd)) = nan;
-                zwd(~isnan(id_rec), r) = sta_list(r).zwd(id_rec(~isnan(id_rec)));
-            end
-            
-            if nargout == 5
-                tge = nan(size(id_sync));
-                tgn = nan(size(id_sync));
-                for r = 1 : n_rec
-                    id_rec = id_sync(:,r);
-                    id_rec(id_rec > length(sta_list(r).zwd)) = nan;
-                    tge(~isnan(id_rec), r) = sta_list(r).tge(id_rec(~isnan(id_rec)));
-                    tgn(~isnan(id_rec), r) = sta_list(r).tgn(id_rec(~isnan(id_rec)));
-                end
             end
         end
         
@@ -922,7 +925,12 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 apr_zwd = [];
                 time = GPS_Time();
             else
-                apr_zwd = this.apr_zwd(this.getIdSync);
+                id_sync = this.getIdSync;
+                if any(id_sync > length(this.apr_zwd))
+                    id_sync = id_sync(id_sync <= length(this.apr_zwd));
+                    Core.getLogger.addWarning(sprintf('Receive %s, have corrupted dimensions', this.parent.getMarkerName4Ch));
+                end
+                apr_zwd = this.apr_zwd(id_sync);
                 time = this.time.getEpoch(this.getIdSync);
             end
         end
@@ -931,7 +939,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             % Get the azimuth and elevation (on valid id_sync)
             %
             % SYNTAX
-            %   [az, el] = this.getAzEl();
+            %   [az, el] = this.getAzEl(<go_id>);
             if nargin == 2
                 az = this.getAz(go_id);
                 el = this.getEl(go_id);
@@ -1132,6 +1140,41 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
     end
     
     methods (Access = public)
+        
+        function [zwd, p_time, id_sync, tge, tgn] = getZwd_mr(sta_list)
+            % Get synced data of zwd
+            % MultiRec: works on an array of receivers
+            %
+            % SYNTAX
+            %  [zwd, p_time, id_sync] = this.getZwd_mr()
+            %  [zwd, p_time, id_sync, tge, tgn] = this.getZwd_mr()
+
+            [p_time, id_sync] = Receiver_Commons.getSyncTimeExpanded(sta_list);
+
+            id_ok = any(~isnan(id_sync),2);
+            id_sync = id_sync(id_ok, :);
+            p_time = p_time.getEpoch(id_ok);
+
+            n_rec = numel(sta_list);
+            zwd = nan(size(id_sync));
+            for r = 1 : n_rec
+                id_rec = id_sync(:,r);
+                id_rec(id_rec > length(sta_list(r).zwd)) = nan;
+                zwd(~isnan(id_rec), r) = sta_list(r).zwd(id_rec(~isnan(id_rec)));
+            end
+
+            if nargout == 5
+                tge = nan(size(id_sync));
+                tgn = nan(size(id_sync));
+                for r = 1 : n_rec
+                    id_rec = id_sync(:,r);
+                    id_rec(id_rec > length(sta_list(r).zwd)) = nan;
+                    tge(~isnan(id_rec), r) = sta_list(r).tge(id_rec(~isnan(id_rec)));
+                    tgn(~isnan(id_rec), r) = sta_list(r).tgn(id_rec(~isnan(id_rec)));
+                end
+            end
+        end
+        
         function err_status = cleanTropo(sta_list, thr_lev, flag_verbose) 
             % Check ZWD for possible outliers (works on the mr ZWD getter)
             % And remove all the outliers from the tropo parameters 
@@ -1194,21 +1237,22 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
     % ==================================================================================================================================================
     
     methods
-        function exportTropoSINEX(this, param_to_export)
+        function out_file_list = exportTropoSINEX(rec_list, param_to_export)
             % exprot tropspheric product in a sinex file
             %
             % SYNTAX:
-            %    exportTropoSinex(this, <param_to_export>)
+            %    out_file_path = exportTropoSinex(this, <param_to_export>)
+            out_file_list = {};
             if nargin < 2
                 param_to_export = [ 1 1 1 1 1 0 0 0];
             end
-            for r = 1 : numel(this)
-                if min(this(r).quality_info.s0) < 0.10 % If there is at least one good session export the data
+            for r = 1 : numel(rec_list)
+                if min(rec_list(r).quality_info.s0) < 0.10 % If there is at least one good session export the data
                     try
-                        rec = this(r);
+                        rec = rec_list(r);
                         if ~isempty(rec.getZtd)
-                            time = this(r).getTime();
-                            [year, doy] = this(r).getCentralTime.getDOY();
+                            time = rec_list(r).getTime();
+                            [year, doy] = rec_list(r).getCentralTime.getDOY();
                             
                             % Detect session length
                             %flag_no_session = (time.last - time.first) > (3600 * 23); % if I have at least 23 hour is a daily session
@@ -1224,12 +1268,13 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                                 sess_str = sess_str(datevec_start(4) + 1);
                             end
                             file_name = sprintf('%s',[rec.state.getOutDir() filesep rec.parent.getMarkerName4Ch sprintf('%03d', doy) sess_str '.' yy 'zpd']);
+                            out_file_list = [out_file_list(:); {file_name}];
                             snx_wrt = SINEX_Writer(file_name);
                             snx_wrt.writeTroSinexHeader( rec.time.first, rec.time.getSubSet(rec.time.length), rec.parent.getMarkerName4Ch)
                             snx_wrt.writeFileReference()
                             snx_wrt.writeAcknoledgments()
                             smpl_tropo = median(diff(rec.getIdSync)) * rec.time.getRate;
-                            snx_wrt.writeTropoDescription(rec.state.cut_off, rec.time.getRate, smpl_tropo, snx_wrt.SINEX_MAPPING_FLAGS{this.state.mapping_function}, SINEX_Writer.SUPPORTED_PARAMETERS(param_to_export>0), false(length(param_to_export),1))
+                            snx_wrt.writeTropoDescription(rec.state.cut_off, rec.time.getRate, smpl_tropo, snx_wrt.SINEX_MAPPING_FLAGS{rec_list.state.mapping_function}, SINEX_Writer.SUPPORTED_PARAMETERS(param_to_export>0), false(length(param_to_export),1))
                             snx_wrt.writeSTACoo( rec.parent.marker_name, rec.xyz(1,1), rec.xyz(1,2), rec.xyz(1,3), 'UNDEF', 'GRD'); % The reference frame depends on the used orbit so it is generraly labled undefined a more intelligent strategy could be implemented
                             snx_wrt.writeTropoSolutionSt()
                             data = [];
@@ -1248,7 +1293,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             if param_to_export(5)
                                 data = [data rec.getPwv*1e3];
                             end
-                            [P,T,H] = this.getPTH();
+                            [P,T,H] = rec_list.getPTH();
                             if param_to_export(6)
                                 data = [data P];
                             end
@@ -1269,16 +1314,16 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         rec(1).log.addError(sprintf('saving Tropo in sinex format failed: %s', ex.message));
                     end
                 else
-                    if isempty(max(this(r).quality_info.s0))
-                        this(1).log.addWarning(sprintf('s02 no solution have been found, station skipped', max(this(r).quality_info.s0)));
+                    if isempty(max(rec_list(r).quality_info.s0))
+                        rec_list(1).log.addWarning(sprintf('s02 no solution have been found, station skipped', max(rec_list(r).quality_info.s0)));
                     else
-                        this(1).log.addWarning(sprintf('s02 (%f m) too bad, station skipped', max(this(r).quality_info.s0)));
+                        rec_list(1).log.addWarning(sprintf('s02 (%f m) too bad, station skipped', max(rec_list(r).quality_info.s0)));
                     end
                 end
             end
         end
         
-        function exportTropoMat(this)
+        function out_file_list = exportTropoMat(rec_list)
             % Export the troposphere into a MATLAB data format file
             % The data exported are:
             %  - lat
@@ -1290,14 +1335,15 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             %  - time_utc in matlab format
             %
             % SYNTAX
-            %   this.exportTropoMat
+            %   out_file_list = this.exportTropoMat
             
+            out_file_list = {};
             log = Core.getLogger();
-            for r = 1 : numel(this)
-                if max(this(r).quality_info.s0) < 0.10
+            for r = 1 : numel(rec_list)
+                if max(rec_list(r).quality_info.s0) < 0.10
                     try
-                        this(r).updateCoordinates;
-                        time = this(r).getTime.getNominalTime();
+                        rec_list(r).updateCoordinates;
+                        time = rec_list(r).getTime.getNominalTime();
                         state = Core.getCurrentSettings;
 
                         [~, t_start] = state.getSessionLimits();
@@ -1310,30 +1356,31 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         t_start.toUtc();
                         time.toUtc();
                         
-                        marker_name = this.parent.getMarkerName;
-                        sys = this.parent.getActiveSys;
-                        xyz = this.getPos.getXYZ;
-                        [pressure, temperature, humidity] = this.getPTH();
+                        marker_name = rec_list.parent.getMarkerName;
+                        sys = rec_list.parent.getActiveSys;
+                        xyz = rec_list.getPos.getXYZ;
+                        [pressure, temperature, humidity] = rec_list.getPTH();
                         
-                        lat = this(r).lat; %#ok<NASGU>
-                        lon = this(r).lon; %#ok<NASGU>
-                        h_ellips = this(r).h_ellips; %#ok<NASGU>
-                        h_ortho = this(r).h_ortho; %#ok<NASGU>
-                        ztd = this(r).getZtd(); %#ok<NASGU>
-                        zwd = this(r).getZwd(); %#ok<NASGU>
-                        pwv = this(r).getPwv(); %#ok<NASGU>
+                        lat = rec_list(r).lat; %#ok<NASGU>
+                        lon = rec_list(r).lon; %#ok<NASGU>
+                        h_ellips = rec_list(r).h_ellips; %#ok<NASGU>
+                        h_ortho = rec_list(r).h_ortho; %#ok<NASGU>
+                        ztd = rec_list(r).getZtd(); %#ok<NASGU>
+                        zwd = rec_list(r).getZwd(); %#ok<NASGU>
+                        pwv = rec_list(r).getPwv(); %#ok<NASGU>
                         utc_time = time.getMatlabTime; %#ok<NASGU>
                         
-                        out_dir = fullfile(this(r).state.getOutDir(), sprintf('%4d', year), sprintf('%03d',doy));
+                        out_dir = fullfile(rec_list(r).state.getOutDir(), sprintf('%4d', year), sprintf('%03d',doy));
                         if ~exist(out_dir, 'file')
                             mkdir(out_dir);
                         end
-                        fname_old = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_', year, doy, t_start_str) '*.m']);
+                        fname_old = sprintf('%s',[out_dir filesep rec_list(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_', year, doy, t_start_str) '*.m']);
                         old_file_list = dir(fname_old);
 
-                        fname = sprintf('%s',[out_dir filesep this(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_%d', year, doy, t_start_str,  round(t_end-t_start)+1) '.mat']);
+                        fname = sprintf('%s',[out_dir filesep rec_list(r).parent.getMarkerName4Ch sprintf('%04d%03d_%4s_%d', year, doy, t_start_str,  round(t_end-t_start)+1) '.mat']);
                         save(fname, 'marker_name', 'sys', 'lat', 'lon', 'h_ellips', 'h_ortho', 'ztd', 'zwd', 'pwv', 'utc_time', 'xyz', 'pressure', 'temperature', 'humidity', '-v6');
-                        
+                        out_file_list = [out_file_list(:); {fname}];
+
                         log.addStatusOk(sprintf('Tropo saved into: "%s"', fname));
                         for f = 1 : numel(old_file_list)
                             % If I did not overwrite the old file, delete it
@@ -1347,16 +1394,16 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         log.addError(sprintf('saving Tropo in matlab format failed: "%s"', ex.message));
                     end
                 else
-                    if isempty(max(this(r).quality_info.s0))
+                    if isempty(max(rec_list(r).quality_info.s0))
                         log.addWarning(sprintf('s02 no solution have been found, station skipped'));
                     else
-                        log.addWarning(sprintf('s02 (%f m) too bad, station skipped', max(this(r).quality_info.s0)));
+                        log.addWarning(sprintf('s02 (%f m) too bad, station skipped', max(rec_list(r).quality_info.s0)));
                     end
                 end
             end
         end        
         
-        function exportTropoCSV(this)
+        function out_file_list = exportTropoCSV(this)
             % Export the troposphere into a MATLAB data format file
             % The data exported are:
             %  - ztd
@@ -1366,8 +1413,10 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             %  - time_utc in matlab format
             %
             % SYNTAX
-            %   this.exportTropoCSV
+            %   out_file_list = this.exportTropoCSV
             
+            out_file_list = {};
+
             log = Core.getLogger();
             for r = 1 : numel(this)
                 if max(this(r).quality_info.s0) < 0.10
@@ -1403,7 +1452,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         else
                             fid = fopen(fname,'Wb');
                             % Export any non empty parameter
-                            fprintf(fid,'Date               %s%s%s%s%s\n', iif(isempty(zwd), '', ',ZTD [m]     '), iif(isempty(ztd), '', ',ZWD [m]     '), iif(isempty(pwv), '', ',PWV [mm]    '), iif(isempty(ge), '', ',GE [m]      '), iif(isempty(gn), '', ',GN [m]      '));
+                            fprintf(fid,'Date               %s%s%s%s%s\n', iif(isempty(zwd), '', ',ZTD [m]     '), iif(isempty(ztd), '', ',ZWD [m]     '), iif(isempty(pwv), '', ',PWV [m]    '), iif(isempty(ge), '', ',GE [m]      '), iif(isempty(gn), '', ',GN [m]      '));
                             data = time.toString('dd/mm/yyyy HH:MM:SS');
                             if ~isempty(ztd)
                                 data = [data reshape(sprintf(',%12.6f', ztd), 13, n_data)'];
@@ -1423,6 +1472,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                             data = [data char(10 .* ones(n_data,1))];
                             fprintf(fid,data');
                             fclose(fid);
+                            out_file_list = [out_file_list(:); {fname}];
                             log.addStatusOk(sprintf('Tropo saved into: "%s"', fname));
                             for f = 1 : numel(old_file_list)
                                 % If I did not overwrite the old file, delete it
@@ -1446,7 +1496,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
         end
         
-        function err_code = exportSlantDelay(this, time_rate, mode, format, flag_append, flag_wet)
+        function [err_code, out_file_list] = exportSlantDelay(this, time_rate, mode, format, flag_append, flag_wet)
             % Export Slant Total or Wet Delay
             % 
             % INPUT 
@@ -1471,7 +1521,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             %       with the combined engine in iono-free mode
             %
             % SYNTAX
-            %   this.exportSlantDelay(this, time_rate, mode, format, flag_append, flag_wet)
+            %   [err_code, out_file_list] = this.exportSlantDelay(this, time_rate, mode, format, flag_append, flag_wet)
             
             err_code = 1;
             if nargin < 4 || isempty(format)
@@ -1496,6 +1546,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 flag_wet = true;
             end
             
+            out_file_list = {};
             try
                 log = Core.getLogger();
                 cut_off = Core.getState.getCutOff;
@@ -1568,6 +1619,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         if format(1) == 'e'
                             file_path = sprintf('%s',[out_dir filesep this.parent.getMarkerName4Ch sprintf('_Slant%cD_%04d%03d_%4s_%d', iif(flag_wet, 'W', 'T'), year, doy, t_start_str, round(t_end-t_start)+1) '.SNX']);
                             fid = fopen(file_path, 'wb');
+                            out_file_list = [out_file_list(:); {file_path}];
                         end
                         if format(1) == 'e' && fid <= 0
                             log.addError(sprintf('Writing "%s" seems impossible', file_path));
@@ -1650,6 +1702,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                                         else
                                             fid = fopen(file_path, 'wb');
                                         end
+                                        out_file_list = [out_file_list(:); {file_path}];
                                         if fid <= 0
                                             log.addError(sprintf('Writing "%s" seems impossible', file_path));
                                         else
@@ -1720,6 +1773,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
         end
     end
     
+    % ==================================================================================================================================================
     %% METHODS PLOTTING FUNCTIONS
     % ==================================================================================================================================================
     
@@ -1747,8 +1801,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             dockAllFigures();
         end
         
-        
-        function  fh_list = showBaselineENU(recs, baseline_ids, flag_add_coo, n_obs)
+        function  fh_list = showBaselineENU(recs, baseline_ids, flag_add_coo, n_obs, flag_pup)
             % Function to plot baseline between 2 or more stations
             %
             % INPUT:
@@ -1756,9 +1809,13 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             %   baseline_ids/ref_id      n_baseline x 2 - couple of id in sta_list to be used
             %   flag_add_coo             use external / internal / high rate cordinates
             %   n_obs                    use only the last n_obs
+            %   flag_pup                 plot as planar up
             %   
             % SYNTAX
             %   showBaselineENU(sta_list, <baseline_ids = []>, flag_add_coo, n_obs))
+            if nargin < 5 || isempty(flag_pup)
+                flag_pup = false;
+            end
             if nargin < 2 || isempty(baseline_ids)
                 % remove empty receivers
                 if flag_add_coo >= 0
@@ -1784,6 +1841,21 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             log = Core.getLogger();
             
             fh_list =  [];
+            
+            if flag_add_coo < 0 % Use coordinates from external file
+                coo_path = recs(baseline_ids(1, 1)).getPos.getMatOutPath();
+                if exist(coo_path, 'file') == 2
+                    log.addMarkedMessage(sprintf('Loading external coordinate file: "%s"', coo_path));
+                    coo_ext = Coordinates.fromMatFile(coo_path);
+                    flag_ready = true;
+                else
+                    log.addWarning(sprintf('Missing reference coordinate file: "%s"', coo_path));
+                    coo_ext = Coordinates();
+                end
+            end
+            
+            flag_same_ref = all(baseline_ids(:,1) == baseline_ids(1));
+            coo_trg_list = Coordinates; coo_trg_list(1) = [];
             for b = 1 : size(baseline_ids, 1)
                 
                 % Select input data
@@ -1815,22 +1887,34 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 else
                     % Use coordinates from coo files
                     % If they exist
-                    coo_path = recs(baseline_ids(b, 1)).getPos.getCooOutPath();
-                    if exist(coo_path, 'file') == 2
-                        coo_ref = Coordinates.fromCooFile(coo_path);
+                    if isempty(coo_ext) || all(coo_ext.isEmpty())
+                        coo_path = recs(baseline_ids(b, 1)).getPos.getCooOutPath();
+                        if exist(coo_path, 'file') == 2
+                            coo_ref = Coordinates.fromCooFile(coo_path);
+                            flag_ready = true;
+                        else
+                            coo_ref = Coordinates();
+                        end
+                        
+                        coo_path = recs(baseline_ids(b, 2)).getPos.getCooOutPath();
+                        if exist(coo_path, 'file') == 2
+                            log.addWarning(sprintf('Missing reference coordinate file: "%s"', coo_path));
+                            coo_trg = Coordinates.fromCooFile(coo_path);
+                        else
+                            log.addWarning(sprintf('Missing target coordinate file: "%s"', coo_path));
+                            coo_trg = Coordinates();
+                            flag_ready = false;
+                        end
+                    else % extern coo from mat file
+                        coo_ref = coo_ext.get(recs(baseline_ids(b, 1)).parent.getMarkerNameV3);
+                        if coo_ref.isEmpty
+                            coo_ref = coo_ext.get(recs(baseline_ids(b, 1)).parent.getMarkerName4Ch);
+                        end
+                        coo_trg = coo_ext.get(recs(baseline_ids(b, 2)).parent.getMarkerNameV3);
+                        if coo_trg.isEmpty
+                            coo_trg = coo_ext.get(recs(baseline_ids(b, 2)).parent.getMarkerName4Ch);
+                        end
                         flag_ready = true;
-                    else
-                        log.addWarning(sprintf('Missing reference coordinate file: "%s"', coo_path));
-                        coo_ref = Coordinates();
-                    end
-                    
-                    coo_path = recs(baseline_ids(b, 2)).getPos.getCooOutPath();
-                    if exist(coo_path, 'file') == 2
-                        coo_trg = Coordinates.fromCooFile(coo_path);
-                    else
-                        log.addWarning(sprintf('Missing target coordinate file: "%s"', coo_path));
-                        coo_trg = Coordinates();
-                        flag_ready = false;
                     end
                 end
                 
@@ -1843,15 +1927,37 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 
                 % Effective plot of the baseline
                 if flag_ready
-                    fh = coo_trg.showCoordinatesENU(coo_ref, n_obs);
+                    if flag_same_ref
+                        coo_trg_list = [coo_trg_list; coo_trg];
+                    else
+                        if flag_pup
+                            fh = coo_trg.showCoordinatesPlanarUp(coo_ref, n_obs);
+                        else
+                            fh = coo_trg.showCoordinatesENU(coo_ref, n_obs);
+                        end
+                        set(0, 'CurrentFigure', fh);
+                        ax = fh.Children(end);
+                        set(fh, 'CurrentAxes', ax);
+                        fig_name = sprintf('BSL_EN_U_%s-%s_%s', recs(baseline_ids(b, 1)).parent.getMarkerName4Ch,recs(baseline_ids(b, 2)).parent.getMarkerName4Ch, recs(baseline_ids(b, 1)).getTime.first.toString('yyyymmdd_HHMM'));
+                        fh.UserData = struct('fig_name', fig_name);
+                        Core_UI.addExportMenu(fh);
+                        drawnow
+                        fh_list = [fh_list; fh];
+                    end
+                end
+            end
+            if flag_same_ref
+                if flag_pup
+                    fh = coo_trg_list.showCoordinatesPlanarUp(coo_ref, n_obs);
+                else
+                    fh = coo_trg_list.showCoordinatesENU(coo_ref, n_obs);
+                end
+                if ~isempty(fh)
                     set(0, 'CurrentFigure', fh);
                     ax = fh.Children(end);
                     set(fh, 'CurrentAxes', ax);
-                    bsl_str = [recs(baseline_ids(b, 2)).parent.getMarkerName4Ch ' - ' recs(baseline_ids(b, 1)).parent.getMarkerName4Ch];
-                    fig_name = sprintf('BSL_EN_U_%s-%s_%s', recs(baseline_ids(b, 1)).parent.getMarkerName4Ch,recs(baseline_ids(b, 2)).parent.getMarkerName4Ch, recs(baseline_ids(b, 1)).getTime.first.toString('yyyymmdd_HHMM'));
+                    fig_name = sprintf('BSL_EN_U_%s-%s_%s', recs(baseline_ids(b, 1)).parent.getMarkerName4Ch,'MANY', recs(baseline_ids(b, 1)).getTime.first.toString('yyyymmdd_HHMM'));
                     fh.UserData = struct('fig_name', fig_name);
-                    fh.Name = ['dENU ' bsl_str];
-                    Core_UI.addExportMenu(fh);
                     drawnow
                     fh_list = [fh_list; fh];
                 end
@@ -1869,108 +1975,20 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             %   
             % SYNTAX
             %   showBaselinePlanarUp(sta_list, <baseline_ids = []>, flag_add_coo, n_obs)
+            if nargin < 5 || isempty(flag_pup)
+                flag_pup = false;
+            end
             if nargin < 2 || isempty(baseline_ids)
                 % remove empty receivers
-                recs = recs(~recs.isEmpty_mr);
+                if flag_add_coo >= 0
+                    recs = recs(~recs.isEmpty_mr);
+                end
                 
                 n_rec = numel(recs);
                 baseline_ids = GNSS_Station.getBaselineId(n_rec);
             end
 
-            if numel(baseline_ids) == 1
-                n_rec = numel(recs);
-                ref_rec = setdiff((1 : n_rec)', baseline_ids);
-                baseline_ids = [baseline_ids * ones(n_rec - 1, 1), ref_rec];
-            end
-            if ~(nargin >= 2 && ~isempty(flag_add_coo) && flag_add_coo ~= 0)
-                flag_add_coo = 0;
-            end
-            if nargin < 4 || isempty(n_obs)
-                n_obs = 0;
-            end
-           
-            recs = recs(~recs.isEmpty_mr);
-            log = Core.getLogger();
-            
-            fh_list =  [];
-            for b = 1 : size(baseline_ids, 1)
-                
-                % Select input data
-                flag_ready = false;
-                if flag_add_coo == 0
-                    % Use internal coordinates
-                    coo_ref = recs(baseline_ids(b, 1)).getPos();
-                    if coo_ref.time.isEmpty
-                        coo_ref.setTime(recs(baseline_ids(b, 1)).getPositionTime());
-                    end
-                    coo_trg = recs(baseline_ids(b, 2)).getPos();
-                    if coo_trg.time.isEmpty
-                        coo_trg.setTime(recs(baseline_ids(b, 2)).getPositionTime());
-                    end
-                    flag_ready = true;
-                elseif flag_add_coo > 0
-                    % Use additional coordinates
-                    if ~isempty(recs(baseline_ids(b, 1)).add_coo) &&  ~isempty(recs(baseline_ids(b, 2)).add_coo)
-                        coo_ref = recs(baseline_ids(b, 1)).add_coo(min(numel(recs(baseline_ids(b, 1)).add_coo), flag_add_coo)).coo;
-                        coo_trg = recs(baseline_ids(b, 2)).add_coo(min(numel(recs(baseline_ids(b, 2)).add_coo), flag_add_coo)).coo;
-                        flag_ready = true;
-                    else
-                        log.addWarning(sprintf('No additional coordinates are present into %s or %s', recs(baseline_ids(b, 1)).parent.getMarkerName4Ch, recs(baseline_ids(b, 2)).parent.getMarkerName4Ch));
-                    end
-                    if isempty(coo_ref) || isempty(coo_trg)
-                        log.addWarning(sprintf('No additional coordinates are present into %s or %s', recs(baseline_ids(b, 1)).parent.getMarkerName4Ch, recs(baseline_ids(b, 2)).parent.getMarkerName4Ch));
-                        flag_ready = false;
-                    end
-                else
-                    % Use coordinates from coo files
-                    % If they exist
-                    coo_path = recs(baseline_ids(b, 1)).getCooOutPath();
-                    if exist(coo_path, 'file') == 2
-                        coo_ref = Coordinates.fromCooFile(coo_path);
-                        flag_ready = true;
-                    else
-                        log.addWarning(sprintf('Missing reference coordinate file: "%s"', coo_path));
-                        coo_ref = Coordinates();
-                    end
-                    
-                    coo_path = recs(baseline_ids(b, 2)).getCooOutPath();
-                    if exist(coo_path, 'file') == 2
-                        coo_trg = Coordinates.fromCooFile(coo_path);
-                    else
-                        log.addWarning(sprintf('Missing target coordinate file: "%s"', coo_path));
-                        coo_trg = Coordinates();
-                        flag_ready = false;
-                    end
-                end
-                
-                if flag_ready
-                    flag_ready = coo_ref.length > 1 && coo_trg.length > 1;
-                    if not(flag_ready)
-                        log.addError('This plot is not available without a series of data (more than one point)')
-                    end
-                end
-                
-                % Effective plot of the baseline
-                if flag_ready
-                    fh = coo_trg.showCoordinatesPlanarUp(coo_ref, n_obs);
-                    set(0, 'CurrentFigure', fh);
-                    ax = fh.Children(end).Children(end).Children;
-                    set(fh, 'CurrentAxes', ax);
-                    bsl_str = [recs(baseline_ids(b, 2)).parent.getMarkerName4Ch ' - ' recs(baseline_ids(b, 1)).parent.getMarkerName4Ch];
-                    if numel(ax.Title.String) == 2
-                        ax.Title.String{1} = [bsl_str  ax.Title.String{1}(9:end)];
-                    else
-                        ax.Title.String{1} = bsl_str;
-                    end
-                    ax.Title.String{1} = [bsl_str  ax.Title.String{1}(9:end)];
-                    fig_name = sprintf('BSL_EN_U_%s-%s_%s', recs(baseline_ids(b, 1)).parent.getMarkerName4Ch,recs(baseline_ids(b, 2)).parent.getMarkerName4Ch, recs(baseline_ids(b, 1)).getTime.first.toString('yyyymmdd_HHMM'));
-                    fh.UserData = struct('fig_name', fig_name);
-                    fh.Name = ['dENU ' bsl_str];
-                    Core_UI.addExportMenu(fh);
-                    drawnow
-                    fh_list = [fh_list; fh];
-                end
-            end
+            fh_list = showBaselineENU(recs, baseline_ids, flag_add_coo, n_obs, true);
         end
 
         function fh_list = showPositionENU(this, flag_add_coo, n_obs)
@@ -1992,10 +2010,21 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             
             log = Core.getLogger();
             fh_list = [];
+            this = this(not(this.isEmpty)); % Disregard empty receivers
+            if flag_add_coo < 0 % Use coordinates from external file
+                coo_path = this(1).getPos.getMatOutPath();
+                if exist(coo_path, 'file') == 2
+                    coo_ext = Coordinates.fromMatFile(coo_path);
+                else
+                    log.addWarning(sprintf('Missing reference coordinate file: "%s"', coo_path));
+                    coo_ext = Coordinates();
+                end
+            end
+            
             for r = 1 : numel(this)
                 rec = this(r);
                 if ~isempty(rec)
-                    xyz = rec.getPosXYZ();
+                    xyz = rec.getPos.getXYZ();
                     if size(xyz, 1) > 1 || flag_add_coo ~= 0
                         log.addMessage('Plotting positions');
                         
@@ -2020,20 +2049,24 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         else
                             % Use coordinates from coo files
                             % If they exist
-                            coo_path = rec.getPos.getCooOutPath();
-                            if exist(coo_path, 'file') == 2
-                                coo = Coordinates.fromCooFile(coo_path);
+                            if isempty(coo_ext) || all(coo_ext.isEmpty())
+                                coo_path = rec.getPos.getCooOutPath();
+                                if exist(coo_path, 'file') == 2
+                                    coo = Coordinates.fromCooFile(coo_path);
+                                else
+                                    log.addWarning(sprintf('Missing coordinate file: "%s"', coo_path));
+                                    coo = Coordinates();
+                                end
                             else
-                                log.addWarning(sprintf('Missing coordinate file: "%s"', coo_path));
-                                coo = Coordinates();
+                                coo = coo_ext.get(rec.parent.getMarkerNameV3);
                             end
                         end
                         
                         if not(coo.isEmpty)
                             fh = coo.showCoordinatesENU([], n_obs);
                             set(0, 'CurrentFigure', fh);
-                            ax = subplot(3,1,1);
-                            ax.Title.String{1} = [rec.parent.getMarkerName4Ch  ax.Title.String{1}(9:end)];
+                            %ax = subplot(3,1,1);
+                            %ax.Title.String{1} = [rec.parent.getMarkerName4Ch  ax.Title.String{1}(9:end)];
                             fig_name = sprintf('ENU_at%gs_%s_%s', coo.time.getRate, rec.parent.getMarkerName4Ch, rec.time.first.toString('yyyymmdd_HHMM'));
                             fh.UserData = struct('fig_name', fig_name);
                             Core_UI.addExportMenu(fh);
@@ -2061,6 +2094,17 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             
             log = Core.getLogger();
             fh_list = [];
+            this = this(not(this.isEmpty)); % Disregard empty receivers
+            if flag_add_coo < 0 % Use coordinates from external file
+                coo_path = this(1).getPos.getMatOutPath();
+                if exist(coo_path, 'file') == 2
+                    coo_ext = Coordinates.fromMatFile(coo_path);
+                else
+                    log.addWarning(sprintf('Missing reference coordinate file: "%s"', coo_path));
+                    coo_ext = Coordinates();
+                end
+            end
+            
             for r = 1 : numel(this)
                 rec = this(r);
                 if ~isempty(rec)
@@ -2089,23 +2133,28 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         else
                             % Use coordinates from coo files
                             % If they exist
-                            coo_path = rec.getPos.getCooOutPath();
-                            if exist(coo_path, 'file') == 2
-                                coo = Coordinates.fromCooFile(coo_path);
+                            if isempty(coo_ext) || all(coo_ext.isEmpty())
+                                coo_path = rec.getPos.getCooOutPath();
+                                if exist(coo_path, 'file') == 2
+                                    coo = Coordinates.fromCooFile(coo_path);
+                                else
+                                    log.addWarning(sprintf('Missing coordinate file: "%s"', coo_path));
+                                    coo = Coordinates();
+                                end
                             else
-                                log.addWarning(sprintf('Missing coordinate file: "%s"', coo_path));
-                                coo = Coordinates();
+                                coo = coo_ext.get(rec.parent.getMarkerNameV3);
                             end
                         end
                         if not(coo.isEmpty)
                             fh = coo.showCoordinatesPlanarUp([], n_obs);
-                            set(0, 'CurrentFigure', fh);
-                            ax = fh.Children(end).Children(end).Children(1);
-                            ax.Title.String{1} = [rec.parent.getMarkerName4Ch  ax.Title.String{1}(9:end)];
-                            fig_name = sprintf('PUP_at%gs_%s_%s', coo.time.getRate, rec.parent.getMarkerName4Ch, rec.time.first.toString('yyyymmdd_HHMM'));
-                            fh.UserData = struct('fig_name', fig_name);
-                            Core_UI.addExportMenu(fh);
-                            fh_list = [fh_list; fh]; %#ok<AGROW>
+                            if ~isempty(fh)
+                                ax = setAxis(fh);
+                                ax.Title.String{1} = [rec.parent.getMarkerName4Ch  ax.Title.String{1}(9:end)];
+                                fig_name = sprintf('PUP_at%gs_%s_%s', coo.time.getRate, rec.parent.getMarkerName4Ch, rec.time.first.toString('yyyymmdd_HHMM'));
+                                fh.UserData = struct('fig_name', fig_name);
+                                Core_UI.addExportMenu(fh);
+                                fh_list = [fh_list; fh]; %#ok<AGROW>
+                            end
                         end
                     else
                         Core.getLogger.addWarning(sprintf('%s - Plotting a single point static position is not yet supported', rec.parent.getMarkerName4Ch));
@@ -2127,6 +2176,17 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             
             log = Core.getLogger();
             fh_list = [];
+            this = this(not(this.isEmpty)); % Disregard empty receivers
+            if flag_add_coo < 0 % Use coordinates from external file
+                coo_path = this(1).getPos.getMatOutPath();
+                if exist(coo_path, 'file') == 2
+                    coo_ext = Coordinates.fromMatFile(coo_path);
+                else
+                    log.addWarning(sprintf('Missing reference coordinate file: "%s"', coo_path));
+                    coo_ext = Coordinates();
+                end
+            end
+            
             for r = 1 : numel(this)
                 rec = this(r);
                 if ~isempty(rec)
@@ -2155,12 +2215,16 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                         else
                             % Use coordinates from coo files
                             % If they exist
-                            coo_path = rec.getPos.getCooOutPath();
-                            if exist(coo_path, 'file') == 2
-                                coo = Coordinates.fromCooFile(coo_path);
+                            if isempty(coo_ext) || all(coo_ext.isEmpty())
+                                coo_path = rec.getPos.getCooOutPath();
+                                if exist(coo_path, 'file') == 2
+                                    coo = Coordinates.fromCooFile(coo_path);
+                                else
+                                    log.addWarning(sprintf('Missing coordinate file: "%s"', coo_path));
+                                    coo = Coordinates();
+                                end
                             else
-                                log.addWarning(sprintf('Missing coordinate file: "%s"', coo_path));
-                                coo = Coordinates();
+                                coo = coo_ext.get(rec.parent.getMarkerNameV3);
                             end
                         end
                         if not(coo.isEmpty)
@@ -2394,7 +2458,38 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 end
             end
         end
-                                        
+                                
+        function ant_mp = computeMultiPath(this, sys_grp, l_max, day_span)
+            % Get Zernike multi pth coefficients
+            %
+            % INPUT
+            %   sys_grp  struct containing grouping for constellations
+            %   l_max    maximum degree for of the Zernike polynomials
+            %   day_span contains offset and length of the period to be used to compute the MP maps
+            %
+            % SYNTAX
+            %   this.computeMultiPath(l_max)
+            
+            if nargin < 3
+                l_max = []; % managed within the function in res
+            end            
+            if nargin == 4
+                % day_span contains offset and length of the period to be used to compute the MP maps
+                if numel(day_span) == 1 % if only len is defined, set offset to zero
+                    offset = 0;
+                else
+                    offset = day_span(2);
+                end
+                len = day_span(1);  
+                stop = ceil(this.sat.res.time.last.getMatlabTime) + offset;
+                start = stop - len;
+                time_lim = GPS_Time([start stop]');
+                ant_mp = this.sat.res.computeMultiPath(this.parent.getMarkerName4Ch, sys_grp, l_max, [], [], [], time_lim);
+            else
+                ant_mp = this.sat.res.computeMultiPath(this.parent.getMarkerName4Ch, sys_grp, l_max);
+            end
+        end                
+        
         function fh_list = showAniZtdSlant(this, time_start, time_stop, show_map, write_video)
             sztd = this.getSlantZTD(this.parent.slant_filter_win);
             
@@ -2721,7 +2816,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     end
                     
                     outm = [old_legend, outm];
-                    [~, icons] = legend(outm, 'Location', 'NorthEastOutside', 'interpreter', 'none');
+                    [~, icons] = legend(outm, 'Location', 'NorthEastOutside', 'interpreter', 'none', 'NumColumns', ceil((numel(outm)-0.5)/33));
                     n_entry = numel(outm);
                     icons = icons(n_entry + 2 : 2 : end);
                     
@@ -2876,71 +2971,74 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             cc = this.getCC;
             if ~this.isEmpty()
                 [n_sat, n_sat_ss] = this.getNSat();
-                f = figure('Visible', 'off'); f.Name = sprintf('%03d: nsat SS %s', f.Number, this.parent.getMarkerName4Ch); f.NumberTitle = 'off';
-                
-                fh_list = [fh_list; f];
-                fig_name = sprintf('NSatSS_%s_%s', this.parent.getMarkerName4Ch, this.time.first.toString('yyyymmdd_HHMM'));
-                f.UserData = struct('fig_name', fig_name);
-                       
-                %                 if isfield(n_sat_ss, 'S')
-                %                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.S), '.', 'MarkerSize', 40, 'LineWidth', 2); hold on;
-                %                 end
-                %                 if isfield(n_sat_ss, 'I')
-                %                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.I), '.', 'MarkerSize', 35, 'LineWidth', 2); hold on;
-                %                 end
-                %                 if isfield(n_sat_ss, 'C')
-                %                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.C), '.', 'MarkerSize', 30, 'LineWidth', 2); hold on;
-                %                 end
-                %                 if isfield(n_sat_ss, 'J')
-                %                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.J), '.', 'MarkerSize', 25, 'LineWidth', 2); hold on;
-                %                 end
-                %                 if isfield(n_sat_ss, 'E')
-                %                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.E), '.', 'MarkerSize', 20, 'LineWidth', 2); hold on;
-                %                 end
-                %                 if isfield(n_sat_ss, 'R')
-                %                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.R), '.', 'MarkerSize', 15, 'LineWidth', 2); hold on;
-                %                 end
-                %                 if isfield(n_sat_ss, 'G')
-                %                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.G), '.', 'MarkerSize', 10, 'LineWidth', 2); hold on;
-                %                 end
-                
-                % If I'm plotting more than one day smooth the number of satellites
-                if flag_smooth % && (this.getTime.last.getMatlabTime - this.getTime.first.getMatlabTime) > 1
-                    for sys_c = cc.sys_c
-                        Core_Utils.plotSep(this.getTime.getMatlabTime(), splinerMat(this.getTime.getRefTime, zero2nan(n_sat_ss.(sys_c)), 3600), '.-', 'MarkerSize', 10); hold on;
-                    end
-                    if numel(cc.sys_c) > 1
-                        Core_Utils.plotSep(this.getTime.getMatlabTime(), splinerMat(this.getTime.getRefTime, zero2nan(n_sat), 3600), '.-k', 'MarkerSize', 10); hold on;
-                    end
-                else % If I'm plotting less than 24 hours of satellites number
-                    Core_Utils.plotSep(this.getTime.getMatlabTime(), zero2nan(struct2array(n_sat_ss)), '.-', 'MarkerSize', 10); hold on;
-                    if numel(cc.sys_c) > 1
-                        Core_Utils.plotSep(this.getTime.getMatlabTime(), zero2nan(n_sat), '.-k', 'MarkerSize', 10);
-                    end
-                end
-                setTimeTicks(4); h = ylabel('East [cm]'); h.FontWeight = 'bold';
-                
-                sys_list = {};
-                for i = 1 : numel(cc.sys_c)
-                    sys_list = [sys_list, {cc.sys_c(i)}];
-                end
-                if numel(cc.sys_c) > 1                    
-                    legend([sys_list, {'All'}]);
+                if isnan(n_sat)
+                    Core.getLogger.addError(sprintf('No data found in "%s" receiver object\n', this.parent.getMarkerNameV3));
                 else
-                    legend(sys_list);
+                    f = figure('Visible', 'off'); f.Name = sprintf('%03d: nsat SS %s', f.Number, this.parent.getMarkerName4Ch); f.NumberTitle = 'off';
+                    
+                    fh_list = [fh_list; f];
+                    fig_name = sprintf('NSatSS_%s_%s', this.parent.getMarkerName4Ch, this.time.first.toString('yyyymmdd_HHMM'));
+                    f.UserData = struct('fig_name', fig_name);
+                    
+                    %                 if isfield(n_sat_ss, 'S')
+                    %                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.S), '.', 'MarkerSize', 40, 'LineWidth', 2); hold on;
+                    %                 end
+                    %                 if isfield(n_sat_ss, 'I')
+                    %                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.I), '.', 'MarkerSize', 35, 'LineWidth', 2); hold on;
+                    %                 end
+                    %                 if isfield(n_sat_ss, 'C')
+                    %                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.C), '.', 'MarkerSize', 30, 'LineWidth', 2); hold on;
+                    %                 end
+                    %                 if isfield(n_sat_ss, 'J')
+                    %                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.J), '.', 'MarkerSize', 25, 'LineWidth', 2); hold on;
+                    %                 end
+                    %                 if isfield(n_sat_ss, 'E')
+                    %                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.E), '.', 'MarkerSize', 20, 'LineWidth', 2); hold on;
+                    %                 end
+                    %                 if isfield(n_sat_ss, 'R')
+                    %                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.R), '.', 'MarkerSize', 15, 'LineWidth', 2); hold on;
+                    %                 end
+                    %                 if isfield(n_sat_ss, 'G')
+                    %                     plot(this.getTime.getMatlabTime(), zero2nan(n_sat_ss.G), '.', 'MarkerSize', 10, 'LineWidth', 2); hold on;
+                    %                 end
+                    
+                    % If I'm plotting more than one day smooth the number of satellites
+                    if flag_smooth % && (this.getTime.last.getMatlabTime - this.getTime.first.getMatlabTime) > 1
+                        for sys_c = cc.sys_c
+                            Core_Utils.plotSep(this.getTime.getMatlabTime(), splinerMat(this.getTime.getRefTime, zero2nan(n_sat_ss.(sys_c)), 3600), '.-', 'MarkerSize', 10); hold on;
+                        end
+                        if numel(cc.sys_c) > 1
+                            Core_Utils.plotSep(this.getTime.getMatlabTime(), splinerMat(this.getTime.getRefTime, zero2nan(n_sat), 3600), '.-k', 'MarkerSize', 10); hold on;
+                        end
+                    else % If I'm plotting less than 24 hours of satellites number
+                        Core_Utils.plotSep(this.getTime.getMatlabTime(), zero2nan(struct2array(n_sat_ss)), '.-', 'MarkerSize', 10); hold on;
+                        if numel(cc.sys_c) > 1
+                            Core_Utils.plotSep(this.getTime.getMatlabTime(), zero2nan(n_sat), '.-k', 'MarkerSize', 10);
+                        end
+                    end
+                    setTimeTicks(4); h = ylabel('Satellite number'); h.FontWeight = 'bold';
+                    
+                    sys_list = {};
+                    for i = 1 : numel(cc.sys_c)
+                        sys_list = [sys_list, {cc.sys_c(i)}];
+                    end
+                    if numel(cc.sys_c) > 1
+                        legend([sys_list, {'All'}]);
+                    else
+                        legend(sys_list);
+                    end
+                    %legend(sys_list);
+                    ylim([0 (max(serialize(n_sat)) + 1)]);
+                    grid minor;
+                    h = title(sprintf('N sat per constellation - %s', this.parent.getMarkerName4Ch),'interpreter', 'none'); h.FontWeight = 'bold';
+                    
+                    Core_UI.beautifyFig(f);
+                    Core_UI.addBeautifyMenu(f);
+                    f.Visible = 'on'; drawnow;
                 end
-                %legend(sys_list);
-                ylim([0 (max(serialize(n_sat)) + 1)]);
-                grid minor;
-                h = title(sprintf('N sat per constellation - %s', this.parent.getMarkerName4Ch),'interpreter', 'none'); h.FontWeight = 'bold';
-                
-                Core_UI.beautifyFig(f);
-                Core_UI.addBeautifyMenu(f);
-                f.Visible = 'on'; drawnow;
             end
         end
        
-        
         function fh_list = showMedianTropoPar(this, par_name, new_fig);
             % one function to rule them all
             fh_list = [];
@@ -3055,8 +3153,80 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                 new_fig = true;
             end
             fh_list = this.showMedianTropoPar('PWV', new_fig);
-        end                        
-    end    
+        end  
+
+        %------------------------------------------------------------------
+        % Plot DOP values
+        %------------------------------------------------------------------
+        function fh_list = showDopValues(this)
+            % Plot Dilution of Precision data
+            % SYNTAX
+            %    this.showDopValues
+            fh_list = [];
+            f = figure('Visible', 'off'); f.Name = sprintf('%03d: DOP', f.Number); f.NumberTitle = 'off';
+            fh_list = f;
+            fig_name = sprintf('DOP_%s_%s', this.parent.getMarkerName4Ch, this.time.first.toString('yyyymmdd_HHMM'));
+            f.UserData = struct('fig_name', fig_name);
+
+            % DOPs
+            f = figure('Visible', 'on');
+            tiledlayout(2,1)
+            nexttile
+            plot(this.time.getMatlabTime(), this.quality_info.dop.pdop)
+            title({this.parent.getMarkerName4Ch; 'Dilution of Precision'})
+            hold on
+            plot(this.time.getMatlabTime(), this.quality_info.dop.tdop)
+            plot(this.time.getMatlabTime(), this.quality_info.dop.gdop)
+            plot(this.time.getMatlabTime(), this.quality_info.dop.hdop)
+            plot(this.time.getMatlabTime(), this.quality_info.dop.vdop)
+            hold off
+            xlim([this.time.first.getMatlabTime() this.time.last.getMatlabTime()])
+            if this.time.first.toString('yyyymmdd') == this.time.last.toString('yyyymmdd')
+                datetick('x','HH:MM:SS','keeplimits','keepticks')
+            else
+                datetick('x','mmm dd, yyyy','keeplimits','keepticks')
+            end
+            legend("Position DOP","Time DOP", "Geometric DOP", "Horizontal DOP", "Vertical DOP", Location="eastoutside")
+            nexttile
+            plot(this.time.getMatlabTime(), this.quality_info.n_spe.A, "DisplayName", "Total")
+            title('Number of satellite used')
+            hold on
+            if ~isempty(this.quality_info.n_spe.G)
+                plot(this.time.getMatlabTime(), this.quality_info.n_spe.G, "DisplayName", "GPS")
+            end
+            if ~isempty(this.quality_info.n_spe.R)
+                plot(this.time.getMatlabTime(), this.quality_info.n_spe.R, "DisplayName", "GLONASS")
+            end
+            if ~isempty(this.quality_info.n_spe.E)
+                plot(this.time.getMatlabTime(), this.quality_info.n_spe.E, "DisplayName", "Galileo")
+            end
+            if ~isempty(this.quality_info.n_spe.J)
+            plot(this.time.getMatlabTime(), this.quality_info.n_spe.J, "DisplayName", "QZSS")
+            end
+            if ~isempty(this.quality_info.n_spe.C)
+            plot(this.time.getMatlabTime(), this.quality_info.n_spe.C, "DisplayName", "BeiDou")
+            end
+            if ~isempty(this.quality_info.n_spe.I)
+            plot(this.time.getMatlabTime(), this.quality_info.n_spe.I, "DisplayName", "IRNSS")
+            end
+            hold off
+            xlim([this.time.first.getMatlabTime() this.time.last.getMatlabTime()])
+            if this.time.first.toString('yyyymmdd') == this.time.last.toString('yyyymmdd')
+                datetick('x','HH:MM:SS','keeplimits','keepticks')
+            else
+                datetick('x','mmm dd, yyyy','keeplimits','keepticks')
+            end
+            legend(Location="eastoutside")
+            
+            Core_UI.beautifyFig(f);
+            Core_UI.addExportMenu(f);
+            Core_UI.addBeautifyMenu(f);
+            f.Visible = 'on'; drawnow;
+        end
+        %------------------------------------------------------------------
+    end
+
+    % ==================================================================================================================================================
     %% METHODS UTILITIES FUNCTIONS
     % ==================================================================================================================================================
     

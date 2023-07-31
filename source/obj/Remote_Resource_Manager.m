@@ -12,10 +12,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:        Giulio Tagliaferro, Andrea Gatti ...
 %  Contributors:      Giulio Tagliaferro, Andrea Gatti ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -58,10 +58,13 @@ classdef Remote_Resource_Manager < Ini_Manager
         % Singleton superclass.
         function this = Remote_Resource_Manager(file_name)
             if (nargin == 0)
-                file_name = Remote_Resource_Manager.DEFAULT_RESOURCE_FILE;
+                file_name = Core.getFilePath('resources');
                 if exist(file_name, 'file') ~= 2
-                    %Remote_Resource_Manager.writeDefault(); %deafult file not
-                    %stable enough
+                    file_name = Remote_Resource_Manager.DEFAULT_RESOURCE_FILE;
+                    if exist(file_name, 'file') ~= 2
+                        %Remote_Resource_Manager.writeDefault(); %deafult file not
+                        %stable enough
+                    end
                 end
             end
             this = this@Ini_Manager(file_name);
@@ -82,9 +85,9 @@ classdef Remote_Resource_Manager < Ini_Manager
             end            
             
             this.readFile();
-            credentials_path = [Core.getInstallDir filesep 'credentials.txt'];
+            credentials_path = Core.getFilePath('credentials');
             if exist(credentials_path, 'file') == 0
-                Core.getLogger.addError('The "credentials.txt" file is missing.\nIt will be created as empty from "credentials.example.txt" in goGPS folder');
+                Core.getLogger.addError('The "credentials.txt" file is missing.\nIt will be created as empty from "credentials.example.txt" in Breva folder');
                 try
                     credentials_default_path = [Core.getInstallDir filesep 'credentials.example.txt'];
                     copyfile(credentials_default_path, credentials_path);
@@ -161,6 +164,26 @@ classdef Remote_Resource_Manager < Ini_Manager
             this.credentials.readFile(); % read every time for updated credentials
             user = this.credentials.getData(name,'username');
             passwd = this.credentials.getData(name,'password');
+            if strcmp(name, 'cddis')
+                if isempty(user)
+                    Core.getLogger.addWarning('CDDIS credentials are empty, fill them in credentials.txt file');
+                end
+            end
+            if strcmp(name, 'ggos_tuwien')
+                if isempty(user)
+                    Core.getLogger.addWarning('VMF credentials are empty, fill them in credentials.txt file');
+                end
+            end
+        end
+        
+        function api = getGoogleMapsAPI(this)
+            this.credentials.readFile(); % read every time for updated credentials
+            api = this.credentials.getData('googlemaps','api');
+        end
+        
+        function api = getMapQuestAPI(this)
+            this.credentials.readFile(); % read every time for updated credentials
+            api = this.credentials.getData('mapquest','api');
         end
         
         function f_struct = getFileLoc(this, file_name)
@@ -317,7 +340,8 @@ classdef Remote_Resource_Manager < Ini_Manager
                     elseif type == 2
                         center{c} = [upper(center{c}) ' - ' this.getData(['bc_' center{c}], 'description')];
                     else
-                        center{c} = [upper(center{c}) ' - ' this.getData(['oc_' center{c}], 'description')];
+                        % center{c} = [upper(center{c}) ' - ' this.getData(['oc_' center{c}], 'description')];
+                        center{c} = [this.getData(['oc_' center{c}], 'description')];
                     end
                 end
                 center_ss{c} = regexp(tmp{c}, '.*(?=@)', 'match', 'once');
@@ -460,6 +484,8 @@ classdef Remote_Resource_Manager < Ini_Manager
                 flag_frub = [true true true];
             elseif state.mapping_function == 5
                 flag_frub = [true true true];
+            else
+                flag_frub = [false false false];            
             end
         end
         
