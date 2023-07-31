@@ -13,17 +13,17 @@ function goGPS(ini_settings)
 %   goGPS;
 %
 % COMPILATION STRING:
-%   tic; mcc -v -d ./bin/ -m goGPS -a tai-utc.dat -a cls.csv -a icpl.csv -a nals.csv -a napl.csv -a remote_resource.ini -a credentials.txt -a goGPS_settings.ini -a icons/*.png -a utility/thirdParty/guiLayoutToolbox/layout/+uix/Resources/*.png; toc;
+%   tic; mcc -v -d ./bin/ -m goGPS -a tai-utc.dat -a cls.csv -a icpl.csv -a nals.csv -a napl.csv -a remote_resource.ini -a credentials.txt -a app_settings.ini -a icons/*.png -a utility/thirdParty/guiLayoutToolbox/layout/+uix/Resources/*.png; toc;
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
@@ -65,7 +65,7 @@ function goGPS(ini_settings)
     log.enableGUIOut();
     log.disableScreenOut();
     Core.getMsgGUI(true);
-    log.setColorMode(Go_Settings.getInstance.isLogColorMode);
+    log.setColorMode(App_Settings.getInstance.isLogColorMode);
 
 
     % Show coloured header
@@ -130,12 +130,20 @@ function goGPS(ini_settings)
 
         % Export into workspace
         rec = core.rec;
+        try
+            coo = rec.getCoo;
+        catch
+            coo = Coordinates;
+        end
+
         assignin('base', 'core', core);
         assignin('base', 'rec', rec);
-
-        log.addMarkedMessage('Now you should be able to see 2 variables in workspace:');
-        log.addMessage(log.indent(' - core      the core processor object containing all the goGPS structures'));
+        assignin('base', 'coo', coo);
+        
+        log.addMarkedMessage('Now you should be able to see 3 variables in workspace:');
+        log.addMessage(log.indent(' - core      the core processor object containing all the goGPS data'));
         log.addMessage(log.indent(' - rec       the array of Receivers'));
+        log.addMessage(log.indent(' - coo       the array of coordinates (rec.getCoo)'));
 
         screen_log = log.isScreenOut;
         if ~screen_log; log.enableScreenOut(); end

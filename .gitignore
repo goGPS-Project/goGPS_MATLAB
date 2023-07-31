@@ -6,12 +6,11 @@
 !/data/antenna/ATX
 /data/antenna/ATX/*
 !/data/antenna/ATX/.gitignore
+!/data/antenna/ATX/I05.ATX
 !/data/antenna/ATX/I08.ATX
 !/data/antenna/ATX/I14.ATX
-!/data/antenna/ATX/igs14_1941.atx
-!/data/antenna/ATX/igs14_1977.atx
-!/data/antenna/ATX/igs14_1984.atx
-!/data/antenna/ATX/igs14_2056.atx
+!/data/antenna/ATX/I20.ATX
+
 
 !/data/satellite
 /data/satellite/*
@@ -182,5 +181,6 @@ source/utility/thirdParty/m_map/etopo1_ice_g_i2.bin
 source/utility/thirdParty/m_map/m_etopo2.m
 !source/mex
 source/mex/*
+!source/mex/*.m
 source/files.lst
 source/credentials.txt

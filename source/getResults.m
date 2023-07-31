@@ -15,10 +15,10 @@
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:       Andrea Gatti
 %  Contributors:     Andrea Gatti, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -43,11 +43,17 @@
 
 core = Core.getCurrentCore();
 rec = core.rec;
+try
+    coo = rec.getCoo;
+catch
+    coo = Coordinates();
+end
 
 log = Core.getLogger();
-log.addMarkedMessage('Now you should be able to see 2 new variables:');
+log.addMarkedMessage('Now you should be able to see 3 new variables:');
 log.addMessage(log.indent(' - core      the core processor object containing all the goGPS structures'));
-log.addMessage(log.indent(' - rec       the array of Receivers'));
+log.addMessage(log.indent(' - rec       the array of Receivers (core.rec)'));
+log.addMessage(log.indent(' - coo       the array of coordinates (rec.getCoo)'));
 log.newLine();
 
 
