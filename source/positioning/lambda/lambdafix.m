@@ -26,10 +26,10 @@ function [bcheck, acheck, Qzhat, Qbcheck, bfixed, afixed] = lambdafix(bhat, ahat
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 1.0RC1
+%    |___/                    v 1.0
 %
 %--------------------------------------------------------------------------
-%  Copyright (C) 2021 Geomatics Research & Development srl (GReD)
+%  Copyright (C) 2023 Geomatics Research & Development srl (GReD)
 %  Written by:       Andrea Nardo
 %  Contributors:     Eugenio Realini and Hendy F. Suhandri
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
@@ -122,7 +122,6 @@ try
                 Qbcheck = Qbb  - Qba*cholinv(Qahat)*Qba';
             catch ME
                 disp('Problems in PAR (lambdafix.m)');
-                %keyboard;
                 % anyway we store the float ambiguities and their vcv-matrix... (to be improved)
                 acheck = ahat;
                 Qzhat = Qahat;
