@@ -3068,65 +3068,78 @@ classdef Core_Utils < handle
             %
             % SEE ALSO:
             %   plot_google_map
-            
+
             flag_ok = false;
+
+            warning off;
             try
-                warning off;
-                h = plot_google_map(); 
-                warning on;
-                flag_ok = ~isempty(h);
-                if ~flag_ok
-                    fh = gcf;
-                    rrm = Remote_Resource_Manager.getInstance;
-                    api_key = rrm.getGoogleMapsAPI;
-                    n_try = 0;
-                    warning off;
-                    h = plot_google_map('apiKey', api_key);
-                    warning on;
-                    flag_ok = ~isempty(h);                
-                    while (n_try < 3 && flag_ok == false)
-                        n_try = n_try + 1;
-                        answer = inputdlg(sprintf(['Attempt %d/3, Insert your API key to use maps' newline 'or create a file called "api_key.mat" containing the char variable "apiKey" with your google map API'], n_try), 'Google Maps API', [1 150]);
-                        if not(isempty(answer)) && not(isempty(answer{1}))
-                            api_key = answer{1};
-                        else
-                            api_key = '';
-                        end
-                        if not(isempty(api_key))
-                            % find plot_google_map location
-                            gm_dir = which('plot_google_map.m');
-                            if not(isempty(gm_dir))
-                                [gm_dir] = fileparts(gm_dir);
-                            else
-                                gm_dr = '.';
-                            end
-                            save(fullfile(gm_dir, 'api_key.mat'), 'api_key');
-                        end
-                        % Try the key:
-                        flag_ok = true;
-                        set(0, 'CurrentFigure', fh); % restore the plotting figure as default
-                        warning off;
-                        h = plot_google_map(); 
-                        warning on;
-                        flag_ok = ~isempty(h);                
-                    end
-                end
-                if nargout
-                    varargout = h;
-                end
+                h = plot_google_map();
             catch ex
                 Core_Utils.printEx(ex);
             end
-            
+
+            warning on;
+            flag_ok = ~isempty(h);
             if ~flag_ok
-                varargout = cell(nargout,1);
+                fh = gcf;
+                rrm = Remote_Resource_Manager.getInstance;
+                api_key = rrm.getGoogleMapsAPI;
+                n_try = 0;
                 warning off;
-                if nargin == 0
-                    [varargout{:}] = plot_google_map();
-                else
-                    [varargout{:}] = plot_google_map(varargin{:});
+                try
+                    h = plot_google_map('apiKey', api_key);
+                catch ex
+                    h = [];
                 end
                 warning on;
+                flag_ok = ~isempty(h);
+                while (n_try < 3 && flag_ok == false)
+                    n_try = n_try + 1;
+                    answer = inputdlg(sprintf(['Attempt %d/3, Insert your API key to use maps' newline 'or create a file called "api_key.mat" containing the char variable "apiKey" with your google map API'], n_try), 'Google Maps API', [1 150]);
+                    if not(isempty(answer)) && not(isempty(answer{1}))
+                        api_key = answer{1};
+                    else
+                        api_key = '';
+                    end
+                    if not(isempty(api_key))
+                        % find plot_google_map location
+                        gm_dir = which('plot_google_map.m');
+                        if not(isempty(gm_dir))
+                            [gm_dir] = fileparts(gm_dir);
+                        else
+                            gm_dr = '.';
+                        end
+                        save(fullfile(gm_dir, 'api_key.mat'), 'api_key');
+                    end
+                    % Try the key:
+                    flag_ok = true;
+                    set(0, 'CurrentFigure', fh); % restore the plotting figure as default
+                    warning off;
+                    try
+                        h = plot_google_map();
+                    catch ex
+                        Core_Utils.printEx(ex);
+                    end
+                    warning on;
+                    flag_ok = ~isempty(h);
+                end
+            end
+            if nargout
+                varargout = h;
+            end
+
+            if ~flag_ok
+                try
+                    varargout = cell(nargout,1);
+                    warning off;
+                    if nargin == 0
+                        [varargout{:}] = plot_google_map();
+                    else
+                        [varargout{:}] = plot_google_map(varargin{:});
+                    end
+                    warning on;
+                catch
+                end
             end
         end
         
