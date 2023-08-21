@@ -3070,14 +3070,22 @@ classdef Core_Utils < handle
             %   plot_google_map
 
             flag_ok = false;
+            n_out = max(1,nargout);
+            varargout = cell(n_out, 1);
 
             warning off;
             try
-                h = plot_google_map();
+                if nargin == 0
+                    [varargout{:}] = plot_google_map();
+                else
+                    [varargout{:}] = plot_google_map(varargin{:});
+                end
+                h = varargout;
             catch ex
                 Core_Utils.printEx(ex);
+                h = [];
             end
-
+            
             warning on;
             flag_ok = ~isempty(h);
             if ~flag_ok
@@ -3087,7 +3095,11 @@ classdef Core_Utils < handle
                 n_try = 0;
                 warning off;
                 try
-                    [varargout{:}] = plot_google_map('apiKey', api_key);
+                    if nargin == 0
+                        [varargout{:}] = plot_google_map('apiKey', api_key);
+                    else
+                        [varargout{:}] = plot_google_map('apiKey', api_key, varargin{:});
+                    end
                     h = varargout;
                 catch ex
                     h = [];
@@ -3117,7 +3129,11 @@ classdef Core_Utils < handle
                     set(0, 'CurrentFigure', fh); % restore the plotting figure as default
                     warning off;
                     try
-                        [varargout{:}] = plot_google_map();
+                        if nargin == 0
+                            [varargout{:}] = plot_google_map();
+                        else
+                            [varargout{:}] = plot_google_map(varargin{:});
+                        end
                         h = varargout;
                     catch ex
                         h = [];
