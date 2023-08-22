@@ -3120,7 +3120,12 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             % Open goGPS Inspector       
             goInspector;
         end
-        
+
+        function updateConfigs(this, caller, event)
+            % OpenupdateAppFiles
+            Core.updateAppFiles;
+        end
+
         function openSetUpSlaves(this, caller, event)
             % Open SetUpSlaves
             App_Settings.setUpSlaves;
@@ -3555,6 +3560,9 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             uimenu(this.menu.goGPS, ...
                 'Label', 'Run Parallelism Set Up', ...
                 'Callback', @this.openSetUpSlaves);
+            uimenu(this.menu.goGPS, ...
+                'Label', 'Update config files from source folder', ...
+                'Callback', @this.updateConfigs);
             uimenu(this.menu.goGPS, ...
                 'Label', 'Open Inspector', ...
                 'Callback', @this.openInspector);
