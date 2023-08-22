@@ -1115,11 +1115,11 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                         trk_aval = fr.trk_availability_ph;
                         if any(trk_aval)
                             Core.getLogger.addMessage(sprintf('Found valid non empty %s', name));
-                            if ~isempty(trk_ph)
-                                trk_ph = [trk_ph; trk_aval'];
-                            else
-                                trk_ph = [trk_aval'];
-                            end
+                        end
+                        if ~isempty(trk_ph)
+                            trk_ph = [trk_ph; trk_aval'];
+                        else
+                            trk_ph = [trk_aval'];
                         end
                         f = 0; % Force exit (keep the first valid file)
                     end

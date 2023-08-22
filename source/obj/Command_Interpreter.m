@@ -97,6 +97,7 @@ classdef Command_Interpreter < handle
         CMD_PUSHOUT     % push results in output
         CMD_REMSAT      % remove satellites from receivers
         CMD_REMOBS      % Remove some observations from the receiver (given the obs code)
+        CMD_KEEPOBS     % Keep some observations of the receiver (given the obs code)
         CMD_REMTMP      % Remove temporary data not used later for pushout
                             
         CMD_PINIT       % parallel request slaves
@@ -970,7 +971,7 @@ classdef Command_Interpreter < handle
             this.PAR_E_COO_TXT.limits = [];
             this.PAR_E_COO_TXT.accepted_values = {};
             
-		this.PAR_E_RFL_MAT.name = 'Stored reflector heights within COO MAT format';
+		    this.PAR_E_RFL_MAT.name = 'Stored reflector heights within COO MAT format';
             this.PAR_E_RFL_MAT.descr = 'RFL_MAT            Reflector height .mat file (one for all the coordinates)';
             this.PAR_E_RFL_MAT.par = '(rfl_mat)|(RFL_MAT)';
             this.PAR_E_RFL_MAT.class = '';
@@ -1177,10 +1178,16 @@ classdef Command_Interpreter < handle
             this.CMD_REMSAT.par = [];
 
             this.CMD_REMOBS.name = {'REMOBS', 'remobs'};
-            this.CMD_REMOBS.descr = ['Remove observation, format: <1ch obs. type (CPDS)><1ch freq><1ch tracking>' new_line 'e.g. REMOBS T1 D,S2,L2C'];
+            this.CMD_REMOBS.descr = ['Remove observation, format: <1ch obs. sys (GRECJI)><1ch obs. type (CPDS)><1ch freq><1ch tracking>' new_line 'e.g. REMOBS T1 D,S2,L2C,GL1X'];
             this.CMD_REMOBS.rec = 'T';
             this.CMD_REMOBS.key = 'O'; % fake not used key, indicate thet there's one mandatory parameter
             this.CMD_REMOBS.par = [];
+            
+            this.CMD_KEEPOBS.name = {'KEEPOBS', 'remobs'};
+            this.CMD_KEEPOBS.descr = ['Keep observation, format: <1ch obs. sys (GRECJI)><1ch obs. type (CPDS)><1ch freq><1ch tracking>' new_line 'e.g. KEEPOBS T1 C,S,GL1C,GL2C,E???'];
+            this.CMD_KEEPOBS.rec = 'T';
+            this.CMD_KEEPOBS.key = 'O'; % fake not used key, indicate thet there's one mandatory parameter
+            this.CMD_KEEPOBS.par = [];
 
             this.CMD_REMTMP.name = {'REMTMP', 'remtmp'};
             this.CMD_REMTMP.descr = 'Remove data used during computation but no more necessary to push the results out';
@@ -1616,6 +1623,8 @@ classdef Command_Interpreter < handle
                                         this.runRemSat(core.rec, tok(2:end));
                                     case this.CMD_REMOBS.name               % REM OBS
                                         this.runRemObs(core.rec, tok(2:end));
+                                    case this.CMD_KEEPOBS.name              % KEEP OBS
+                                        this.runKeepObs(core.rec, tok(2:end));
                                     case this.CMD_REMTMP.name               % REM TMP
                                         this.runRemTmp(core.rec, tok(2:end));
                                     case this.CMD_KEEP.name                 % KEEP
@@ -2752,6 +2761,34 @@ classdef Command_Interpreter < handle
                             end
                             rec(r).work.remObs(id);
                         end
+                    end
+                end
+            end
+        end
+
+        function runKeepObs(this, rec, tok)
+            % Remove observation from receivers
+            %
+            % INPUT
+            %   rec     list of rec objects
+            %   tok     list of tokens(parameters) from command line (cell array)
+            %
+            % SYNTAX
+            %   this.runKeepObs(rec, tok)
+            [id_trg, found] = this.getMatchingRec(rec, tok, 'T');
+            if ~found
+                log = Core.getLogger;
+                log.addWarning('No target found -> nothing to do');
+            else
+                s_idx = 2;
+                for r = id_trg
+                    if ~isempty(rec(r)) && ~(rec(r).isEmptyWork_mr)
+                        obs_type = strsplit(tok{s_idx},',');
+                        id = [];
+                        for o = 1 : length(obs_type)
+                            id = [id; rec(r).work.findObservableByFlag(obs_type{o})];
+                        end
+                        rec(r).work.keepObs(id);
                     end
                 end
             end

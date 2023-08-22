@@ -41,7 +41,7 @@ classdef Core_Sky < handle
             'IC5A' ; 'IC5B' ; 'IC5C' ; 'IC5X' ; 'IC9A' ; 'IC9B' ; 'IC9C' ; 'IC9X' ; ...                                                                % IRNSS codes
             'SC1C' ; 'SC5I' ; 'SC5Q' ; 'SC5X' % SBAS
             ];
-        CARRIER_PHASES_FLAGS =  [ 'GL1C' ; 'GL1S' ; 'GL1L' ; 'GL1X' ; 'GL1P' ; 'GL1W' ; 'GL1Y' ; 'GL1M' ; 'GL1N'; 'GL2C' ; 'GL2D' ; 'GL2S' ; 'GL2L' ; 'GL2X' ; 'GL2P' ; 'GL2W' ; 'GL2Y' ; 'GL2M' ; 'GL2N'; 'GL5I' ; 'GL5Q' ; 'GL5X' ; ... % GPS codes
+        CARRIER_PHASES_FLAGS =  [ 'GL1C' ; 'GL1S' ; 'GL1L' ; 'GL1X' ; 'GL1P' ; 'GL1W' ; 'GL1Y' ; 'GL1M' ; 'GL1N'; 'GL1 '; 'GL2C' ; 'GL2D' ; 'GL2S' ; 'GL2L' ; 'GL2X' ; 'GL2P' ; 'GL2 ' ; 'GL2W' ; 'GL2Y' ; 'GL2M' ; 'GL2N'; 'GL5I' ; 'GL5Q' ; 'GL5X' ; ... % GPS codes
             'RL1C' ; 'RL1P' ; 'RL2C' ; 'RL2P' ; 'RL3I' ; 'RL3Q' ; 'RL3X' ; ...                                                                         % GLONASS code
             'EL1A' ; 'EL1B' ; 'EL1C' ; 'EL1X' ; 'EL1Z' ; 'EL5I' ; 'EL5Q' ; 'EL5X' ; 'EL7I' ; 'EL7Q' ; 'EL7X' ; 'EL8I' ; 'EL8Q' ; 'EL8X' ; 'EL6A'; 'EL6B'; 'EL6C'; 'EL6X'; 'EL6Z';... % GALILEO codes
             'JL1C' ; 'JL1S' ; 'JL1L' ; 'JL1X' ; 'JL1Z' ; 'JL2S' ; 'JL2L' ; 'JL2X' ; 'JL2M' ; 'JL5I' ; 'JL5Q' ; 'JL5X' ; 'JL6S' ; 'JL6L' ; 'JL6X' ; ... % QZSS codes

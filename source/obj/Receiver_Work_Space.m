@@ -677,8 +677,18 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
+        function keepObs(this, id_obs)
+            % keep observables with a certain id
+            %
+            % SYNTAX
+            %   this.keepObs(id_obs)
+            id_ko = 1 : size(this.obs,1);
+            id_ko(id_obs) = [];
+            this.remObs(id_ko);
+        end
+
         function remObs(this, id_obs)
-            % remove observable with a certain id
+            % remove observables with a certain id
             %
             % SYNTAX
             %   this.remObs(id_obs)
@@ -6152,18 +6162,28 @@ classdef Receiver_Work_Space < Receiver_Commons
             %   id = this.findObservableByFlag(flag, <go_id>)
             %
             % EXAMPLE
+            %   id = this.findObservableByFlag('GL1C');
             %   id = this.findObservableByFlag('L1C');
             %   id = this.findObservableByFlag('?2C');
             
             if isempty(this.obs_code)
                 id = [];
             else
+                if length(flag) == 4 % this also contains the constellation
+                    sys_flag = flag(1);
+                    flag(1) = [];
+                else
+                    sys_flag = '';                    
+                end
                 flag = [flag '?' * char(ones(1, 3 - size(flag, 2)))];
                 
                 lid = iif(flag(1) == '?', true(size(this.obs_code, 1), 1), this.obs_code(:, 1) == flag(1)) & ...
                     iif(flag(2) == '?', true(size(this.obs_code, 1), 1), this.obs_code(:, 2) == flag(2)) & ...
                     iif(flag(3) == '?', true(size(this.obs_code, 1), 1), this.obs_code(:, 3) == flag(3));
-                if nargin == 3 && isnumeric(sys_c) % its a goid !!
+                if ~isempty(sys_flag)
+                    lid = lid & (this.system == sys_flag)';
+                end
+                if nargin == 3 && isnumeric(sys_c) % its a goid no prn!!
                     lid = lid & (this.go_id == sys_c);
                 else
                     if nargin > 2 && ~isempty(sys_c)
