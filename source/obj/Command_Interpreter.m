@@ -971,7 +971,7 @@ classdef Command_Interpreter < handle
             this.PAR_E_COO_TXT.limits = [];
             this.PAR_E_COO_TXT.accepted_values = {};
             
-		    this.PAR_E_RFL_MAT.name = 'Stored reflector heights within COO MAT format';
+            this.PAR_E_RFL_MAT.name = 'Stored reflector heights within COO MAT format';
             this.PAR_E_RFL_MAT.descr = 'RFL_MAT            Reflector height .mat file (one for all the coordinates)';
             this.PAR_E_RFL_MAT.par = '(rfl_mat)|(RFL_MAT)';
             this.PAR_E_RFL_MAT.class = '';
@@ -4038,7 +4038,7 @@ classdef Command_Interpreter < handle
             end
         end
 
-        function [file_name, found, flag_close, flag_compress] = getExportFig(this, tok)
+        function [file_name, found, flag_close] = getExportFig(this, tok)
             % Extract from a set of tokens the file_name of the figure to export
             % and tell if the figure must be closed after export
             %

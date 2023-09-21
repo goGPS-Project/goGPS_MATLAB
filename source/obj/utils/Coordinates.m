@@ -3115,7 +3115,7 @@ classdef Coordinates < Exportable & handle
                 fprintf('%s %.2f\n', coo_list(i).getNameV3, good_perc(i));
             end
             fprintf('--------------------------------\n %s %.2f\n', 'TOTAL    ', sum(err_status(:) == 0)./numel(err_status)*100);
-            time_sync = time_sync.getMatlabTime();
+            time_sync = time_sync.getDateTime();
             
             fh = figure('Visible', 'off');
             fh.Name = sprintf('%03d: CooErr', fh.Number); fh.NumberTitle = 'off';
@@ -3149,7 +3149,7 @@ classdef Coordinates < Exportable & handle
             yticklabels(coo_list.getName());
             xlim([time_sync(1) time_sync(end)] + median(diff(time_sync), 'omitnan') .* [-1 1]);
             ylim([0.7 numel(coo_list) + 0.3]);
-            setTimeTicks(28);
+            %setTimeTicks(28);
             grid on;
             %cb = colorbar;
             title(sprintf('Bad epochs\\fontsize{5} \n'), 'FontName', 'Open Sans');
@@ -3527,7 +3527,7 @@ classdef Coordinates < Exportable & handle
                             
                             if thr < 1
                                 % If there was no PPP nor NET, consider the data as bad
-                                lid_pro_ok = logical(coo(1).isPPPOk(pos_flags)) | logical(coo(1).isNETOk(pos_flags));
+                                lid_pro_ok = logical(coo(1).isPPPOk(pos_flags)) | logical(coo(1).isNETOk(pos_flags)) | logical(pos_flags == 0); % this last condition is needed for files imported from text with no flag information
                                 if all(lid_pro_ok == 0)
                                     % If none is ok, maybe all are from juste pre-processing
                                     lid_pro_ok = coo(1).isPreProcessed(pos_flags);
@@ -4135,6 +4135,10 @@ classdef Coordinates < Exportable & handle
             %                      default:  true
             %                      values are forced for some bg_type (false | gmap) or (true | dtm)
             %
+            %   'label_color'      display label background (box)
+            %                      rgb:      [1 1 1]
+            %                      default:  white
+            %
             %   'point_size'       Dimension of the points
             %                      number:   [1 x 1]
             %                      default:  10
@@ -4497,7 +4501,7 @@ classdef Coordinates < Exportable & handle
                             if sum(label_color - [0.1 0.1 0.1]) == 0
                                 label_color = [1 1 1] -0.001; % Remove 0.001 to trick beautify function
                             end
-                            flag_label_bg = false;
+                            %flag_label_bg = false;
 
                             if strcmp(proj_type, 'none')
                                 if new_fig

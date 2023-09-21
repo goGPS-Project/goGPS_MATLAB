@@ -2021,6 +2021,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         end
                     end
                 end
+
                 % this indicates the 75% level of time variation of the observations (it is usually less than 1 cm)
                 %diff75 = perc(abs(Core_Utils.diffAndPred(sensor_ph(:))), 0.75);
 
@@ -4287,6 +4288,15 @@ classdef Receiver_Work_Space < Receiver_Commons
                 log.addMessage(sprintf(' Satellite System(s) seen:                "%s"', unique(this.system)));
                 log.newLine();
                 
+                cid = Core_Utils.code4Char2Num([this.system' this.obs_code]);
+                ucid = unique(cid);
+                log.addMarkedMessage(sprintf('Data numerosity'));
+                for id = ucid(:)'
+                    log.addMessage(log.indent(sprintf(' - %s: %d', Core_Utils.num2Code4Char(id), ...
+                        sum(~isnan(zero2nan(serialize(this.obs(cid == id, :))))))));
+                end
+                log.newLine();
+
                 xyz0 = this.getAPrioriPos();
                 [enu0(1), enu0(2), enu0(3)] = cart2plan(xyz0(:,1), xyz0(:,2), xyz0(:,3));
                 static_dynamic = {'Dynamic', 'Static'};
@@ -9471,7 +9481,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.remDtSat();
                 this.remGroupDelay();
                 this.remPCV();
-                this.remMP();
                 this.remPoleTide();
                 this.remPhaseWindUpCorr();
                 this.remSolidEarthTide();
@@ -9485,7 +9494,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.dts_delay_status = false;
                 this.sh_delay_status = false;
                 this.pcv_delay_status = false;
-                this.mp_delay_status = false;
                 this.ol_delay_status = false;
                 this.pt_delay_status = false;
                 this.pw_delay_status = false;
@@ -11010,6 +11018,14 @@ classdef Receiver_Work_Space < Receiver_Commons
                             Core.getCoreSky.toAPC();
                         end
                         s02 = this.initPositioning(sys_list); %#ok<*PROPLC>
+                        if any(abs(diff(this.dt)) > 0.005) 
+                            % If there is a strong clock jump start immediately to remove the receiver clock from the data
+                            this.dt_ip = this.dt; % save the temporary dt of the inith positioning
+                            this.applyDtRec(this.dt);
+                            this.dt = 0; % reset the current dt
+                            log.addWarning(sprintf('Receiver with strong clock error jumps (max %01f ms)', max(abs(diff(this.dt)))*1e3));
+                            s02 = this.initPositioning(sys_list); %#ok<*PROPLC>                        
+                        end
                         if (s02 == 0)
                             log.addWarning(sprintf('Code solution have not been computed, something is wrong in the current dataset'));
                         elseif (min(s02) > Core.getState.getMaxErrPP)
