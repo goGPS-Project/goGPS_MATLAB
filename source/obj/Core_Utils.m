@@ -3059,7 +3059,7 @@ classdef Core_Utils < handle
        
         function varargout = addGoogleMaps(varargin)
             % wrapper to check API key before executing plot_google_map
-            % 
+            %
             % INPUTS
             %   varargin    for a list of admittable args type "help plot_google_map"
             %
@@ -3085,9 +3085,13 @@ classdef Core_Utils < handle
                 Core_Utils.printEx(ex);
                 h = [];
             end
-            
+
             warning on;
-            flag_ok = ~isempty(h);
+            if iscell(h)
+                flag_ok = ~isempty(h{1});
+            else
+                flag_ok = ~isempty(h);
+            end
             if ~flag_ok
                 fh = gcf;
                 rrm = Remote_Resource_Manager.getInstance;
@@ -3105,7 +3109,11 @@ classdef Core_Utils < handle
                     h = [];
                 end
                 warning on;
-                flag_ok = ~isempty(h);
+                if iscell(h)
+                    flag_ok = ~isempty(h{1});
+                else
+                    flag_ok = ~isempty(h);
+                end
                 while (n_try < 3 && flag_ok == false)
                     n_try = n_try + 1;
                     answer = inputdlg(sprintf(['Attempt %d/3, Insert your API key to use maps' newline 'or create a file called "api_key.mat" containing the char variable "apiKey" with your google map API'], n_try), 'Google Maps API', [1 150]);
@@ -3140,10 +3148,14 @@ classdef Core_Utils < handle
                         Core_Utils.printEx(ex);
                     end
                     warning on;
-                    flag_ok = ~isempty(h);
+                    if iscell(h)
+                        flag_ok = ~isempty(h{1});
+                    else
+                        flag_ok = ~isempty(h);
+                    end
                 end
             end
-            
+
             if ~flag_ok
                 try
                     warning off;
@@ -3157,7 +3169,7 @@ classdef Core_Utils < handle
                 end
             end
         end
-        
+
         %--------------------------------------------------------------------------
         %% UTILITIES FUNCTIONS
         %--------------------------------------------------------------------------
