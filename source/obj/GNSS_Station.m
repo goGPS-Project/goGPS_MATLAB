@@ -5980,6 +5980,7 @@ classdef GNSS_Station < handle
                 
                 Core_UI.addExportMenu(f);
                 Core_UI.addBeautifyMenu(f);
+                Core_UI.addLineMenu(f);
                 f.Visible = iif(Core_UI.isHideFig, 'off', 'on'); drawnow;
             end
         end
@@ -6287,6 +6288,7 @@ classdef GNSS_Station < handle
                 Core_UI.beautifyFig(fh);
                 Core_UI.addExportMenu(fh);
                 Core_UI.addBeautifyMenu(fh);
+                Core_UI.addLineMenu(fh);
                 fh.Visible = iif(Core_UI.isHideFig, 'off', 'on'); drawnow;
             end
         end
