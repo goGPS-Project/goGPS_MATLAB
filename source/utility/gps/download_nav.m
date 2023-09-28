@@ -54,8 +54,8 @@ download_successful = 0;
 compressed = 0;
 
 %IGS FTP server URL
-igs_url = 'cddis.gsfc.nasa.gov';
-igs_mirror = 'igs.bkg.bund.de';
+igs_url = 'geodesy.noaa.gov';
+igs_mirror = 'igs-ftp.bkg.bund.de';
 
 %AIUB FTP server URL
 aiub_url = 'ftp.aiub.unibe.ch';
@@ -84,7 +84,8 @@ if (strcmp(filename(1:4),'brdc'))
     url = igs_mirror;
     name = 'BKG IGS mirror';
     path = '/IGS/BRDC/';
-    subdir = sprintf('/%s/', filename(5:7));
+    yy = filename(10:11); 
+    subdir = sprintf('/%s/%s/', [iif(yy>70, '19', '20') yy], filename(5:7));
 elseif (strcmp(filename(1:4),'CGIM'))
     url = aiub_url;
     name = 'AIUB';
@@ -102,7 +103,7 @@ try
     warning('off')
     sf = struct(ftp_server);
     warning('on')
-    sf.jobject.enterLocalPassiveMode();
+    %% sf.jobject.enterLocalPassiveMode();
 catch
     fprintf(['Could not connect to: ' url ' \n']);
     return
