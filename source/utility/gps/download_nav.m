@@ -84,8 +84,7 @@ if (strcmp(filename(1:4),'brdc'))
     url = igs_mirror;
     name = 'BKG IGS mirror';
     path = '/IGS/BRDC/';
-    yy = filename(10:11); 
-    subdir = sprintf('/%s/%s/', [iif(yy>70, '19', '20') yy], filename(5:7));
+    subdir = sprintf('/%s/', filename(5:7));
 elseif (strcmp(filename(1:4),'CGIM'))
     url = aiub_url;
     name = 'AIUB';
@@ -118,27 +117,17 @@ cd(ftp_server, '/');
 try
     cd(ftp_server, s); % If the folder does not exist go to the catch branch of try
     
-    filename = [filename '.Z'];
+    filename = [filename '.gz'];
     
     try
         mget(ftp_server,filename,down_dir);
-        if (isunix())
-            system(['uncompress -f ' down_dir filesep filename]);
-        else
-            try
-                [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' down_dir filename '"' ' -o' '"' down_dir '"']); %#ok<ASGLU>
-                delete([down_dir filename]);
-                filename = filename(1:end-2);
-            catch
-                fprintf(['Please decompress the ' filename ' file before trying to use it in goGPS.\n']);
-                compressed = 1;
-            end
-        end
+        Core_Utils.uncompressFile(char(fullfile(down_dir,filename)))
         fprintf(['Downloaded ' filename(1:4) ' file: ' filename '\n']);
         download_successful = 1;
     catch
-    end
+    end    
 catch
+    warning('"%s" folder not found in %s', s, ftp_server.Host);
 end
 
 close(ftp_server);
