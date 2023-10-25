@@ -1978,7 +1978,7 @@ classdef GNSS_Station < handle
 
             sta_list(1).log.addMarkedMessage('Chalmers ocean loading computation must be required manually:');
             sta_list(1).log.addMessage(sta_list(1).log.indent('go to http://holt.oso.chalmers.se/loading/ and request a BLQ file'));
-            sta_list(1).log.addMessage(sta_list(1).log.indent('using ocean tide model FES2004'));
+            sta_list(1).log.addMessage(sta_list(1).log.indent('using ocean tide model FES2014b'));
             % sta_list(1).log.addMessage(sta_list(1).log.indent('select also to compensate the values for the motion'));
             sta_list(1).log.addMessage(sta_list(1).log.indent('Use the following string for the station locations:'));
             sta_list(1).log.addMessage([char(8) '//------------------------------------------------------------------------']);

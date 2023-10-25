@@ -110,7 +110,7 @@ function resetTimeTicks(h, num, format)
 
                 % Set the tick positions for the axis
                 offset = floor((((ax(2)- tick_pos(end)) - (tick_pos(1) - ax(1)))/2/round_val))*round_val;
-                tick_pos = tick_pos + offset;
+                tick_pos = unique(tick_pos + offset);
                 set(h(i), 'XTick', tick_pos);
                 if strcmp(format, 'auto') || strcmp(format, 'doy')
                     last_date = [0 0 0 0 0 0];
