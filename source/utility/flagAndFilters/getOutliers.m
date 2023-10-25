@@ -85,7 +85,7 @@ function [lid_ko, clean_data] = getOutliers(data, sigma, win_size, n_sigma_win, 
         mov_range = perc(noNaN(diff(clean_data)), [0.2 0.5 0.8]);
         mov_range = mov_range([1 3]) + [-40 40]' .* diff(mov_range);
         
-        tmp = nan2zero(medfilt_mat(clean_data, round(win_size)));
+        tmp = nan2zero(movmedian(clean_data, round(win_size), 'omitnan'));
         lid_ko = clean_data < (tmp + mov_range(1)) | (clean_data > (tmp + mov_range(2)));
         
         range = perc(clean_data, [0.2 0.5 0.8]);

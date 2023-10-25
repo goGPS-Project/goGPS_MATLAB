@@ -30,9 +30,8 @@ function resetTimeTicks(h, num, format)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011
+01000111 01010000 01010011
 %--------------------------------------------------------------------------
-
     if (nargin == 1) 
         num = 9;
         format = 'yyyy/mm/dd HH:MM';
@@ -49,60 +48,69 @@ function resetTimeTicks(h, num, format)
                 ax = double(axis(h(i)));
 
                 step = (ax(2)-ax(1))/(num);
+                % Calculate the time span of the data
                 time_span = ax(2)-ax(1);
 
-                % depending on the time_span round ticks
-                round_val = 1 / 86400; % one second
+                % Depending on the time_span, round ticks
+                round_val = 1 / 86400; % default to one second
 
-                if time_span > 20                 % greater than 20days
-                    round_val =  1;               % round on 1 day
-                elseif time_span > 8              % greater than 4 days
-                    round_val =  12 / 24;         % round on 12 hour
-                elseif time_span > 6              % greater than 4 days
-                    round_val =  6 / 24;          % round on 12 hour
-                elseif time_span > 4              % greater than 4 days
-                    round_val =  3 / 24;          % round on 12 hour
-                elseif time_span > 1              % greater than a day
-                    round_val =  1 / 24;          % round on 1 hour
-                elseif time_span > 12 / 24        % greater than 12 hours
-                    round_val =  30 / (24 * 60);  % round on 30 minutes
-                elseif time_span > 5 / 24         % greater than 5 hours
-                    round_val =  15 / (24 * 60);  % round on 15 minutes
-                elseif time_span > 1 / 24         % greater than 1 hour
-                    round_val =  5 / (24 * 60);   % round on 5 minutes
-                elseif time_span > 10 / (24 * 60) % greater than 10 minutes
-                    round_val =  1 / (24 * 60);   % round on 1 minute
-                elseif time_span > 5 / (24 * 60)  % greater than 5 minutes
-                    round_val =  30 / 86400;      % round on 30 seconds
-                elseif time_span > 1 / (24 * 60)  % greater than 1 minutes
-                    round_val =  5 / 86400;       % round on 5 seconds
+                if time_span > 20
+                    round_val = 1;
+                elseif time_span > 8
+                    round_val = 12 / 24;
+                elseif time_span > 6
+                    round_val = 6 / 24;
+                elseif time_span > 4
+                    round_val = 3 / 24;
+                elseif time_span > 1
+                    round_val = 1 / 24;
+                elseif time_span > 12 / 24
+                    round_val = 30 / (24 * 60);
+                elseif time_span > 5 / 24
+                    round_val = 15 / (24 * 60);
+                elseif time_span > 1 / 24
+                    round_val = 5 / (24 * 60);
+                elseif time_span > 10 / (24 * 60)
+                    round_val = 1 / (24 * 60);
+                elseif time_span > 5 / (24 * 60)
+                    round_val = 30 / 86400;
+                elseif time_span > 1 / (24 * 60)
+                    round_val = 5 / 86400;
                 end
 
-                tick_pos = (ax(1) + (step/2)) : step : (ax(2) - (step/2));
+                % Find the center of the axis
+                center = (ax(1) + ax(2)) / 2;
 
+                % Calculate the tick positions symmetrically about the center
+                num_ticks_each_side = floor(num / 2);
+                tick_pos = center + (-num_ticks_each_side:num_ticks_each_side) * step;
+
+                % Round the tick positions
+                tick_pos = round(tick_pos ./ round_val) .* round_val;
+
+                % Remove tick positions outside the axis limits
+                tick_pos((tick_pos < ax(1)) | (tick_pos > ax(2))) = [];
+
+                % Determine the granularity of the tick labels
                 c_out = 0;
-                if round_val >= 1 / (24 * 60) % rounding is greater than 1 minute
-                    c_out = 3;                % do not show seconds
+                if round_val >= 1 / (24 * 60)
+                    c_out = 3;
+                elseif round_val >= 1
+                    c_out = 9;
                 end
-                %if round_val >= 1 / 24    % rounding is greater than 1 hour
-                %    c_out = 6;                % do not show minutes
-                %end
-                if round_val >= 1         % greater than 1 day
-                    c_out = 9;                % do not show hours
-                end
-
-                tick_pos = round(tick_pos ./ round_val) .* round_val; % round ticks
-                tick_pos((tick_pos < ax(1)) | (tick_pos > ax(2))) = []; % delete ticks outside figure;
-                tick_pos = unique(tick_pos);
 
                 if all(diff(tick_pos) >= 1)
-                    % round at midnight, do not display hours
                     c_out = 9;
                     tick_pos = floor(tick_pos);
                 end
+
                 if all(mod(tick_pos, 1) == 0)
                     round_val = 1;
                 end
+
+                % Set the tick positions for the axis
+                offset = floor((((ax(2)- tick_pos(end)) - (tick_pos(1) - ax(1)))/2/round_val))*round_val;
+                tick_pos = tick_pos + offset;
                 set(h(i), 'XTick', tick_pos);
                 if strcmp(format, 'auto') || strcmp(format, 'doy')
                     last_date = [0 0 0 0 0 0];

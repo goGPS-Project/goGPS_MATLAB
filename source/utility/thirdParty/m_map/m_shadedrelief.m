@@ -287,15 +287,13 @@ end
 
 
 if nargout<=1
-  x_ok = ~isnan(x);
-  y_ok = ~isnan(y);
   if any(I)  % make pixels outside the map area transparent, if needed.
      alphadata=  ones(size(Truecol,1),size(Truecol,2),'logical');
      IJ=sub2ind(size(alphadata),I,J);   
      alphadata(IJ)=0;
-     Truecol=image('xdata',x(x_ok),'ydata',y(y_ok),'cdata', Truecol(y_ok, x_ok,:),'alphadata',alphadata,'tag','m_shadedrelief'); 
+     Truecol=image('xdata',x,'ydata',y,'cdata',Truecol,'alphadata',alphadata,'tag','m_shadedrelief'); 
   else
-     Truecol=image('xdata',x(x_ok),'ydata',y(y_ok),'cdata', Truecol(y_ok, x_ok,:),'tag','m_shadedrelief'); 
+     Truecol=image('xdata',x,'ydata',y,'cdata',Truecol,'tag','m_shadedrelief'); 
   end
 end
 

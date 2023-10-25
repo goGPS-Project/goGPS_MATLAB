@@ -2427,7 +2427,13 @@ classdef Core_Utils < handle
             %
             % SYNTAX
             %   [t, data] = Core_Utils.insertNan4Plots(t, data)
-                        
+              
+            if isa(t, 'datetime')
+                t = datenum(t);
+                flag_datetime = true;
+            else
+                flag_datetime = false;
+            end
             t = t(:);
             if size(t, 1) ~= size(data_set, 1)
                 % data should be a column array
@@ -2453,6 +2459,9 @@ classdef Core_Utils < handle
             %    t = [t(1 : id_in(x)); (t(id_in(x)) + 1.5 * rate); t((id_in(x)+1) : end)];
             %    data_set = [data_set(1 : id_in(x), :); nan(1, n_set); data_set((id_in(x)+1) : end, :)];
             %end
+            if flag_datetime
+                t = datetime(datevec(t));
+            end
         end
         
         function [t, data_set] = insertZeros4Plots(t, data_set)
@@ -2835,201 +2844,6 @@ classdef Core_Utils < handle
             end
         end
         
-        function [xyz, unique_name] = readBGetterList(file_name)
-            % READBGETTERLIST Reads xyz coordinates and unique names from a file
-            %
-            % INPUTS:
-            %   - file_name: the full path to the file to be read
-            %
-            % OUTPUTS:
-            %   - xyz: an nx3 array of xyz coordinates read from the file
-            %   - unique_name: an n-element cell array of unique names read from the file
-            %
-            % SYNTAX: [xyz, unique_name] = Core_Utils.readBGetterList(file_name)
-
-            % Define the format of each line in the file
-            format_spec = '%f %f %f %s %s %s';
-
-            % Open the file for reading
-            file_id = fopen(file_name, 'r');
-
-            % Read the data from the file
-            data = textscan(file_id, format_spec, 'HeaderLines', 4);
-
-            % Close the file
-            fclose(file_id);
-
-            % Extract the xyz coordinates from the data
-            xyz = [data{1}, data{2}, data{3}];
-
-            % Extract the unique names from the data
-            unique_name = data{4};
-
-        end
-
-        function [xyz, unique_name, net_name] = getAllBGetterLists(dir_path, print_list)
-            % Reads all the .lst files in a folder and returns unique xyz coordinates
-            % and corresponding unique names.
-            %
-            % INPUT:
-            %   dir_path: string containing the path to the directory to scan
-            %   print_list: display on screen the list of read stations
-            %
-            % OUTPUT:
-            %   xyz: matrix containing the unique xyz coordinates (nx3)
-            %   unique_name: cell array containing the unique names
-            %   net_name: cell array containing the names of the files without the extension
-            %
-            % SYNTAX:
-            %   [xyz, unique_name, net_name] = getAllBGetterLists(dir_path)
-
-            % Get all .lst files in directory
-            if isempty(dir_path)
-                as = App_Settings.getInstance;
-                dir_path = join([as.getGetterInstallationPath,'CONF/LOOKUP/']);
-            end
-            lst_files = dir(fullfile(dir_path, '*.lst'));
-
-            % Initialize empty arrays
-            xyz_all = [];
-            unique_name_all = {};
-            net_name_all = {};
-
-            % Loop over .lst files
-            for i = 1:length(lst_files)
-
-                % Get file name and path
-                file_name = lst_files(i).name;
-                file_path = fullfile(dir_path, file_name);
-
-                % Get network name from file name
-                [~, net_name, ~] = fileparts(file_name);
-
-                % Read xyz and unique_name from file
-                [xyz, unique_name] = Core_Utils.readBGetterList(file_path);
-
-                % Append to arrays
-                xyz_all = [xyz_all; xyz];
-                unique_name_all = [unique_name_all; unique_name];
-                net_name_all = [net_name_all; repmat({net_name}, size(xyz, 1), 1)];
-
-            end
-
-            % Return unique arrays
-            xyz = xyz_all;
-            unique_name = unique_name_all;
-            net_name = net_name_all;
-            
-            if nargin == 2 && print_list
-                % Sort the results by unique_name
-                [unique_name, sort_idx] = sort(unique_name);
-                xyz = xyz(sort_idx, :);
-                net_name = net_name(sort_idx);
-
-                fprintf('%-20s %-25s %-15s\n', 'Network', 'Unique Name', 'XYZ Coordinates');
-                fprintf('------------------------------------------------------------\n');
-                for i = 1:length(net_name)
-                    fprintf('%-20s %-65s %14.4f %14.4f %14.4f\n', net_name{i}, unique_name{i}, xyz(i, 1), xyz(i, 2), xyz(i, 3));
-                end
-            end
-        end
-
-        function [xyz, unique_name, net_name] = getBGetterStation(marker_name, nationality, net_name_filter, print_list)
-            % Returns the list of stations in the .lst files filtered by marker_name and/or nationality
-            %
-            % INPUT:
-            %   marker_name: string containing the first 9 characters of the unique name of the station
-            %   nationality: string containing the 3 characters representing the nationality of the station
-            %   net_name: string containing the name of the file without the extension
-            %   print_list: display on screen the list of read stations
-            %
-            % OUTPUT:
-            %   xyz: matrix containing the unique xyz coordinates (nx3)
-            %   unique_name: cell array containing the unique names
-            %   net_name: cell array containing the names of the files without the extension
-            %
-            % SYNTAX:
-            %   [xyz, unique_name, net_name] = Core_Utils.getBGetterStation(marker_name, nationality, net_name)
-
-            % Load all B-GETTER station data
-            [xyz, unique_name, net_name] = Core_Utils.getAllBGetterLists([], false);
-
-            % Filter stations by marker name
-            if nargin >= 1 && exist('marker_name', 'var') && ~isempty(marker_name)
-                marker_filter = strncmp(unique_name, marker_name, length(marker_name));
-                xyz = xyz(marker_filter, :);
-                unique_name = unique_name(marker_filter);
-                net_name = net_name(marker_filter);
-            end
-
-            % Filter stations by nationality
-            if nargin >= 2 &&  exist('nationality', 'var') && ~isempty(nationality) && ~strcmp(nationality, 'All')
-                nation_filter = strncmp(cellfun(@(x) x(7:9), unique_name, 'UniformOutput', false), nationality, 3);
-                xyz = xyz(nation_filter, :);
-                unique_name = unique_name(nation_filter);
-                net_name = net_name(nation_filter);
-            end
-
-            % Filter stations by network name
-            if nargin >= 3 && exist('net_name', 'var') && ~isempty(net_name_filter) && ~strcmp(net_name_filter, 'All')
-                net_filter = strncmp(net_name, net_name_filter, length(net_name_filter));
-                xyz = xyz(net_filter, :);
-                unique_name = unique_name(net_filter);
-                net_name = net_name(net_filter);
-            end
-
-            if nargin == 4 && print_list
-                % Sort the results by unique_name
-                [unique_name, sort_idx] = sort(unique_name);
-                xyz = xyz(sort_idx, :);
-                net_name = net_name(sort_idx);
-
-                fprintf('%-20s %-25s %-15s\n', 'Network', 'Unique Name', 'XYZ Coordinates');
-                fprintf('------------------------------------------------------------\n');
-                for i = 1:length(net_name)
-                    fprintf('%-20s %-65s %14.4f %14.4f %14.4f\n', net_name{i}, unique_name{i}, xyz(i, 1), xyz(i, 2), xyz(i, 3));
-                end
-            end
-        end
-
-        function station_path = getBgetterStationPath(varargin)
-            % Returns the file paths of .rnx files for the provided marker name(s),
-            % nationality code(s), and/or network name(s) for a given year and day.
-            %
-            % INPUTS:
-            %   varargin: variable input arguments as follows (all optional):
-            %       - marker_name: beginning of unique station name (up to 9 characters)
-            %       - nationality: nationality code (3 characters in position 7-9 of unique name)
-            %       - net_name: name of the network
-            %
-            % OUTPUT:
-            %   station_path: a cell array of file paths for the matching station names
-            %       in the format 'path/to/file/<unique_name>.rnx'
-            %
-            % SYNTAX:
-            %   station_path = getBgetterStationPath(marker_name, nationality, net_name)
-            %
-            % The function calls the 'getBGetterStation' function from the 'Core_Utils'
-            % module to get the unique station names matching the input arguments, then
-            % constructs a cell array of file paths for the corresponding RINEX files.
-            % The file paths are constructed based on the year and day and
-            % the unique station name. If the unique station name contains the string '_01D_',
-            % the file is located in the STA/${YYYY}/${DOY}/ directory, otherwise it is located
-            % in the STA/2023/110/HOURLY/ directory.
-            [xyz, unique_name, net_name] = Core_Utils.getBGetterStation(varargin{:});
-            station_path = {};
-            if ~isempty(unique_name)
-                unique_name = unique(unique_name);
-                for i = 1:numel(unique_name)
-                    if contains(unique_name{1}, '_01D_')
-                        station_path{i,1} = fullfile(sprintf('%s%c/%s.rnx','/Volumes/LocalData/ArchiveGNSS/STA/${YYYY}/${DOY}/',unique_name{i}(1), unique_name{i}));
-                    else
-                        station_path{i,1} = fullfile(sprintf('%s%c/HOURLY/%s.rnx','/Volumes/LocalData/ArchiveGNSS/STA/${YYYY}/${DOY}/',unique_name{i}(1), unique_name{i}));
-                    end
-                end
-            end
-        end
-
         %--------------------------------------------------------------------------
         %% DEBUGGING FUNCTIONS
         %--------------------------------------------------------------------------
@@ -3052,124 +2866,7 @@ classdef Core_Utils < handle
             Core.getLogger.addMonoMessage(str);
             % keyboard
         end
-        
-        %--------------------------------------------------------------------------
-        %% ADD SHOW FUNCTIONS
-        %--------------------------------------------------------------------------
-       
-        function varargout = addGoogleMaps(varargin)
-            % wrapper to check API key before executing plot_google_map
-            %
-            % INPUTS
-            %   varargin    for a list of admittable args type "help plot_google_map"
-            %
-            % SYNTAX
-            %   varargout = Core_Utils.addGoogleMaps(varargin)
-            %
-            % SEE ALSO:
-            %   plot_google_map
-
-            flag_ok = false;
-            n_out = max(1,nargout);
-            varargout = cell(n_out, 1);
-
-            warning off;
-            try
-                if nargin == 0
-                    [varargout{:}] = plot_google_map();
-                else
-                    [varargout{:}] = plot_google_map(varargin{:});
-                end
-                h = varargout;
-            catch ex
-                Core_Utils.printEx(ex);
-                h = [];
-            end
-
-            warning on;
-            if iscell(h)
-                flag_ok = ~isempty(h{1});
-            else
-                flag_ok = ~isempty(h);
-            end
-            if ~flag_ok
-                fh = gcf;
-                rrm = Remote_Resource_Manager.getInstance;
-                api_key = rrm.getGoogleMapsAPI;
-                n_try = 0;
-                warning off;
-                try
-                    if nargin == 0
-                        [varargout{:}] = plot_google_map('apiKey', api_key);
-                    else
-                        [varargout{:}] = plot_google_map('apiKey', api_key, varargin{:});
-                    end
-                    h = varargout;
-                catch ex
-                    h = [];
-                end
-                warning on;
-                if iscell(h)
-                    flag_ok = ~isempty(h{1});
-                else
-                    flag_ok = ~isempty(h);
-                end
-                while (n_try < 3 && flag_ok == false)
-                    n_try = n_try + 1;
-                    answer = inputdlg(sprintf(['Attempt %d/3, Insert your API key to use maps' newline 'or create a file called "api_key.mat" containing the char variable "apiKey" with your google map API'], n_try), 'Google Maps API', [1 150]);
-                    if not(isempty(answer)) && not(isempty(answer{1}))
-                        api_key = answer{1};
-                    else
-                        api_key = '';
-                    end
-                    if not(isempty(api_key))
-                        % find plot_google_map location
-                        gm_dir = which('plot_google_map.m');
-                        if not(isempty(gm_dir))
-                            [gm_dir] = fileparts(gm_dir);
-                        else
-                            gm_dr = '.';
-                        end
-                        save(fullfile(gm_dir, 'api_key.mat'), 'api_key');
-                    end
-                    % Try the key:
-                    flag_ok = true;
-                    set(0, 'CurrentFigure', fh); % restore the plotting figure as default
-                    warning off;
-                    try
-                        if nargin == 0
-                            [varargout{:}] = plot_google_map();
-                        else
-                            [varargout{:}] = plot_google_map(varargin{:});
-                        end
-                        h = varargout;
-                    catch ex
-                        h = [];
-                        Core_Utils.printEx(ex);
-                    end
-                    warning on;
-                    if iscell(h)
-                        flag_ok = ~isempty(h{1});
-                    else
-                        flag_ok = ~isempty(h);
-                    end
-                end
-            end
-
-            if ~flag_ok
-                try
-                    warning off;
-                    if nargin == 0
-                        [varargout{:}] = plot_google_map();
-                    else
-                        [varargout{:}] = plot_google_map(varargin{:});
-                    end
-                    warning on;
-                catch
-                end
-            end
-        end
-
+                
         %--------------------------------------------------------------------------
         %% UTILITIES FUNCTIONS
         %--------------------------------------------------------------------------
@@ -3344,7 +3041,7 @@ classdef Core_Utils < handle
             fh = figure;
             xlim([lon-0.002, lon+0.002]);
             ylim([lat-0.002, lat+0.002]);
-            gm = Core_Utils.addGoogleMaps('alpha', 0.95, 'maptype', 'satellite');
+            gm = addMap('alpha', 0.95);
             plot(lon, lat, '^', 'color', Core_UI.ORANGE, 'markersize', 10, 'linewidth', 5); hold on;
             title(sprintf('Design a polygon, create a new point by right clicking'))
             % Initialize variables
@@ -3567,9 +3264,22 @@ classdef Core_Utils < handle
             box = findall(fh, 'type', 'uicontainer');
             if isempty(box)
                 if flag_transparent
-                    export_fig(fh, out_path, '-transparent', '-r150');
+                    export_fig(fh, out_path, '-transparent', '-r150','-background', 'none');
                 else
-                    export_fig(fh, out_path, '-r150');
+                    if fh.Visible
+                        export_fig(fh, out_path, '-r150');
+                    else
+                        if ~isdeployed
+                            original_position = get(fh, 'Position');
+                            set(fh, 'Position', original_position + [+5e5 +5e5 0 0]); % Resize the figure back to its original size
+                            fh.Visible = 'on';
+                        end
+                        export_fig(fh, out_path, '-r150');
+                        if ~isdeployed
+                            fh.Visible = 'off';
+                            set(fh, 'Position', original_position);
+                        end
+                    end
                 end
             else
                 % Special tricks in case of figure containing boxes

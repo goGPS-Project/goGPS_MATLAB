@@ -1,4 +1,4 @@
-% ROBFILT applies a moving window filter to a time series, ignoring NaNs.
+% Applies a moving window filter to a time series, ignoring NaNs.
 %
 % INPUT:
 %   ts: An n x 1 array representing the time series. May contain NaNs.
@@ -7,7 +7,9 @@
 % OUTPUT:
 %   filtered: An n x 1 array representing the filtered time series.
 %
-% SYNTAX: filtered = robfilt(ts, filter_size)
+% SYNTAX: 
+%    filtered = robfilt(ts, filter_size)
+%    filtered = robfilt(time, ts, filter_size)
 %
 % TEST:
 % n_obs = 10000;
@@ -80,18 +82,46 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-function filtered = robFilt(ts, filter_size)
+function filtered = robFilt(varargin)
+    % Handle input arguments
+    if nargin == 2
+        flag_time = false;
+        time = (1:length(varargin{1}))'; % Create a dummy time if not provided
+        ts = (varargin{1});
+        filter_size = varargin{2};
+    elseif nargin == 3
+        flag_time = true;
+        time = (varargin{1}); % Convert days to seconds
+        ts = (varargin{2});
+        filter_size = varargin{3}; % filter_size is in seconds
+    else
+        error('Invalid number of input arguments. Provide either ts, filter_size or time, ts, filter_size.');
+    end
+
+    if size(ts,2) == 2 %time series contains sigma values
+        initial_vars = ts(:,2);
+        ts = ts(:,1);
+    else
+        initial_vars = [];
+    end
+    
     % Get the size of the time series
     n = length(ts);
+    
     filter_size = min(filter_size,n);
 
     % Determine the padding size and initial values for padding
-    pad_size = floor(filter_size / 2);
+    pad_size = max(1,floor(filter_size / 2));
     initial_values = initPad(ts(1:pad_size), pad_size);
     final_values = initPad(flipud(ts(end-pad_size+1:end)), pad_size);
 
     % Pad the data
     ts = [2*initial_values-flipud(ts(2:pad_size+1)); ts; 2*final_values-flipud(ts(end-pad_size:end-1))];
+    initial_vars = [flipud(initial_vars(2:pad_size+1)); initial_vars; flipud(initial_vars(end-pad_size:end-1))];
+    time = [repmat(time(1), pad_size,1) + (time(1) - time(pad_size+1:-1:2)); ...
+            time; ...
+            repmat(time(end), pad_size,1) + (time(end) - time(end-1:-1:end-pad_size));];
+    % Pad the time
 
     % Initialize the output
     filtered = zeros(n, 1);
@@ -99,12 +129,19 @@ function filtered = robFilt(ts, filter_size)
     % Set the maximum number of iterations for the robust adjustment
     max_iter = 50;
     
-    % Loop over the time series
     for i = 1:n
-        % Get the data in the window
-        window = ts(i:i+filter_size-1);
+        if flag_time  % If time is provided
+            % Determine the indices of the time points within the desired time window
+            window_indices = abs(time - time(i+pad_size)) <= filter_size/2;
+            window = ts(window_indices);            
+        else
+            % Original behavior when time is not provided
+            window_indices = max(1, i - pad_size):min(n, i + floor(filter_size/2));
+            window = ts(window_indices);
+        end       
 
         % Ignore NaNs
+        window_indices(isnan(window)) = false;
         window = window(~isnan(window));
         
         % If window is empty, continue to the next iteration
@@ -113,32 +150,38 @@ function filtered = robFilt(ts, filter_size)
         end
 
         % Set the threshold for the robust adjustment
-        thrs = 1.4826 * mad(window, 1);
+        thrs = max(1e-9*window(1), 1.4826 * mad(window));
         
+        if ~isempty(initial_vars)
+            s02 = max(initial_vars(window_indices), thrs^2*1e-6);
+        else
+            s02 = ones(size(window))*thrs^2*1e-1;
+        end
+
         % Perform the robust adjustment
         j = 0;
-        dt = 1e9;
-        dt_prev = -1e9;
-        while (j < max_iter && abs(dt - dt_prev) > 0.005)
-            dt_prev = dt;
-            w = ones(size(window));
-            ares_n = abs(window - dt_prev) / thrs;
+        data = 1e9;
+        data_prev = -1e9;
+        while (j < max_iter && abs(data - data_prev) > 0.005)
+            data_prev = data;
+            w = 1./s02;
+            ares_n = abs(window - data_prev) / thrs;
             idx_rw = ares_n > 1;
             if any(idx_rw)
-                w(idx_rw) = 1 ./ ares_n(idx_rw).^2;
+                w(idx_rw) =  1 ./ (s02(idx_rw) + ares_n(idx_rw).^2);
             end
-            tmp = window .* w;
-            dt = sum(tmp) / sum(w);
+            data = sum(window .* w) / sum(w);
             j = j + 1;
         end
         
         % Save the result
-        filtered(i) = dt;
+        filtered(i) = data;
     end
 end
 
 function initial_value = initPad(data, pad_size)
-    % Determine the number of data points to use for the initial value    
+    % Determine the number of data points to use for the initial value
+
     % Ignore NaNs
     data = data(~isnan(data));
 
@@ -164,9 +207,12 @@ function initial_value = initPad(data, pad_size)
     initial_value = dt;
 end
 
-function m = mad(x, flag)
+function m = mad(x)
     % mad calculates the median absolute deviation of an array, ignoring NaNs.
     % It's implemented to avoid dependence on the Statistics and Machine Learning Toolbox.
-    x = x(~isnan(x));
-    m = median(abs(x - median(x)), flag);
+    %x = x(~isnan(x));
+    %m = median(abs(x - median(x)));
+    % faster but risky:
+    omitnan = false;
+    m = matlab.internal.math.columnmedian(abs(x(:) - matlab.internal.math.columnmedian(x,omitnan)),omitnan);
 end

@@ -35,15 +35,14 @@ clf;
 switch i
 
   case 1
-
-    m_proj('ortho','lat',48','long',-123');
+    m_proj('ortho','lat',50','long',120');
     m_coast('patch','r');
     m_grid('linestyle','-','xticklabels',[],'yticklabels',[],'ytick',[-80:40:80]);
     xlabel('Orthographic Projection','visible','on');
 
   case 2
 
-    m_proj('lambert','long',[-160 -40],'lat',[30 80]);
+    m_proj('lambert','long',[80 180],'lat',[30 80]);
     m_coast('patch',[1 .85 .7]);
     [CS,CH]=m_elev('contourf',[500:500:4000]);
  %   m_elev('pcolor');
@@ -51,6 +50,7 @@ switch i
     colormap(flipud(copper));
     xlabel('Conic Projection of North America with elevations','visible','on');
     m_contfbar([0 .3],.9,CS,CH);
+
     
   case 3
 

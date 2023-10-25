@@ -1082,36 +1082,26 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             
             % Use moving median to remove outliers
             x = movmedian(Core_Utils.diffAndPred(data),5, 'omitnan');
-            y = data;
+            tic;
+            y = zero2nan(data);
+            y = bsxfun(@minus, y, robAdj(y')'); 
             
             % I can reduce the input only if I  have enough data
-            if size(y, 2) >= 2
-                med = [0 cumsum(nan2zero(median(diff(y, 1, 2), 'omitnan')))];
-                med(abs(med) > 0.5) = 0; % ZWD out of more than 0.5m is an outlier!
-                y = bsxfun(@minus, y, med);
-            end
             if size(y, 2) >= 2 && flag_reduce
-                reduction = median(y, 2, 'omitnan');
-                if size(y, 2) < 3
-                    % Try to remove stronger spikes before it's too late
-                    reduction = movmedian(reduction, 3);
-                end
-                id_ko = sum(not(isnan(y)), 2) <= 1;
-                t = (1 : numel(reduction))';
-                reduction(id_ko) = interp1q(t(not(id_ko)), reduction(not(id_ko)), t(id_ko));
-                y = bsxfun(@minus, y, reduction);
+                y = bsxfun(@minus, y, robAdj(y));
+                y = bsxfun(@minus, y, robAdj(y')');
             end
-            id_ok = y < (6 * std(y(:), 'omitnan'));
-            
+            id_ok = y < (6 * robStd(y(:)));
+            toc;
             % Normalize y and its derivate x
-            x = x(:) ./ std(x(id_ok),'omitnan');
-            y = y(:) ./ std(y(id_ok),'omitnan');
+            x = x(:) ./ robStd(x(id_ok));
+            y = y(:) ./ robStd(y(id_ok));
             
-            x = x ./ 1.5; % use a stronger treshold on the derivate
+            x = x ./ 3; % use a stronger treshold on the derivate
             
             % Recenter the outlier sensors
-            x = x - median(x, 'omitnan');
-            y = y - median(y, 'omitnan');
+            x = x - robAdj(x');
+            y = y - robAdj(y');
             
             y(y < 0) = y(y < 0) ./ 1.3; % use a stronger treshold on negative outliers
             
@@ -1140,6 +1130,40 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
     end
     
     methods (Access = public)
+        
+        function [ztd, p_time, id_sync, tge, tgn] = getZtd_mr(sta_list)
+            % Get synced data of ztd
+            % MultiRec: works on an array of receivers
+            %
+            % SYNTAX
+            %  [ztd, p_time, id_sync] = this.getZtd_mr()
+            %  [ztd, p_time, id_sync, tge, tgn] = this.getZtd_mr()
+
+            [p_time, id_sync] = Receiver_Commons.getSyncTimeExpanded(sta_list);
+
+            id_ok = any(~isnan(id_sync),2);
+            id_sync = id_sync(id_ok, :);
+            p_time = p_time.getEpoch(id_ok);
+
+            n_rec = numel(sta_list);
+            ztd = nan(size(id_sync));
+            for r = 1 : n_rec
+                id_rec = id_sync(:,r);
+                id_rec(id_rec > length(sta_list(r).ztd)) = nan;
+                ztd(~isnan(id_rec), r) = sta_list(r).ztd(id_rec(~isnan(id_rec)));
+            end
+
+            if nargout == 5
+                tge = nan(size(id_sync));
+                tgn = nan(size(id_sync));
+                for r = 1 : n_rec
+                    id_rec = id_sync(:,r);
+                    id_rec(id_rec > length(sta_list(r).ztd)) = nan;
+                    tge(~isnan(id_rec), r) = sta_list(r).tge(id_rec(~isnan(id_rec)));
+                    tgn(~isnan(id_rec), r) = sta_list(r).tgn(id_rec(~isnan(id_rec)));
+                end
+            end
+        end
         
         function [zwd, p_time, id_sync, tge, tgn] = getZwd_mr(sta_list)
             % Get synced data of zwd
@@ -1175,6 +1199,40 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
         end
         
+        function [pwv, p_time, id_sync, tge, tgn] = getPwv_mr(sta_list)
+            % Get synced data of pwv
+            % MultiRec: works on an array of receivers
+            %
+            % SYNTAX
+            %  [pwv, p_time, id_sync] = this.getPwv_mr()
+            %  [pwv, p_time, id_sync, tge, tgn] = this.getPwv_mr()
+
+            [p_time, id_sync] = Receiver_Commons.getSyncTimeExpanded(sta_list);
+
+            id_ok = any(~isnan(id_sync),2);
+            id_sync = id_sync(id_ok, :);
+            p_time = p_time.getEpoch(id_ok);
+
+            n_rec = numel(sta_list);
+            pwv = nan(size(id_sync));
+            for r = 1 : n_rec
+                id_rec = id_sync(:,r);
+                id_rec(id_rec > length(sta_list(r).pwv)) = nan;
+                pwv(~isnan(id_rec), r) = sta_list(r).pwv(id_rec(~isnan(id_rec)));
+            end
+
+            if nargout == 5
+                tge = nan(size(id_sync));
+                tgn = nan(size(id_sync));
+                for r = 1 : n_rec
+                    id_rec = id_sync(:,r);
+                    id_rec(id_rec > length(sta_list(r).pwv)) = nan;
+                    tge(~isnan(id_rec), r) = sta_list(r).tge(id_rec(~isnan(id_rec)));
+                    tgn(~isnan(id_rec), r) = sta_list(r).tgn(id_rec(~isnan(id_rec)));
+                end
+            end
+        end
+
         function err_status = cleanTropo(sta_list, thr_lev, flag_verbose) 
             % Check ZWD for possible outliers (works on the mr ZWD getter)
             % And remove all the outliers from the tropo parameters 
@@ -1200,7 +1258,16 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
             
             % Prepare the data
-            [tropo, p_time, id_sync] = sta_list.getZwd_mr;
+            [ztd] = sta_list.getZtd_mr;
+            [tropo, ~, id_sync] = sta_list.getPwv_mr; % Use PWV if present
+            if ~any(tropo(:))
+                [tropo, ~, id_sync] = sta_list.getZwd_mr;
+            end
+            if size(ztd,1) == size(tropo,1) && ...
+                    size(ztd,2) == size(tropo,2) && ...
+                    any(ztd(:))
+                tropo(isnan(ztd)) = nan;
+            end
             if any(tropo(:))
                 % Get outliers
                 id_ko = Receiver_Commons.checkTropo_mr(tropo, true, thr_lev);
@@ -1215,7 +1282,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     for r = 1 : size(id_ko, 2)
                         log.addMonoMessage(sprintf('    %s %8d   %7d   %5.2f %%', sta_list(r).parent.getMarkerName4Ch, sum(not(isnan(tropo(:, r)))), sum(id_ko(:, r)), 100 * sum(id_ko(:, r)) / sum(not(isnan(tropo(:, r))))));  
                         % Get the id of the outlier for the current receiver
-                        id_out = id_sync(id_ko(:,r),r);
+                        id_out = id_sync(id_ko(:,r) | (isnan(tropo(:,r)) & ~isnan(id_sync(:,r))) ,r);
                         if not(isempty(id_out))
                             sta_list(r).remEpoch(id_out);
                         end
@@ -2347,7 +2414,7 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
                     'HorizontalAlignment','left');
             end
             
-            Core_Utils.addGoogleMaps('alpha', 0.95, 'MapType', 'satellite');
+            addMap('alpha', 0.95);
             title('Receiver position');
             xlabel('Longitude [deg]');
             ylabel('Latitude [deg]');

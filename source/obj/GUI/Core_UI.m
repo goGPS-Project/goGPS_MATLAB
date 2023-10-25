@@ -204,6 +204,24 @@ classdef Core_UI < Logos
     %% METHODS FIGURE MODIFIER
     methods (Static, Access = public)
 
+        function restoreLegacyToolbar(fh_list)
+            % Add legacy toolbar
+            % Remove new auto hiding toolbar
+            %
+            % SYNTAX
+            %   restoreLegacyToolbar(fh_list);
+            if nargin == 0 || isempty(fh_list)
+                fh_list = gcf;
+            end
+            for fh = fh_list(:)'                
+                addToolbarExplorationButtons(fh);
+                ax_list = findall(fh,'Type','Axes');
+                for ax = ax_list(:)'
+                    axtoolbar(ax, {});
+                end
+            end
+        end
+
         function addLineMenu(fig_handle)
             assert(ishghandle(fig_handle, 'figure'), 'Input handle must be a figure');
 
@@ -215,9 +233,21 @@ classdef Core_UI < Logos
             none_item = uimenu(m, 'Text', 'None', 'MenuSelectedFcn', {@toggleAll, fig_handle, 'off', menu_items});
 
             if length(all_axes) > 1 && areAxesLinked(all_axes) && areNumLinesSame(all_axes)
-                graphic_objects_in_axes = findall(all_axes(1), 'Type', 'line', '-or', 'Type', 'patch');
+                for a = 1:numel(all_axes)
+                    graphic_objects_in_axes = findall(all_axes(a), 'Type', 'line', '-or', 'Type', 'patch');
+                    for i = 1:length(graphic_objects_in_axes)
+                        if isempty(graphic_objects_in_axes(i).UserData)
+                            graphic_objects_in_axes(i).UserData = struct();
+                        end
+                        graphic_objects_in_axes(i).UserData.id_visibility = 0;
+                    end
+                end
+                if isempty(all_axes)
+                    graphic_objects_in_axes = [];
+                end
                 for i = 1:length(graphic_objects_in_axes)
                     if strcmp(graphic_objects_in_axes(i).LineStyle, '-') || strcmp(graphic_objects_in_axes(i).LineStyle, '-.') || strcmp(graphic_objects_in_axes(i).LineStyle, 'none')
+                        graphic_objects_in_axes(i).UserData.id_visibility = i;
                         menu_item = uimenu(m, 'Text', ['Graphic Group ', num2str(i)], 'MenuSelectedFcn', {@toggleVisibilityGroup, i});
                         if strcmp(graphic_objects_in_axes(i).Visible, 'on')
                             menu_item.Checked = 'on';
@@ -286,6 +316,14 @@ classdef Core_UI < Logos
             all_item.MenuSelectedFcn = {@toggleAll, fig_handle, 'on', menu_items};
             none_item.MenuSelectedFcn = {@toggleAll, fig_handle, 'off', menu_items};
 
+            % Add callback to toggle line visibility when clicking on the legend entry
+            legend_h = findobj(fig_handle, 'Type', 'legend');
+            if ~isempty(legend_h)
+                for lh = legend_h(:)'
+                    lh.ItemHitFcn = @(src, event) toggleLineVisibilityFromLegend(src, event, fig_handle, menu_items);
+                end
+            end
+
             function linked = areAxesLinked(all_axes)
                 linked = true;
                 for i = 1:length(all_axes) - 1
@@ -295,7 +333,7 @@ classdef Core_UI < Logos
                     end
                 end
             end
-    
+
             function same = areNumLinesSame(all_axes)
                 num_lines = length(findall(all_axes(1), 'Type', 'line'));
                 same = true;
@@ -306,7 +344,7 @@ classdef Core_UI < Logos
                     end
                 end
             end
-                
+
             function toggleVisibility(src, ~, graphic_object_handle)
                 if strcmp(graphic_object_handle.Visible, 'on')
                     graphic_object_handle.Visible = 'off';
@@ -348,7 +386,27 @@ classdef Core_UI < Logos
                     end
                 end
             end
-        end       
+
+            % Callback to toggle line visibility when clicking on the legend entry
+            function toggleLineVisibilityFromLegend(~, event, fig, menu_items)
+                try
+                    id = event.Peer.UserData.id_visibility;
+                catch
+                    id = [];
+                end
+                if any(id)
+                    all_axes = findall(fig, 'Type', 'axes');
+                    for i = 1:length(all_axes)
+                        all_graphic_objects = findall(all_axes(i), 'Type', 'line', '-or', 'Type', 'patch');
+                        if id <= length(all_graphic_objects)
+                            toggleVisibility(menu_items(id), [], all_graphic_objects(id));
+                        end
+                    end
+                else
+                    event.Peer.Visible = iif(logical(event.Peer.Visible),'off','on');
+                end
+            end
+        end
 
         function addExportMenu(fig_handle)
             % Add a menu Export to figure            
@@ -734,7 +792,7 @@ classdef Core_UI < Logos
                     txt.FontName = FONT;
                     txt.FontWeight = 'normal';
                     if not(isfield(txt.UserData, 'keep_size') && txt.UserData.keep_size)
-                        txt.FontSize = Core_UI.getFontSize(12);
+                        %txt.FontSize = Core_UI.getFontSize(12);
                     end
                 end
                 text_label = findall(gcf,'Tag', 'm_grid_yticklabel');
@@ -742,7 +800,7 @@ classdef Core_UI < Logos
                     txt.FontName = FONT;
                     txt.FontWeight = 'normal';
                     if not(isfield(txt.UserData, 'keep_size') && txt.UserData.keep_size)
-                        txt.FontSize = Core_UI.getFontSize(12);
+                        %txt.FontSize = Core_UI.getFontSize(12);
                     end
                 end
 
@@ -751,7 +809,7 @@ classdef Core_UI < Logos
                 for txt = text_label(:)'
                     txt.FontName = FONT;
                     if not(isfield(txt.UserData, 'keep_size') && txt.UserData.keep_size)
-                        txt.FontSize = Core_UI.getFontSize(11);
+                        %txt.FontSize = Core_UI.getFontSize(11);
                     end
                 end
 

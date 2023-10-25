@@ -902,7 +902,16 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 'Callback', @this.openGetChalmerString);
             box_gh.Widths = [-1 120];
             
-            vbox.Heights = [Core_UI.LINE_HEIGHT Core_UI.LINE_HEIGHT -1 5 Core_UI.LINE_HEIGHT];
+            [~, this.edit_texts{end+1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(vbox, 'Sky mask dir', 'mask_dir', @this.onEditChange, [25 160 -1 25]);
+            this.edit_texts{end}.TooltipString = 'Folder containing mask files in tiff format';
+            
+            [~, this.edit_texts{end+1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(vbox, 'Sky sigma dir', 'sigma_dir', @this.onEditChange, [25 160 -1 25]);
+            this.edit_texts{end}.TooltipString = 'Folder containing sigma files in mat format';
+            
+            [~, this.edit_texts{end+1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(vbox, 'Multipath mitigation dir', 'mp_dir', @this.onEditChange, [25 160 -1 25]);
+            this.edit_texts{end}.TooltipString = 'Folder containing multi-path mitigation files';
+            
+            vbox.Heights = [Core_UI.LINE_HEIGHT Core_UI.LINE_HEIGHT -1 5 Core_UI.LINE_HEIGHT Core_UI.LINE_HEIGHT Core_UI.LINE_HEIGHT Core_UI.LINE_HEIGHT];
         end
         
         function rf = crd2RefFrame(this)
@@ -1213,73 +1222,34 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             fh = figure('Visible', 'off', 'Name', 'Map of the receivers with coordinates', 'NumberTitle', 'off');
             fig_name = sprintf('RecMapLgc');
             fh.UserData = struct('fig_name', fig_name);
+            
             maximizeFig(fh);            
             data = this.coo_tbl.Data;
             
             % get marker names:
             name = {};
+            coo(size(data, 1)) = Coordinates;
             for i = 1 : size(data, 1)
+                coo(i) = Coordinates.fromXYZ([data{i,2}], [data{i,3}], [data{i,4}]);
                 if ischar(data{i,1})
                     name_start = find(data{i,1} == '>', 1, 'last');
                     name_start = iif(isempty(name_start), 1, name_start + 1);
                     name{i} = data{i,1}(name_start : end);
                 else
                     name{i} = 'NAME';
-                end                
+                end
+                coo(i).setName(name{i});
             end
 
-            % get Location
-            [lat, lon] = cart2geod([[data{:,2}]' [data{:,3}]' [data{:,4}]']);
+            coo.showMap('proj', none, 'fig_handle', fh, 'flag_tooltip', false);
             
-            plot(lon(:)./pi*180, lat(:)./pi*180,'.k', 'MarkerSize', 5); hold on;            
-            % Label BG (in background w.r.t. the point)
-            for r = 1 : size(data, 1)
-                 text(lon(r)./pi*180, lat(r)./pi*180, ['    ' name{r} ' '], ...
-                        'FontWeight', 'bold', 'FontSize', 12, 'Color', [1 1 1], ...
-                        'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
-                        'Margin', 2, 'LineWidth', 2, ...
-                        'HorizontalAlignment','left');                                      
-            end
-            
-            % Plot
-            for r = 1 : size(data, 1)
-                plot(lon(r)./pi*180, lat(r)./pi*180, '.', 'MarkerSize', 45, 'Color', Core_UI.getColor(r, size(data, 1)));
-            end
-            plot(lon(:)./pi*180, lat(:)./pi*180,'.k','MarkerSize', 5);
-            plot(lon(:)./pi*180, lat(:)./pi*180,'ko','MarkerSize', 15, 'LineWidth', 2);
-            
-            if size(data, 1) == 1
-                lon_lim = minMax(lon/pi*180);
-                lat_lim = minMax(lat/pi*180);
-                lon_lim(1) = lon_lim(1) - 0.1;
-                lon_lim(2) = lon_lim(2) + 0.1;
-                lat_lim(1) = lat_lim(1) - 0.1;
-                lat_lim(2) = lat_lim(2) + 0.1;
-            else
-                lon_lim = xlim();
-                lon_lim(1) = lon_lim(1) - diff(lon_lim)/3;
-                lon_lim(2) = lon_lim(2) + diff(lon_lim)/3;
-                lat_lim = ylim();
-                lat_lim(1) = lat_lim(1) - diff(lat_lim)/3;
-                lat_lim(2) = lat_lim(2) + diff(lat_lim)/3;
-            end
-            
-            xlim(lon_lim);
-            ylim(lat_lim);
-            
-            for r = 1 : size(data, 1)
-                text(lon(r)./pi*180, lat(r)./pi*180, ['    ' name{r} ' '], ...
-                    'FontWeight', 'bold', 'FontSize', 10, 'Color', [0 0 0], ...
-                    'Margin', 2, 'LineWidth', 2, ...
-                    'HorizontalAlignment','left');
-            end
-            
-            Core_Utils.addGoogleMaps('alpha', 0.95, 'MapType', 'satellite');
             title('Receiver position');
-            xlabel('Longitude [deg]');
-            ylabel('Latitude [deg]');
-            Core_UI.addExportMenu(fh); Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'dark');
-            fh.Visible = 'on'; drawnow;
+            %xlabel('Longitude [deg]');
+            %ylabel('Latitude [deg]');
+            %Core_UI.addExportMenu(fh); Core_UI.addBeautifyMenu(fh);
+            %Core_UI.restoreLegacyToolbar(fh);
+            drawnow;
+            fh.Visible = 'on'; 
         end
         
         function addCrdRow(this, caller, event)
@@ -3143,7 +3113,6 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             fw.downloadResource(par_type,Core.getState.getSessionsStartExt, Core.getState.getSessionsStopExt);
         end
         
-        function createNewProject(this, caller, event)
             % Create a new project            
             GUI_New_Project(this);
         end

@@ -581,8 +581,16 @@ classdef Core < handle
             % SYNTAX
             %   [rin_list, met_list] = Core.getRinLists()
             core = Core.getInstance(false, true);
+            if isempty(core.rin_list)
+                core.updateRinFileList();
+            end
             rin_list = core.rin_list;
-            met_list = core.met_list;
+            if nargout == 2
+                if isempty(core.met_list)
+                    core.updateMetFileList();
+                end
+                met_list = core.met_list;
+            end
         end              
         
         function app_cfg = getGoConfig(ini_settings_file)
@@ -1582,21 +1590,25 @@ classdef Core < handle
     
     %% RIN FILE LIST
     % ==================================================================================================================================================
-    methods        
-        function  fh_list = showRinList(this)
-            % plot receiver availability
+    methods
+        function fh_list = showRinList(this)
+            % SHOWRINLIST Display RINEX file availability for each receiver.
             %
-            % SYNTAX
-            %   updateAndPlotRecList(this)
-            fh_list = [];   
+            % This function visualizes the RINEX file availability for each receiver
+            % over a given year, splitting the plotting into chunks based on a maximum
+            % number of stations allowed per figure.
+
+            fh_list = [];
             this.state = this.getState;
             n_rec = this.state.getRecCount;
             rec_path = this.state.getRecPath;
+
             if isempty(this.getRinLists)
                 % If the list is empty update it
                 this.state.updateObsFileName;
-                this.updateRinFileList(true, true);            
+                this.updateRinFileList(true, true);
             end
+
             if ~isempty(this.getRinLists)
                 fr = this.getRinLists();
                 sta_name = {};
@@ -1623,69 +1635,82 @@ classdef Core < handle
                 for r = 1 : n_rec
                     name = File_Name_Processor.getFileName(rec_path{r}{1});
                     sta_name{end+1} = name(1:4);
-                    fr(r) = File_Rinex(rec_path{r}, 100); 
+                    fr(r) = File_Rinex(rec_path{r}, 100);
                     name = File_Name_Processor.getFileName(rec_path{r}{1});
                 end
             end
-            
+
             sss_strt = this.state.getSessionsStartExt;
             sss_stop = this.state.getSessionsStopExt;
-            for year = sss_strt.getDOY : sss_stop.getDOY
-                y_strt = GPS_Time([year 1 1 0 0 0]);
-                y_stop = GPS_Time([year+1 1 1 0 0 0]);
-                weeks = (y_strt.getGpsWeek: y_stop.getGpsWeek)';
-                week_time = GPS_Time.fromWeekDow(weeks,uint32(zeros(size(weeks))));
-                week_time = week_time.getMatlabTime();
-                months_time = datenum([year*ones(12,1) (1:12)' ones(12,1)]);
-                
-                y_strt = y_strt.getMatlabTime();
-                y_stop = y_stop.getMatlabTime();
-                fh = figure('Visible', 'off'); fh.Name = sprintf('%03d: RINEX File Availability %d', fh.Number, year); fh.NumberTitle = 'off'; hold on;
-                fig_name = sprintf('RINEX_File_Availability_%d_%s', year,sss_stop.toString('yyyymmdd_HHMM'));
-                fh.UserData = struct('fig_name', fig_name);
 
-                line([week_time week_time], [0 n_rec+1],'Color',[0.9 0.9 0.9],'LineStyle',':');
-                min_t = sss_stop;
-                max_t = sss_strt;
-                for r = 1 : n_rec
-                    if sum(fr(r).is_valid_list) > 0
-                        central_time = GPS_Time.getMeanTime(fr(r).first_epoch , fr(r).last_epoch).getMatlabTime;
-                        central_time = central_time(central_time >= y_strt & central_time <= y_stop);
-                        line([y_strt y_stop], [r r],'Color',[0.6 0.6 0.6],'LineStyle','-', 'LineWidth', 1);
-                        plot(central_time, r * ones(size(central_time)),'.', 'MarkerSize', 20, 'Color', Core_UI.getColor(r, n_rec));
-                        if ~isempty(fr(r).first_epoch) && ~isempty(fr(r).last_epoch)
-                            % Build a unique line
-                            if (min_t > fr(r).first_epoch.first)
-                                min_t = fr(r).first_epoch.first;
+            max_n_sta = 50;
+            num_figures = ceil(n_rec / max_n_sta);
+
+            for fig_idx = 1:num_figures
+                start_idx = (fig_idx-1)*max_n_sta + 1;
+                end_idx = min(fig_idx*max_n_sta, n_rec);
+
+                for year = sss_strt.getDOY : sss_stop.getDOY
+                    y_strt = GPS_Time([year 1 1 0 0 0]);
+                    y_stop = GPS_Time([year+1 1 1 0 0 0]);
+                    weeks = (y_strt.getGpsWeek: y_stop.getGpsWeek)';
+                    week_time = GPS_Time.fromWeekDow(weeks,uint32(zeros(size(weeks))));
+                    week_time = week_time.getMatlabTime();
+                    months_time = datenum([year*ones(12,1) (1:12)' ones(12,1)]);
+
+                    y_strt = y_strt.getMatlabTime();
+                    y_stop = y_stop.getMatlabTime();
+                    fh = figure('Visible', 'off'); fh.Name = sprintf('%03d: RINEX File Availability %d', fh.Number, year); fh.NumberTitle = 'off'; hold on;
+                    fig_name = sprintf('RINEX_File_Availability_%d_%s', year,sss_stop.toString('yyyymmdd_HHMM'));
+                    fh.UserData = struct('fig_name', fig_name);
+
+                    line([week_time week_time], [0 n_rec+1],'Color',[0.9 0.9 0.9],'LineStyle',':');
+                    min_t = sss_stop;
+                    max_t = sss_strt;
+
+                    for r = start_idx:end_idx
+                        if sum(fr(r).is_valid_list) > 0
+                            central_time = GPS_Time.getMeanTime(fr(r).first_epoch , fr(r).last_epoch).getMatlabTime;
+                            central_time = central_time(central_time >= y_strt & central_time <= y_stop);
+                            line([y_strt y_stop], [r-start_idx+1 r-start_idx+1],'Color',[0.6 0.6 0.6],'LineStyle','-', 'LineWidth', 1);
+                            plot(central_time, (r-start_idx+1) * ones(size(central_time)),'.', 'MarkerSize', 20, 'Color', Core_UI.getColor(r-start_idx+1, end_idx-start_idx+1));
+
+                            if ~isempty(fr(r).first_epoch) && ~isempty(fr(r).last_epoch)
+                                % Update min_t and max_t
+                                if (min_t > fr(r).first_epoch.first)
+                                    min_t = fr(r).first_epoch.first;
+                                end
+                                if (max_t < fr(r).last_epoch.last)
+                                    max_t = fr(r).last_epoch.last;
+                                end
+
+                                % Build a unique line
+                                t = [fr(r).first_epoch.getMatlabTime  fr(r).last_epoch.getMatlabTime];
+                                t = [t t(:, 2)];
+                                plot(serialize(t'), serialize((r-start_idx+1) * [ones(size(t,1),2) nan(size(t,1),1)]'), '-', 'Color', Core_UI.getColor(r-start_idx+1, end_idx-start_idx+1), 'LineWidth', 4);
                             end
-                            if (max_t < fr(r).last_epoch.last)
-                                max_t = fr(r).last_epoch.last;
-                            end
-                            t = [fr(r).first_epoch.getMatlabTime  fr(r).last_epoch.getMatlabTime];
-                            t = [t t(:, 2)];
-                            plot(serialize(t'), serialize(r * [ones(size(t,1),2) nan(size(t,1),1)]'), '-', 'Color', Core_UI.getColor(r, n_rec), 'LineWidth', 4);
                         end
                     end
-                end                
-                x_lims = [(max(sss_strt.getMatlabTime, min_t.getMatlabTime) - 0.01) (min(sss_stop.getMatlabTime, max_t.getMatlabTime) + 0.01)];
-                x_lims = min(datenum(sprintf('%d-01-00', year+1)), max(datenum(sprintf('%d-01-01', year)), x_lims));
-                months_time = months_time(months_time > x_lims(1) & months_time < x_lims(2));
-                if diff(x_lims) == 0
-                    delete(fh)
-                else
-                    xlim(x_lims);
-                    ylim([0 n_rec + 1]);
-                    h = ylabel('STATION'); h.FontWeight = 'bold';
-                    ax = gca(); ax.YTick = 1:n_rec;
-                    ax.YTickLabel = sta_name;
-                    setAxis(fh);
-                    setTimeTicks(28);
 
-                    fh_list = [fh_list fh];
-                    Core_UI.beautifyFig(fh);
-                    Core_UI.addExportMenu(fh);
-                    Core_UI.addBeautifyMenu(fh);
-                    fh.Visible = iif(Core_UI.isHideFig, 'off', 'on'); drawnow;
+
+                    % Adjust y-axis labels and limits
+                    ax = gca();
+                    ax.YTick = 1:(end_idx - start_idx + 1);
+                    ax.YTickLabel = sta_name(start_idx:end_idx);
+                    ylim([0 (end_idx - start_idx + 1) + 1]);
+
+                    x_lims = [(max(sss_strt.getMatlabTime, min_t.getMatlabTime) - 0.01) (min(sss_stop.getMatlabTime, max_t.getMatlabTime) + 0.01)];
+                    if diff(x_lims) == 0
+                        delete(fh)
+                    else
+                        xlim(x_lims);
+                        setTimeTicks(28);
+                        fh_list = [fh_list fh];
+                        Core_UI.beautifyFig(fh);
+                        Core_UI.addExportMenu(fh);
+                        Core_UI.addBeautifyMenu(fh);
+                        fh.Visible = iif(Core_UI.isHideFig, 'off', 'on'); drawnow;
+                    end
                 end
             end
         end

@@ -2714,7 +2714,7 @@ classdef GNSS_Station < handle
                 % subplot(1,2,1);
                 imh = imagesc(x_grid, y_grid, tropo_height_correction);
                 if FTP_Downloader.checkNet()
-                    Core_Utils.addGoogleMaps('alpha', 0.65, 'MapType', 'satellite');
+                    addMap('alpha', 0.65, 'provider', 'satellite');
                 end
                 xlabel('Longitude [deg]');
                 ylabel('Latitude [deg]');
@@ -2729,8 +2729,8 @@ classdef GNSS_Station < handle
                 % ax2 = subplot(1,2,2);
                 % imh2 = imagesc(x_grid, y_grid, tropo_height_correction);
                 % if FTP_Downloader.checkNet()
-                %     Core_Utils.addGoogleMaps('alpha', 0.65, 'MapType', 'satellite');
-                %     %Core_Utils.addGoogleMaps('alpha', 0.65, 'MapType', 'roadmap');
+                %     addMap('alpha', 0.65);
+                %     %addMap('alpha', 0.65, 'provider', 'roadmap');
                 % end
                 % xlabel('Longitude [deg]');
                 % ylabel('Latitude [deg]');
@@ -3845,7 +3845,7 @@ classdef GNSS_Station < handle
             end
             
             [coo, marker_list, flag] = GNSS_Station.getStationFromWorldArchive();
-            [lat_sta, lon_sta, h] =  coo.getGeodetic;
+            [lat_sta, lon_sta, h] =  coo.getGeodetic();
             lat_sta = lat_sta / pi * 180;
             lon_sta = lon_sta / pi * 180;
             
@@ -3879,7 +3879,7 @@ classdef GNSS_Station < handle
                 flag = flag(id_ok);                
             end
             coo_list(coo.length) = Coordinates;
-            for i = 1 : coo.length()
+            for i = 1 : coo.length
                 coo_list(i) = Coordinates.fromXYZ(coo.xyz(i,:));
                 coo_list(i).setName(marker_list{i});
             end
@@ -4280,7 +4280,7 @@ classdef GNSS_Station < handle
             axes
             xlim(clon);
             ylim(clat);
-            [lon_ggl,lat_ggl, img_ggl] = Core_Utils.addGoogleMaps('alpha', 0.95, 'maptype','satellite','refresh',0,'autoaxis',0);
+            [lon_ggl,lat_ggl, img_ggl] = addMap('alpha', 0.95);
             xlim(lon_lim);
             ylim(lat_lim);
             
@@ -4463,7 +4463,7 @@ classdef GNSS_Station < handle
                 %t.Units = 'data';
             end
 
-            Core_Utils.addGoogleMaps('alpha', 0.95, 'MapType', 'satellite');
+            addMap('alpha', 0.95);
             title(sprintf('Map of GNSS stations\\fontsize{5} \n'), 'FontSize', 16);
             xlabel('Longitude [deg]');
             ylabel('Latitude [deg]');
@@ -4535,6 +4535,13 @@ classdef GNSS_Station < handle
                 case 'gn'
                 case 'ge'
                 case 'pwv'
+                    [res_tropo, s_time] = sta_list.getPwv_mr();
+                    par_str = 'PWV';
+                    par_str_short = 'PWV';
+                case 'pwv_red'
+                    [res_tropo, s_time] = sta_list.getReducedPwv_mr();
+                    par_str = 'PWV';
+                    par_str_short = 'PWV';
                 case 'zhd'
                 case 'nsat'
             end
@@ -4570,7 +4577,7 @@ classdef GNSS_Station < handle
             ax.FontWeight = 'bold';
             if new_fig
                 if FTP_Downloader.checkNet()
-                    Core_Utils.addGoogleMaps('alpha', 0.95, 'MapType', 'satellite');
+                    addMap('alpha', 0.95);
                 end
                 xlabel('Longitude [deg]');
                 ylabel('Latitude [deg]');
@@ -4855,7 +4862,7 @@ classdef GNSS_Station < handle
             % ax.FontWeight = 'bold';
             % if new_fig
             %     if FTP_Downloader.checkNet()
-            %        Core_Utils.addGoogleMaps('alpha', 0.65, 'MapType', 'satellite');
+            %        addMap('alpha', 0.65);
             %     end
             %     xlabel('Longitude [deg]');
             %     ylabel('Latitude [deg]');
@@ -4900,7 +4907,7 @@ classdef GNSS_Station < handle
                 % ax2.FontWeight = 'bold';
                 % if new_fig
                 %    if FTP_Downloader.checkNet()
-                %        Core_Utils.addGoogleMaps('alpha', 0.65, 'MapType', 'satellite');
+                %        addMap('alpha', 0.65);
                 %    end
                 %    xlabel('Longitude [deg]');
                 %    ylabel('Latitude [deg]');
@@ -5237,7 +5244,7 @@ classdef GNSS_Station < handle
                 % ax2.FontWeight = 'bold';
                 % if new_fig
                 %    if FTP_Downloader.checkNet()
-                %        Core_Utils.addGoogleMaps('alpha', 0.65, 'MapType', 'satellite');
+                %        addMap('alpha', 0.65);
                 %    end
                 %    xlabel('Longitude [deg]');
                 %    ylabel('Latitude [deg]');
@@ -6068,7 +6075,6 @@ classdef GNSS_Station < handle
                         cc = Core.getState.getConstellationCollector;
                         drawnow;
                         fh = figure('Visible', 'off'); fh.Name = sprintf('%03d: %s %s', fh.Number, par_name, cc.sys_c); fh.NumberTitle = 'off';
-                        Core_UI.beautifyFig(fh);
                         drawnow;                        
                     else
                         fh = gcf;
@@ -6184,6 +6190,7 @@ classdef GNSS_Station < handle
                     dlim(2) = dlim(2) + 0.03 * dspan;
                     try
                         xlim(tlim);
+                        setTimeTicks(6);
                         ylim(dlim);
                     catch ex
                         % Grrr MATLAB is out of sync
@@ -6202,22 +6209,13 @@ classdef GNSS_Station < handle
                         else
                             loc = 'EastOutside';
                         end
-                        if n_entry > 33
-                            [lh] = legend(outm, 'Location', loc, 'interpreter', 'none', 'NumColumns', ceil((n_entry-0.5)/33));
-                        else
-                            [lh, icons] = legend(outm, 'Location', loc, 'interpreter', 'none', 'NumColumns', ceil((n_entry-0.5)/33));
-                            icons = icons(n_entry + 2 : 2 : end);
-                            
-                            for i = 1 : numel(icons)
-                                icons(i).MarkerSize = 18;
-                            end
-                            if n_entry > 99
-                                lh.Visible = 'off';
-                            end
-                        end
+                        [lh] = legend(outm, 'Location', loc, 'interpreter', 'none', 'NumColumns', ceil((n_entry-0.5)/33));
+                        %if n_entry > 99
+                        %    lh.Visible = 'off';
+                        %end
                     end
 
-                    setTimeTicks(23);
+                    %setTimeTicks(23);
                     h = ylabel([par_name ' [cm]']); h.FontWeight = 'bold';
                     grid on;
                     
@@ -6272,24 +6270,24 @@ classdef GNSS_Station < handle
                         end
                         dlim(2) = dlim(2) + 1;
                         xlim(tlim);
+                        setTimeTicks(6);
                         ylim(dlim);
-                        setTimeTicks(23);
                         if new_fig
                             h = ylabel(['# sat']); h.FontWeight = 'bold';
                             grid on;
                             linkaxes([ax1 ax2], 'x');
                         end
-                        if n_entry < 100
-                            [lh] = legend(outm, 'Location', loc, 'interpreter', 'none','NumColumns', ceil((n_entry-0.5)/33));
-                            lh.Visible = 'off';
-                        end
+                        [lh] = legend(outm, 'Location', loc, 'interpreter', 'none','NumColumns', ceil((n_entry-0.5)/33));
+                        lh.Visible = 'off';
                     end
                 end
                 Core_UI.beautifyFig(fh);
                 Core_UI.addExportMenu(fh);
                 Core_UI.addBeautifyMenu(fh);
                 Core_UI.addLineMenu(fh);
-                fh.Visible = iif(Core_UI.isHideFig, 'off', 'on'); drawnow;
+                is_hide = Core_UI.isHideFig;
+                fh.Visible = iif(is_hide, 'off', 'on'); 
+                drawnow;
             end
         end
 

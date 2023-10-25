@@ -93,7 +93,7 @@ switch proj
     eval([ projections(k).routine '(''initialize'',projections(k).name,varargin{:});']);
 
     % Some error checking
-    if diff(MAP_VAR_LIST.lats)<=0.0001  % if you make this too small drawing ticks in m_grid can screw up
+    if diff(MAP_VAR_LIST.lats)<=0.000001  % if you make this too small drawing ticks in m_grid can screw up
         error(sprintf('Lower latitude (%.3f) is not < upper latitude (%.3f)',MAP_VAR_LIST.lats));
         clear MAP_PROJECTION
         return
@@ -103,7 +103,7 @@ switch proj
         clear MAP_PROJECTION
         return
     end
-    if diff(MAP_VAR_LIST.longs)<=0.0001
+    if diff(MAP_VAR_LIST.longs)<=0.000001
         error(sprintf('Left longitude (%.3f) is not < right longitude (%.3f)',MAP_VAR_LIST.longs));
         clear MAP_PROJECTION
         return

@@ -582,7 +582,7 @@ classdef Core_Reference_Frame < handle
             axes
             xlim(clon);
             ylim(clat);
-            [lon_ggl,lat_ggl, img_ggl] = Core_Utils.addGoogleMaps('alpha', 0.95, 'maptype','satellite','refresh',0,'autoaxis',0);
+            [lon_ggl,lat_ggl, img_ggl] = addMap('alpha', 0.95);
             xlim(lon_lim);
             ylim(lat_lim);
             

@@ -2001,6 +2001,54 @@ classdef Core_Sky < handle
             end
         end
         
+        function [sx ,sy, sz] = getSatFixFrameAtCoordTime(this)
+            % SYNTAX:
+            %   [i, j, k] = satellite_fixed_frame();
+            %
+            % OUTPUT:
+            %   sx = unit vector that completes the right-handed system [n_epoch x n_sat x 3]
+            %   sy = resulting unit vector of the cross product of k vector with the unit vector from the satellite to Sun [n_epoch x n_sat x 3]
+            %   sz = unit vector pointing from the Satellite Mass Centre (MC) to the Earth's centre [n_epoch x n_sat x 3]
+            %
+            % DESCRIPTION:
+            %   Computation of the unit vectors defining the satellite-fixed frame.
+            
+            
+            t_sun = this.getCoordTime;
+            X_sun = this.sunMoonInterpolate(t_sun, true);
+            X_sat = this.coord;
+
+            n_sat = size(X_sat,2);
+            sx = zeros(size(X_sat)); sy = sx; sz = sx;
+            for idx = 1 : t_sun.length()
+                x_sun = X_sun(idx,:);
+                x_sat = X_sat(idx,:,:);
+                e = permute(repmat(x_sun,1,1,n_sat),[1 3 2]) - x_sat ;
+                e = e./repmat(normAlngDir(e,3),1,1,3); %sun direction
+                k = -x_sat./repmat(normAlngDir(x_sat,3),1,1,3); %earth directions (z)
+                j=cross(k,e); % perpendicular to bot earth and sun dorection (y)
+                j= j ./ repmat(normAlngDir(j,3),1,1,3); % normalize, earth amd sun dorection are not perpendicular
+                %                 j = [k(2).*e(3)-k(3).*e(2);
+                %                     k(3).*e(1)-k(1).*e(3);
+                %                     k(1).*e(2)-k(2).*e(1)];
+                i=cross(j,k); %(x)
+                %                 i = [j(2).*k(3)-j(3).*k(2);
+                %                     j(3).*k(1)-j(1).*k(3);
+                %                     j(1).*k(2)-j(2).*k(1)];
+                sx(idx,:,:) = i ;
+                sy(idx,:,:) = j ;
+                sz(idx,:,:) = k ;
+            end
+            if n_sat == 1
+                sx = squeeze(sx);
+                sy = squeeze(sy);
+                sz = squeeze(sz);
+            end
+            function nrm=normAlngDir(A,d)
+                nrm=sqrt(sum(A.^2,d));
+            end
+        end
+
         function [sx ,sy, sz] = getSatFixFrame(this, time, go_id)
             % SYNTAX:
             %   [i, j, k] = satellite_fixed_frame(time,X_sat);
@@ -2140,7 +2188,7 @@ classdef Core_Sky < handle
                 Core.getLogger.addMarkedMessage('Loading antennas phase center offset');
                 this.loadAntPCO();
             end
-            [i, j, k] = this.getSatFixFrame(this.getCoordTime());
+            [i, j, k] = this.getSatFixFrameAtCoordTime();
             sx = cat(3,i(:,:,1),j(:,:,1),k(:,:,1));
             sy = cat(3,i(:,:,2),j(:,:,2),k(:,:,2));
             sz = cat(3,i(:,:,3),j(:,:,3),k(:,:,3));
@@ -2682,16 +2730,19 @@ classdef Core_Sky < handle
                 %c_times = c_times_o - this.time_ref_coord;
                 c_times = this.getCoordTimeOffset;
                                 
+                n_out = nargout;
+
                 n_epo = length(t_diff);
                 W_poly = zeros(n_epo, 1);
                 X_sat = zeros(n_epo, n_sat, 3);
-                if nargout > 1
+                if n_out > 1
                     V_sat = zeros(n_epo, n_sat, 3);
                 end
                 n_epoch_old = 0;
                 % TODO: port to c++? slow loop
                 % for id = noNaN(unique([pid_floor; pid_ceil])')
-                for id = unique([pid_floor([true; diff(pid_floor) > 0]); pid_ceil([true; diff(pid_ceil) > 0])])'                
+                unique_ids = unique([pid_floor([true; diff(pid_floor) > 0]); pid_ceil([true; diff(pid_ceil) > 0])])';
+                for id = unique_ids
                     % find the epochs with the same poly
                     p_ids = (pid_floor == id | pid_ceil == id);
                     n_epoch = sum(p_ids);
@@ -2717,7 +2768,7 @@ classdef Core_Sky < handle
                         
                         X_sat(p_ids, :,:) = X_sat(p_ids, :,:) + reshape(t_fct * reshape(poly(:,sat_idx,:, id), poly_order + 1, 3 * n_sat), n_epoch, n_sat, 3) .* w;
                         
-                        if nargout > 1
+                        if n_out > 1
                             V_sat(p_ids, :,:) = V_sat(p_ids, :,:) + (reshape((t_fct(:, 1 : poly_order) .* o_mat) * reshape(poly(2 : end, sat_idx, :, id), poly_order, 3 * n_sat), n_epoch, n_sat, 3) / this.coord_rate) .* w;
                         end
                     end
@@ -2730,7 +2781,7 @@ classdef Core_Sky < handle
                         X_sat = X_sat';
                     end
                 end
-                if nargout > 1
+                if n_out > 1
                     V_sat = V_sat ./ repmat(W_poly, 1, n_sat, 3);
                     if size(V_sat,2) == 1
                         V_sat = squeeze(V_sat);
@@ -3331,13 +3382,14 @@ classdef Core_Sky < handle
             prn_name(:,3) = char(prn_num);
         end
         
-        function [eph, iono] = loadNavParameters(file_nav, cc)
+        function [eph, iono] = loadNavParameters(file_nav, cc, only_iono)
             % SYNTAX:
-            %   [eph, iono] = getNavParameters(file_nav, cc);
+            %   [eph, iono] = getNavParameters(file_nav, cc, only_iono);
             %
             % INPUT:
             %   file_nav = RINEX navigation file
             %   cc = Constellation_Collector object, contains the satus of the satellite systems in use
+            %   only_iono = load only ionospheric parameters
             %
             % OUTPUT:
             %   Eph = matrix containing 33 navigation parameters for each satellite
@@ -3348,6 +3400,9 @@ classdef Core_Sky < handle
             
             %  Partially based on RINEXE.M (EASY suite) by Kai Borre
             
+            if nargin < 3 || isempty(only_iono)
+                only_iono = false;
+            end
             % ioparam = 0;
             eph = [];
             iono = zeros(8,1);
@@ -3432,7 +3487,7 @@ classdef Core_Sky < handle
                 end
                 
                 if this.rin_type < 3 % at the moment the new reader support only RINEX 3 broadcast ephemeris
-                    [eph, iono] = RINEX_get_nav(file_nav, cc); % Old implementation slower but support RINEX 2
+                    [eph, iono] = RINEX_get_nav(file_nav, cc, only_iono); % Old implementation slower but support RINEX 2
                 else
                     eph = [];
                     for sys_c = cc.getActiveSysChar()
@@ -3700,7 +3755,7 @@ classdef Core_Sky < handle
                         %end with 'n' or 'N' (GPS) or with 'p' or 'P' (mixed GNSS)
                         if(~only_iono), log.addMessage(sprintf('%s',['Reading RINEX file ' filename ': ... '])); end
                         % [Eph_G, iono_G] = RINEX_get_nav(filename, cc); % Old implementation slower but support RINEX 2
-                        [Eph_G, iono_G] = Core_Sky.loadNavParameters(filename, cc);
+                        [Eph_G, iono_G] = Core_Sky.loadNavParameters(filename, cc, only_iono);
                         for sys_c = iif(flag_mixed, cc.SYS_C(cc.active_list), 'G')
                             % Detect and remove satellites with "high" PRN,
                             % usually connected with satellites under testing
@@ -4410,7 +4465,7 @@ classdef Core_Sky < handle
             cmap = [0.2 0.2 0.2; 1 0.5 0.1; 0.3 1 0.3];
             coord_validity = not(isnan(zero2nan(this.coord(:,:,1))));
             if not(isempty(coord_validity))
-                coord_validity = coord_validity + flagShrink(coord_validity, 5);
+                coord_validity = int8(coord_validity) + int8(flagShrink(coord_validity, 5));
                 t_clock = this.getCoordTime.getMatlabTime;
                 imagesc(t_clock, 1 : size(this.coord, 2), coord_validity');
                 if ~isempty(sat_offset)

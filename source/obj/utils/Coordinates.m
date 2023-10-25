@@ -221,6 +221,29 @@ classdef Coordinates < Exportable & handle
             dh = loc_enu(3);
         end 
         
+        function [bsl, dh] = getLongBaseline(coo_ref, coo_list)
+            % Get long baseline (vincentyDistance)
+            %
+            % INPUT
+            %   coo_ref        reference coordinate
+            %   coo_list       list of relative coordinates
+            %
+            % OUTPUT
+            %    baseline      distance
+            %    height_diff   height difference
+            %             
+            % SYNTAX
+            %   [baseline, height_diff] = getBaseline(coo_ref, coo_list)
+            
+            [lat, lon, h] = coo_ref.getMedianPos.getGeodetic();
+            [lat_list, lon_list, h_list] = deal(nan(numel(coo_list),1));
+            for c = 1:numel(coo_list)
+                [lat_list(c), lon_list(c), h_list(c)] = coo_list(c).getMedianPos.getGeodetic();
+            end
+            bsl = coo_ref.vincentyDistance(lat/pi*180, lon/pi*180, lat_list/pi*180, lon_list/pi*180);
+            dh = h-h_list;
+        end 
+        
         function copy = getCopy(this)
             % Get a copy of this
             %
@@ -484,6 +507,18 @@ classdef Coordinates < Exportable & handle
             end
         end
         
+        function remBadTimes(coo_list)
+            for coo = coo_list(:)'
+                pos_time = coo.time.getMatlabTime*86400;
+                rate = median(diff(pos_time(:)));
+                time_ko = mod(pos_time / rate - median(mod(pos_time / rate,1)), 1) > 1e-5;
+                if any(time_ko)
+                    Core.getLogger.addWarning(sprintf('Coordinate %s object contains %d/%d non regularly sampled values', coo.getNameV3, sum(time_ko), numel(time_ko)));
+                    coo.rem(time_ko);
+                end
+            end
+        end
+
         function keep(coo_list, time_start, time_stop)
             % Keep coordinates into the interval of timees
             %
@@ -718,6 +753,22 @@ classdef Coordinates < Exportable & handle
             end
         end
         
+        function [id_ref] = getIdRef(coo_list)
+            % Get the id of the reference station
+            % The reference station has coo_type = 'F';
+            % Return empty if not found
+            %
+            % SYNTAX
+            %   coo_list.getIdRef();
+            %
+            id_ref = [];
+            for i = 1:numel(coo_list)
+                if (median(coo_list(i).info.coo_type) == 'F') 
+                    id_ref = [id_ref; i]; 
+                end
+            end
+        end
+
         function [name, descr] = getName(coo_list)
             % Get name and description
             %
@@ -1702,7 +1753,9 @@ classdef Coordinates < Exportable & handle
             
             if not(isempty(name))
                 name = upper(name);
-                this.name = name(1:min(4, numel(name)));
+                name_len = min(9,max(4, numel(name)));
+                name = [name repmat(' ', 1, max(0, name_len - numel(name)))];
+                this.name = name(1:name_len);
                 if Core_Utils.isMarkerV3(name)
                     this.name_v3 = name;
                 else
@@ -2574,13 +2627,16 @@ classdef Coordinates < Exportable & handle
                 [lat, lon, h_ellips, h_ortho] = coo.getMedianPos.getGeodetic(); 
                 lat = lat.*180/pi; lon = lon .*180/pi;
                 loc_info = Core_Utils.getLocationInfo(lat, lon);
+                [E,N,Z] = coo.getUTM();
                 
                 str = {sprintf('Master station: %s', coo.name), ...
                     iif(length(coo.description) <= 4, sprintf('%s', coo.getNameV3), sprintf('%s', coo.description)), ...
                     sprintf('Lat: %.5f deg', lat), ...
                     sprintf('Lon: %.5f deg', lon), ...
-                    sprintf('El:  %.2f m', h_ellips), ...
-                    sprintf('El:  %.2f m (orthometric)', h_ortho)};
+                    sprintf('El:  %.3f m', h_ellips), ...
+                    sprintf('El:  %.3f m (orthometric)', h_ortho), ...
+                    sprintf('UTM:  %.3f m E, %.3f m N, %s', E, N, Z)};
+
                 
                 if ~isempty(loc_info)
                     str = [str, {'--------------------------------', ...
@@ -2756,7 +2812,7 @@ classdef Coordinates < Exportable & handle
             % Plot East North Up Baseline with respect to the coordinate with id = id_ref
             %
             % SYNTAX
-            %   coo_list.showBaselineENU(id_ref);
+            %   coo_list.showBaselineENU(id_ref, id_ref, id_list_sta, n_pts, rot_angle_cw);
             if (nargin < 2) || isempty(id_ref)
                 id_ref = 1:numel(coo_list);
             else
@@ -3096,72 +3152,104 @@ classdef Coordinates < Exportable & handle
         end
 
         function fh_list = showErrCodes(coo_list, n_hours, flag_now)
-            % Simple display of the error codes per session
+            % Display error codes for data processing sessions over time.
             %
-            % SYNTAX
-            %   h_list = showErrCodes(coo_list, n_hours);
+            % This function visualizes the error status of data processing sessions
+            % using color-coded markers. It splits the plotting into chunks based on
+            % a maximum number of stations allowed per figure.
+            %
+            % INPUT:
+            %   coo_list  - List of sessions or data instances for which error codes need to be visualized.
+            %   n_hours   - (Optional) Number of hours for which data needs to be considered. Default is 96 hours.
+            %   flag_now  - (Optional) Flag to indicate if data should be processed until current time. Default is true.
+            %
+            % OUTPUT:
+            %   fh_list   - Array of figure handles for each created figure.
+            %
+            % SYNTAX:
+            %   fh_list = showErrCodes(coo_list, n_hours, flag_now)
+            %
+            % EXAMPLE:
+            %   fh_list = showErrCodes(coo_list, 72, true);
+            %
+
+            max_n_sta = 50;
+            % Simple display of the error codes per session
             if nargin == 1
                 n_hours = 24*4;
             end
-                        
+
             if nargin == 3
                 [err_status, time_sync] = coo_list.getProcessingStatus(n_hours, flag_now);
             else
                 [err_status, time_sync] = coo_list.getProcessingStatus(n_hours, true);
             end
-            
+
             good_perc = sum(err_status == 0)./size(err_status,1)*100;
             for i = 1 : numel(good_perc)
                 fprintf('%s %.2f\n', coo_list(i).getNameV3, good_perc(i));
             end
             fprintf('--------------------------------\n %s %.2f\n', 'TOTAL    ', sum(err_status(:) == 0)./numel(err_status)*100);
             time_sync = time_sync.getDateTime();
-            
-            fh = figure('Visible', 'off');
-            fh.Name = sprintf('%03d: CooErr', fh.Number); fh.NumberTitle = 'off';
-            fh_list = fh;
-            fig_name = 'Coo_ErrCodes';
-            fh.UserData = struct('fig_name', fig_name);
-            
-            for r = 1 : size(err_status, 2)
-                % All ok
-                plot(time_sync(err_status(:,r) == 0), r * ones(sum(err_status(:,r) == 0), 1), 'ok', 'MarkerFaceColor', Core_UI.GREEN, 'MarkerEdgeColor', Core_UI.GREEN, 'MarkerSize', 6); hold on;
+
+            num_sta = numel(coo_list);
+            num_figures = ceil(num_sta / max_n_sta);
+            fh_list = gobjects(num_figures, 1); % Preallocate figure handles array
+
+            for fig_idx = 1:num_figures
+                start_idx = (fig_idx-1)*max_n_sta + 1;
+                end_idx = min(fig_idx*max_n_sta, num_sta);
+
+                fh = figure('Visible', 'off');
+                fh.Name = sprintf('%03d: CooErr', fh.Number);
+                fh.NumberTitle = 'off';
+                fig_name = 'Coo_ErrCodes';
+                fh.UserData = struct('fig_name', fig_name);
+
+                for r = start_idx:end_idx
+                    % All ok
+                    plot(time_sync(err_status(:,r) == 0), (r-start_idx+1) * ones(sum(err_status(:,r) == 0), 1), 'ok', 'MarkerFaceColor', Core_UI.GREEN, 'MarkerEdgeColor', Core_UI.GREEN, 'MarkerSize', 6); hold on;
+                    % Err code happened
+                    plot(time_sync(err_status(:,r) > 0), (r-start_idx+1) * ones(sum(err_status(:,r) > 0), 1), 'ok', 'MarkerFaceColor', Core_UI.GREY, 'MarkerEdgeColor', Core_UI.GREY, 'MarkerSize', 6); hold on;
+                    % only pre-processing
+                    id_nopp = rem(err_status(:,r), 100) >= 10;
+                    plot(time_sync(id_nopp), (r-start_idx+1) * ones(sum(id_nopp), 1), 'ok', 'MarkerFaceColor', Core_UI.ORANGE, 'MarkerEdgeColor', Core_UI.ORANGE, 'MarkerSize', 6); hold on;
+                    % not even pre-processed
+                    plot(time_sync(rem(err_status(:,r),10) == 1), (r-start_idx+1) * ones(sum(rem(err_status(:,r),10) == 1), 1), 'ok', 'MarkerFaceColor', Core_UI.RED, 'MarkerEdgeColor', Core_UI.RED, 'MarkerSize', 6); hold on;
+                    % no PPP or NET
+                    plot(time_sync(err_status(:,r) >= 100), (r-start_idx+1) * ones(sum(err_status(:,r) >= 100), 1), 'ok', 'MarkerEdgeColor', Core_UI.BLACK, 'MarkerFaceColor', 'none', 'LineWidth', 1, 'MarkerSize', 6); hold on;
+                end
+
+                yticks(1 : end_idx - start_idx + 1);
+                yticklabels(coo_list(start_idx:end_idx).getName());
+
+                xlim([time_sync(1) time_sync(end)] + median(diff(time_sync), 'omitnan') .* [-1 1]);
+                ylim([0.7 (end_idx-start_idx+1) + 0.3]);
+
+                % Dummy plots for legend
+                h1 = plot(NaN,NaN,'ok', 'MarkerFaceColor', Core_UI.GREEN, 'MarkerEdgeColor', Core_UI.GREEN, 'MarkerSize', 6); hold on;
+                h2 = plot(NaN,NaN,'ok', 'MarkerFaceColor', Core_UI.GREY, 'MarkerEdgeColor', Core_UI.GREY, 'MarkerSize', 6); hold on;
+                h3 = plot(NaN,NaN,'ok', 'MarkerFaceColor', Core_UI.ORANGE, 'MarkerEdgeColor', Core_UI.ORANGE, 'MarkerSize', 6); hold on;
+                h4 = plot(NaN,NaN,'ok', 'MarkerFaceColor', Core_UI.RED, 'MarkerEdgeColor', Core_UI.RED, 'MarkerSize', 6); hold on;
+                h5 = plot(NaN,NaN,'ok', 'MarkerEdgeColor', Core_UI.BLACK, 'MarkerFaceColor', 'none', 'LineWidth', 1, 'MarkerSize', 6); hold on;
+
+                % Add legend
+                legend([h1, h2, h3, h4, h5], {'No errors', 'Some errors', 'Only pre-processed', 'Not even pre-processed', 'No PPP or NET'}, 'Location', 'best');
+
+                grid on;
+                title(sprintf('Bad epochs\\fontsize{5} \n'), 'FontName', 'Open Sans');
+                Core_UI.beautifyFig(fh);
+
+                Core_UI.addExportMenu(fh);
+                Core_UI.addBeautifyMenu(fh);
+                fh.Visible = iif(Core_UI.isHideFig, 'off', 'on'); drawnow;
+
+                fh_list(fig_idx) = fh;
             end
-            for r = 1 : size(err_status, 2)
-                % Err code happened
-                plot(time_sync(err_status(:,r) > 0), r * ones(sum(err_status(:,r) > 0), 1), 'ok', 'MarkerFaceColor', Core_UI.GREY, 'MarkerEdgeColor', Core_UI.GREY, 'MarkerSize', 6); hold on;
-            end
-            for r = 1 : size(err_status, 2)
-                % only pre-processing
-                id_nopp = rem(err_status(:,r), 100) >= 10;
-                plot(time_sync(id_nopp), r * ones(sum(id_nopp), 1), 'ok', 'MarkerFaceColor', Core_UI.ORANGE, 'MarkerEdgeColor', Core_UI.ORANGE, 'MarkerSize', 6); hold on;
-            end
-            for r = 1 : size(err_status, 2)
-                % not even pre-processed
-                plot(time_sync(rem(err_status(:,r),10) == 1), r * ones(sum(rem(err_status(:,r),10) == 1), 1), 'ok', 'MarkerFaceColor', Core_UI.RED, 'MarkerEdgeColor', Core_UI.RED, 'MarkerSize', 6); hold on;
-            end
-            for r = 1 : size(err_status, 2)
-                % no PPP or NET
-                m = plot(time_sync(err_status(:,r) >= 100), r * ones(sum(err_status(:,r) >= 100), 1), 'ok', 'MarkerEdgeColor', Core_UI.BLACK, 'MarkerFaceColor', 'none', 'LineWidth', 1, 'MarkerSize', 6); hold on;
-            end
-            
-            yticks(1 : numel(coo_list));
-            yticklabels(coo_list.getName());
-            xlim([time_sync(1) time_sync(end)] + median(diff(time_sync), 'omitnan') .* [-1 1]);
-            ylim([0.7 numel(coo_list) + 0.3]);
-            %setTimeTicks(28);
-            grid on;
-            %cb = colorbar;
-            title(sprintf('Bad epochs\\fontsize{5} \n'), 'FontName', 'Open Sans');
-            Core_UI.beautifyFig(fh);
-            
-            Core_UI.addExportMenu(fh);
-            Core_UI.addBeautifyMenu(fh);
-            fh.Visible = iif(Core_UI.isHideFig, 'off', 'on'); drawnow;
+
         end
 
-
-        function [pos_time, t_max, pos_diff, pos_diff_model, pos_std, flag_time, pos_flags] = getPosDiff(mode, coo, baricenter, coo_ref)
+        function [pos_time, t_max, pos_diff, pos_diff_model, pos_std, flag_time, pos_flags, time_ko] = getPosDiff(mode, coo, baricenter, coo_ref)
             % Extract the baseline or the absolute position of a coordinate object
             %
             % INPUT
@@ -3345,11 +3433,25 @@ classdef Coordinates < Exportable & handle
                 if any(pos_diff_model)
                     pos_diff_model = bsxfun(@minus, pos_diff_model, median(pos_diff,1,'omitnan'));
                 end
-                pos_diff = bsxfun(@minus, pos_diff, median(pos_diff,1,'omitnan'));
+                pos_diff = bsxfun(@minus, pos_diff, robAdj(pos_diff')');
             end
 
             if any(pos_std)
                 pos_std(pos_std == 0) = 100e3; % no std => std set to 100m
+            end
+
+            % Find non linearly sampled coordinates (anomaly)
+            rate = median(diff(pos_time(:)));
+            time_ko = abs((mod(pos_time, rate) -  robAdj(mod(pos_time, rate)'))) > rate/100;
+            if any(time_ko)
+                Core.getLogger.addWarning(sprintf('Coordinate %s object contains %d/%d non regularly sampled values', coo.getNameV3, sum(time_ko), numel(time_ko)));
+                pos_flags(time_ko) = [];
+                pos_time(time_ko) = [];
+                pos_diff(time_ko,:) = [];
+                pos_std(time_ko,:) = [];
+                if ~isempty(pos_diff_model)
+                    pos_diff_model(time_ko,:) = [];
+                end
             end
         end
 
@@ -3414,7 +3516,8 @@ classdef Coordinates < Exportable & handle
                     if ~isempty(coo_ref)
                         coo_ref = coo_ref.getMergedPos();
                     end
-                    [pos_time, t_max, pos_diff, pos_diff_model, pos_std, flag_time, pos_flags] = getPosDiff(mode, coo, baricenter, coo_ref);
+                    [pos_time, t_max, pos_diff, pos_diff_model, pos_std, flag_time, pos_flags, time_ko] = getPosDiff(mode, coo, baricenter, coo_ref);
+                    time_id = find(~time_ko); time_id = time_id(logical(pos_flags));
                     if nargin >=5 && ~isempty(rot_angle_cw)
                         pos_diff = Coordinates.rotateDisplacements(pos_diff, -rot_angle_cw);
                         pos_diff_model = Coordinates.rotateDisplacements(pos_diff_model, -rot_angle_cw);
@@ -3533,7 +3636,7 @@ classdef Coordinates < Exportable & handle
                                     lid_pro_ok = coo(1).isPreProcessed(pos_flags);
                                 else
                                     qi = coo(1).getQualityIndex > 0.2;
-                                    lid_pro_ok = lid_pro_ok & qi;
+                                    lid_pro_ok = lid_pro_ok & qi(~time_ko);
                                 end
                                 if isempty(lid_pro_ok)
                                     lid_pro_ok = true(size(data_component{c}));
@@ -4102,11 +4205,14 @@ classdef Coordinates < Exportable & handle
             %
             % INPUT
             %   Input are defined as a list of (couples option, value)
-            %   e.g. coo.showMap('bg_type', 'gmap', 'id_ref', 5, ...)
+            %   e.g. coo.showMap('bg_type', 'map', 'id_ref', 5, ...)
             %
             %   'new_fig'          open a new figure or uses
             %                      flag:     true / false
             %                      default:  true
+            %
+            %   'fig_handle'       use this fig handle instead of creating a new one
+            %                      default none
             %
             %   'use_model'        use modelled coordinates instead of observed
             %                      flag:     true / false
@@ -4117,6 +4223,10 @@ classdef Coordinates < Exportable & handle
             %   'N_MAX_POINTS'     max number labels to display
             %                      integer:  0..inf
             %                      default:  50
+            %
+            %   'flag_tooltip'     display tooltip
+            %                      flag:     true / false
+            %                      default:  true
             %
             %   'id_ref'           id of the reference station
             %                      integer:  empty or 1..n_coo
@@ -4133,7 +4243,7 @@ classdef Coordinates < Exportable & handle
             %   'flag_label_bg'    display label background (box)
             %                      flag:     true / false
             %                      default:  true
-            %                      values are forced for some bg_type (false | gmap) or (true | dtm)
+            %                      values are forced for some bg_type (false | map) or (true | dtm)
             %
             %   'label_color'      display label background (box)
             %                      rgb:      [1 1 1]
@@ -4155,8 +4265,11 @@ classdef Coordinates < Exportable & handle
             %
             %   'bg_type'          define the type of map background to download
             %                      (google maps, shaded DTM)
-            %                      flag:     'none' / 'gmap' / 'dtm'
-            %                      default:  'gmap'
+            %                      flag:     'none' / 'map' / 'dtm'
+            %                      default:  'map'
+            %
+            %   'map_type'         see addMap function for the possible values
+            %                      default: 'ArcGIS'
             %
             %   'dtm_resolution'   resolution of the DTM to download
             %                      flag:     '1' / '3' / 'high' / 'low'
@@ -4225,7 +4338,8 @@ classdef Coordinates < Exportable & handle
                 use_model = false;
                 coo_type = 'obs'; % this is later commanded by use_model, if true this field will be 'model'
                 proj_type = 'equidistant';
-                bg_type = 'gmap';          % it can be: none, gmap, dtm
+                bg_type = 'map';          % it can be: none, map, dtm
+                map_type = 'ArcGIS';
                 flag_no_prj = false;
                 dtm_resolution = 'auto';   % it can be: "low", "high"
                 shape = 'none';            % it can be: none / coast / fill / 10m / 30m / 50m
@@ -4235,6 +4349,7 @@ classdef Coordinates < Exportable & handle
                 id_ref = [];
                 N_MAX_POINTS = 50; % Max number of stations to use larger points / labels
                 
+                flag_tooltip = true;
                 flag_label = true;
                 flag_label_bg = true;
                 label_color = [0.1 0.1 0.1];
@@ -4255,6 +4370,8 @@ classdef Coordinates < Exportable & handle
                 fill_val = [];
                 fill_lim = [];
 
+                fig_handle = [];
+
                 % Parse args ----------------------------------------------
                 
                 force_label = false;
@@ -4268,129 +4385,94 @@ classdef Coordinates < Exportable & handle
                     a = 1;
                     while a < numel(args)
                         if ischar(args{a})
-                            switch args{a}
-                                case {'fill_val'}
-                                    a = a + 1;
+                            a = a + 1;
+                            switch args{a-1}
+                                case 'fig_handle'
+                                    fig_handle = args{a};
+                                case 'fill_val'
                                     fill_val = args{a};
-                                case {'fill_lim'}
-                                    a = a + 1;
+                                case 'fill_lim'
                                     fill_lim = args{a};
-                                case {'new_fig'}
-                                    a = a + 1;
+                                case 'new_fig'
                                     new_fig = logical(args{a});
-                                case {'use_model'}
-                                    a = a + 1;
+                                case 'use_model'
                                     use_model = logical(args{a});
                                 case {'proj_type', 'type', 'proj'}
-                                    a = a + 1;
-                                    switch args{a}
-                                        case {'UTM', 'equidistant'}
-                                            proj_type = args{a};
-                                        otherwise
-                                            proj_type = 'none';
+                                    if ismember(args{a}, {'UTM', 'equidistant', 'mercator'})
+                                        proj_type = args{a};
+                                    else
+                                        proj_type = 'none';
                                     end
-                                case {'bg_type'}
-                                    a = a + 1;
-                                    switch args{a}
-                                        case {'gmap', 'dtm'}
-                                            bg_type = args{a};
-                                        otherwise
-                                            bg_type = 'none';
+                                case 'bg_type'
+                                    if ismember(args{a}, {'map', 'dtm'})
+                                        bg_type = args{a};
+                                    else
+                                        bg_type = 'none';
                                     end
-                                case {'dtm_resolution'}
-                                    a = a + 1;
-                                    switch args{a}
-                                        case {'low'}
-                                            dtm_resolution = args{a};
-                                        case {'high'}
-                                            dtm_resolution = args{a};
-                                        case {'3'}
-                                            dtm_resolution = args{a};
-                                        case {'1'}
-                                            dtm_resolution = args{a};
-                                        otherwise
-                                            dtm_resolution = 'auto';
+                                case {'map_type', 'provider'}
+                                    map_type = args{a};
+                                case 'dtm_resolution'
+                                    if ismember(args{a}, {'low', 'high', '3', '1'})
+                                        dtm_resolution = args{a};
+                                    else
+                                        dtm_resolution = 'auto';
                                     end
-                                case {'shape'}
-                                    a = a + 1;
-                                    switch args{a}
-                                        case {'coast', 'fill', '10m', '30m', '50m'}
-                                            shape = args{a};
-                                        otherwise
-                                            shape = 'none';
+                                case 'shape'
+                                    if ismember(args{a}, {'coast', 'fill', '10m', '30m', '50m'})
+                                        shape = args{a};
+                                    else
+                                        shape = 'none';
                                     end
-                                case {'arrow_type'}
-                                    a = a + 1;
-                                    switch args{a}
-                                        case {'planar', 'up'}
-                                            arrow_type = args{a};
-                                        otherwise
-                                            arrow_type = 'none';
+                                case 'arrow_type'
+                                    if ismember(args{a}, {'planar', 'up'})
+                                        arrow_type = args{a};
+                                    else
+                                        arrow_type = 'none';
                                     end
-                                case {'use_disp'}
-                                    a = a + 1;
+                                case 'use_disp'
                                     use_displacements = logical(args{a});
-                                case {'animate'}
-                                    a = a + 1;
-                                    animate =  logical(args{a});
-                                case {'ani_export'}
-                                    a = a + 1;
+                                case 'animate'
+                                    animate = logical(args{a});
+                                case 'ani_export'
                                     ani_export = args{a};
-                                case {'ani_file_name'}
-                                    a = a + 1;
+                                case 'ani_file_name'
                                     ani_file_name = args{a};
-                                case {'flag_recompute_vel'}
-                                    a = a + 1;
+                                case 'flag_recompute_vel'
                                     recompute_vel = logical(args{a});
-                                case {'vel_lim'}
-                                    a = a + 1;
+                                case 'vel_lim'
                                     vel_lim = args{a};
-                                case {'cvel_lim'}
-                                    a = a + 1;
+                                case 'cvel_lim'
                                     cvel_lim = args{a};
-                                case {'N_MAX_POINTS'}
-                                    a = a + 1;
+                                case 'N_MAX_POINTS'
                                     N_MAX_POINTS = args{a};
-                                case {'id_ref'}
-                                    a = a + 1;
+                                case 'id_ref'
                                     id_ref = args{a};
-                                case {'add_margin'}
-                                    a = a + 1;
+                                case 'add_margin'
                                     add_margin = args{a};
-                                case {'flag_label'}
-                                    a = a + 1;
-                                    flag_label = args{a};
-                                    force_label = true;
-                                case {'label_size'}
-                                    a = a + 1;
+                                case 'flag_tooltip'
+                                    flag_tooltip = logical(args{a});
+                                case 'flag_label'
+                                    flag_label = logical(args{a}); force_label = true;
+                                case 'label_size'
                                     label_size = args{a};
-                                case {'label_color'}
-                                    a = a + 1;
+                                case 'label_color'
                                     label_color = args{a};
-                                case {'flag_label_bg'}
-                                    a = a + 1;
+                                case 'flag_label_bg'
                                     flag_label_bg = args{a};
-                                case {'contour_lines'}
-                                    a = a + 1;
+                                case 'contour_lines'
                                     contour_lines = args{a};
-                                case {'point_size'}
-                                    a = a + 1;
+                                case 'point_size'
                                     point_size = args{a};
-                                case {'point_color'}
-                                    a = a + 1;
+                                case 'point_color'
                                     point_color = args{a};
-                                case {'cmap'}
-                                    a = a + 1;
+                                case 'cmap'
                                     cmap = args{a};
                                 otherwise
-                                    if ischar(args{a})
+                                    if ischar(args{a-1})
                                         log = Core.getLogger;
-                                        log.addWarning(sprintf('Parameter "%s" unrecognized in Coordinates.showMap()', args{a}));
+                                        log.addWarning(sprintf('Parameter "%s" unrecognized in Coordinates.showMap()', args{a-1}));
                                     end
-                                    a = a + 1;
                             end
-                        else
-                            % Ignore parameter
                         end
                         a = a + 1;
                     end
@@ -4445,16 +4527,22 @@ classdef Coordinates < Exportable & handle
                 if ~any([lat(:) lon(:)])
                     Logger.getInstance.addWarning('No valid coordinates present, nothing to do');
                 else
-                    if new_fig
-                        fh = figure('Visible', 'on');
+                    if isempty(fig_handle)
+                        if new_fig
+                            fh = figure('Visible', 'on');
+                        else
+                            fh = gcf;
+                            hold on;
+                        end
                     else
-                        fh = gcf;
-                        hold on;
+                        fh = fig_handle;
                     end
 
                     fh_list = fh;
-                    fig_name = sprintf('coo_map');
-                    fh.UserData.fig_name = fig_name;
+                    if ~isfield(fh.UserData, 'fig_name')
+                        fig_name = sprintf('coo_map');
+                        fh.UserData.fig_name = fig_name;
+                    end
 
                     Core.getLogger.addMarkedMessage('Preparing coordinates map, please wait...');
                     fh.Color = [1 1 1];
@@ -4478,10 +4566,15 @@ classdef Coordinates < Exportable & handle
                     else
                         if new_fig
                             switch proj_type
+                                case 'mercator'
+                                    m_proj('mercator', 'lon', dlon_ext, 'lat', dlat_ext);   % Projection
                                 case 'equidistant'
                                     m_proj('equidistant', 'lon', dlon_ext, 'lat', dlat_ext);   % Projection
                                 case 'UTM'
-                                    m_proj('UTM', 'lon', dlon,'lat', dlat);   % Projection
+                                    m_proj('UTM', 'lon', dlon_ext,'lat', dladlat_extt);   % Projection
+                                case 'none'
+                                otherwise
+                                    m_proj('equidistant', 'lon', dlon_ext, 'lat', dlat_ext);   % Projection
                             end
                         end
                     end
@@ -4489,14 +4582,12 @@ classdef Coordinates < Exportable & handle
                         colorbar;
                     end
                     if new_fig
-                        xlim(dlon_ext);
-                        ylim(dlat_ext);
                         Core_UI.beautifyFig(fh, 'light');
                         drawnow
                     end
-
+                   
                     switch bg_type
-                        case {'gmap'}
+                        case {'map'}
                             % White labels in Google maps provides enough contrast
                             if sum(label_color - [0.1 0.1 0.1]) == 0
                                 label_color = [1 1 1] -0.001; % Remove 0.001 to trick beautify function
@@ -4505,27 +4596,15 @@ classdef Coordinates < Exportable & handle
 
                             if strcmp(proj_type, 'none')
                                 if new_fig
-                                    plot_google_map('alpha', 0.95, 'maptype', 'satellite', 'refresh', 1, 'autoaxis', 1);
-                                    xlim(dlon);
-                                    ylim(dlat);
+                                    addMap('alpha', 0.95, 'lon_lim', dlon_ext, 'lat_lim', dlat_ext, 'provider', map_type);
+                                    ylabel('Latitude [deg]');
+                                    xlabel('Longitude [deg]');
                                 end
                             else
                                 img_ggl = [];
                                 ax = setAxis(fh);
-                                if isempty(ax.Children)
-                                    if ~new_fig
-                                        xlim(dlon_ext);
-                                        ylim(dlat_ext);
-                                    end
-                                    [lon_ggl,lat_ggl, img_ggl] = Core_Utils.addGoogleMaps('alpha', 0.95, 'maptype', 'satellite', 'refresh', 0, 'autoaxis', 0);
-                                    xlim(dlon);
-                                    ylim(dlat);
-                                end
-
-                                ax = setAxis(fh);
-                                if any(img_ggl)
-                                    hi = m_image(lon_ggl, lat_ggl, img_ggl);
-                                end
+                                [img_h, lon_ggl, lat_ggl, img_ggl] = addMap('ax', ax, 'alpha', 0.95, 'lon_lim', dlon_ext, 'lat_lim', dlat_ext, 'm_map', true);
+                                
                                 if contour_lines && max(diff(nwse([3 1])), diff(nwse([2 4]))) < 1 % Add contour
                                     [dtm, lat_dtm, lon_dtm] = Core.getRefDTM(nwse, 'ortho', dtm_resolution);
                                     if numel(dtm) > 100
@@ -4542,8 +4621,8 @@ classdef Coordinates < Exportable & handle
                                                 [~, hc] = m_contour(lon_dtm, lat_dtm, dtm, floor(diff(minMax(dtm(:))/step) + 1));
                                             end
                                             hc.LineColor = [1 1 1];
-                                            hi = m_image(lon_ggl, lat_ggl, img_ggl);
-                                            hi.AlphaData = hi.AlphaData * 0 + 0.6;
+                                            img_h = m_image(lon_ggl, lat_ggl, img_ggl);
+                                            img_h.AlphaData = img_h.AlphaData * 0 + 0.6;
                                         end
                                     end
                                 end
@@ -4574,7 +4653,7 @@ classdef Coordinates < Exportable & handle
                                 %h_dtm = m_pcolor(lon_dtm, lat_dtm, dtm);
                                 %h_dtm.CData = shaded_dtm;
                                 if strcmp(proj_type, 'none')
-                                    hi = image(lon_dtm, lat_dtm, shaded_dtm); hold on;
+                                    img_h = image(lon_dtm, lat_dtm, shaded_dtm); hold on;
                                     if flag_new
                                         fh.Children(end).YDir = 'normal';
                                         axis equal; axis tight;
@@ -4582,10 +4661,10 @@ classdef Coordinates < Exportable & handle
                                         ylim(dlat);
                                     end
                                 else
-                                    hi = m_image(lon_dtm, lat_dtm, shaded_dtm); hold on;
+                                    img_h = m_image(lon_dtm, lat_dtm, shaded_dtm); hold on;
                                 end
                                 if contour_lines && any(dtm(:)) && numel(dtm) > 100 % Add contour
-                                    hi.AlphaData = hi.AlphaData .* 0.70; % 70% of alpha on DTM
+                                    img_h.AlphaData = img_h.AlphaData .* 0.70; % 70% of alpha on DTM
                                     step = iif(islogical(contour_lines), iif(diff(minMax(dtm(:))) < 250, 10, 50), contour_lines);
                                     if strcmp(proj_type, 'none')
                                         contour(lon_dtm, lat_dtm, dtm)
@@ -4653,7 +4732,7 @@ classdef Coordinates < Exportable & handle
                     end
 
                     hold on;
-                    if not(strcmp(proj_type, 'none'))
+                    if  ~strcmp(proj_type, 'none')
                         m_grid('box','fancy','tickdir','in', 'fontsize', Core_UI.getFontSize(11));
                         % m_ruler(1.1, [.05 .40], 'tickdir','out','ticklen',[.007 .007], 'fontsize',14);
                         m_ruler([.7 1], -0.075, 'tickdir','out','ticklen',[.007 .007], 'fontsize',Core_UI.getFontSize(9));
@@ -4764,42 +4843,64 @@ classdef Coordinates < Exportable & handle
                             arrow_type = 'none';
                             animate = false;
                         end
-                    else
-                        ph_list = [];
-                    end
+                    
+                    % Set points style --------------------------------------------
 
-                    % Draw points -------------------------------------------------
-
-                    for r = 1 : numel(coo)
-                        if not(isempty(ph_list)) && not(isempty(ph_list{r}))
-                            ph(r) = ph_list{r};
-                            ph(r).MarkerSize = point_size;
-                            ph(r).LineWidth = 2;
-                            if ismember(r, id_ref)
-                                ph(r).Marker = '^';
-                                ph(r).MarkerEdgeColor = max(0, Core_UI.ORANGE - 0.1);
-                                ph(r).MarkerFaceColor = min(1, Core_UI.ORANGE + 0.1);
-                            else
-                                ph(r).Marker = 'o';
-                                ph(r).MarkerEdgeColor = max(0, point_color - 0.1);
-                                ph(r).MarkerFaceColor = min(1, point_color + 0.1);
-                            end
-                        else
-                            if ismember(r, id_ref)
-                                if ~isempty(fill_val)
-                                    ph(r) = plot(x(r), y(r), '^', 'MarkerSize', point_size, 'MarkerEdgeColor', [0.5 0.5 0.5], 'MarkerFaceColor', p_color(r,:), 'LineWidth', 1); hold on;
+                        for r = 1 : numel(coo)
+                            if not(isempty(ph_list)) && not(isempty(ph_list{r}))
+                                ph(r) = ph_list{r};
+                                ph(r).MarkerSize = point_size;
+                                ph(r).LineWidth = 2;
+                                if ismember(r, id_ref)
+                                    ph(r).Marker = '^';
+                                    ph(r).MarkerEdgeColor = max(0, Core_UI.ORANGE - 0.1);
+                                    ph(r).MarkerFaceColor = min(1, Core_UI.ORANGE + 0.1);
                                 else
-                                    ph(r) = plot(x(r), y(r), '^', 'MarkerSize', point_size, 'MarkerEdgeColor', max(0, Core_UI.ORANGE - 0.1), 'MarkerFaceColor', min(1, Core_UI.ORANGE + 0.1), 'LineWidth', 2); hold on;
-                                end
-                            else
-                                if ~isempty(fill_val)
-                                    ph(r) = plot(x(r), y(r), 'o', 'MarkerSize', point_size, 'MarkerEdgeColor', [0.5 0.5 0.5], 'MarkerFaceColor', p_color(r,:), 'LineWidth', 1); hold on;
-                                else
-                                    ph(r) = plot(x(r), y(r), 'o', 'MarkerSize', point_size, 'MarkerEdgeColor', max(0, point_color - 0.1), 'MarkerFaceColor', min(1, point_color + 0.1), 'LineWidth', 2); hold on;
+                                    ph(r).Marker = 'o';
+                                    ph(r).MarkerEdgeColor = max(0, point_color - 0.1);
+                                    ph(r).MarkerFaceColor = min(1, point_color + 0.1);
                                 end
                             end
                         end
-                    end
+                    else
+                        % Draw points -------------------------------------------------
+
+                        if flag_tooltip
+                            for r = 1 : numel(coo)
+                                if ismember(r, id_ref)
+                                    if ~isempty(fill_val)
+                                        ph(r) = plot(x(r), y(r), '^', 'MarkerSize', point_size, 'MarkerEdgeColor', [0.5 0.5 0.5], 'MarkerFaceColor', p_color(r,:), 'LineWidth', 1); hold on;
+                                    else
+                                        ph(r) = plot(x(r), y(r), '^', 'MarkerSize', point_size, 'MarkerEdgeColor', max(0, Core_UI.ORANGE - 0.1), 'MarkerFaceColor', min(1, Core_UI.ORANGE + 0.1), 'LineWidth', 2); hold on;
+                                    end
+                                else
+                                    if ~isempty(fill_val)
+                                        ph(r) = plot(x(r), y(r), 'o', 'MarkerSize', point_size, 'MarkerEdgeColor', [0.5 0.5 0.5], 'MarkerFaceColor', p_color(r,:), 'LineWidth', 1); hold on;
+                                    else
+                                        ph(r) = plot(x(r), y(r), 'o', 'MarkerSize', point_size, 'MarkerEdgeColor', max(0, point_color - 0.1), 'MarkerFaceColor', min(1, point_color + 0.1), 'LineWidth', 2); hold on;
+                                    end
+                                end
+                            end
+                        else
+                            p_list = 1 : numel(coo);
+                            r = setdiff(p_list, id_ref);
+                            if any(r)
+                                if ~isempty(fill_val)
+                                    ph(1) = plot(x(r), y(r), 'o', 'MarkerSize', point_size, 'MarkerEdgeColor', [0.5 0.5 0.5], 'MarkerFaceColor', p_color(r,:), 'LineWidth', 1); hold on;
+                                else
+                                    ph(1) = plot(x(r), y(r), 'o', 'MarkerSize', point_size, 'MarkerEdgeColor', max(0, point_color - 0.1), 'MarkerFaceColor', min(1, point_color + 0.1), 'LineWidth', 2); hold on;
+                                end
+                            end
+                            r = intersect(p_list, id_ref);
+                            if any(r)
+                                if ~isempty(fill_val)
+                                    ph(2) = plot(x(r), y(r), '^', 'MarkerSize', point_size, 'MarkerEdgeColor', [0.5 0.5 0.5], 'MarkerFaceColor', p_color(r,:), 'LineWidth', 1); hold on;
+                                else
+                                    ph(2) = plot(x(r), y(r), '^', 'MarkerSize', point_size, 'MarkerEdgeColor', max(0, Core_UI.ORANGE - 0.1), 'MarkerFaceColor', min(1, Core_UI.ORANGE + 0.1), 'LineWidth', 2); hold on;
+                                end
+                            end
+                        end
+                    end                    
 
                     % Draw labels -------------------------------------------------
 
@@ -4831,84 +4932,89 @@ classdef Coordinates < Exportable & handle
 
                     % Draw infoboxes ----------------------------------------------
 
-                    ax = setAxis(fh);
-                    old_state = ax.Units;
-                    ax.Units = 'points';
-                    scale_x = diff(xlim) / ax.Position(3);
-                    if use_displacements
-                        unit = 'mm';
-                        mov_title = 'Displacements';
-                    else
-                        unit = 'mm/y';
-                        mov_title = 'Velocities';
-                    end
-                    for r = 1 : numel(coo)
-                        if ismember(r, id_ref)
-                            [lat, lon, h_ellips, h_ortho] = coo(r).getMedianPos.getGeodetic();
-                            str = {sprintf('Master station: %s', coo(r).name), ...
-                                iif(length(coo(r).description) <= 4, sprintf('%s', coo(r).name_v3), sprintf('%s', coo(r).description)), ...
-                                sprintf('Lat: %.5f deg', lat / pi * 180), ...
-                                sprintf('Lon: %.5f deg', lon / pi * 180), ...
-                                sprintf('El: %.2f m', h_ellips), ...
-                                sprintf('El: %.2f m (orthometric)', h_ortho)};
+                    if flag_tooltip
+                        ax = setAxis(fh);
+                        old_state = ax.Units;
+                        ax.Units = 'points';
+                        scale_x = diff(xlim) / ax.Position(3);
+                        if use_displacements
+                            unit = 'mm';
+                            mov_title = 'Displacements';
                         else
-                            [lat, lon, h_ellips, h_ortho] = coo(r).getMedianPos.getGeodetic();
-                            str = {sprintf('Station: %s', coo(r).name), ...
-                                iif(length(coo(r).description) <= 4, sprintf('%s', coo(r).name_v3), sprintf('%s', coo(r).description)), ...
-                                sprintf('Lat: %.5f deg', lat / pi * 180), ...
-                                sprintf('Lon: %.5f deg', lon / pi * 180), ...
-                                sprintf('El: %.2f m', h_ellips), ...
-                                sprintf('El: %.2f m (orthometric)', h_ortho)};
-                            if not(isempty(id_ref))
-                                loc_enu = coo(r).getMedianPos.getLocal(coo(id_ref).getMedianPos);
-                                bsl = hypot(loc_enu(1), loc_enu(2));
-                                if bsl > 1000
-                                    bsl = sprintf('%.3f km', bsl * 1e-3);
-                                else
-                                    bsl = sprintf('%.3f m', bsl);
+                            unit = 'mm/y';
+                            mov_title = 'Velocities';
+                        end
+                        for r = 1 : numel(coo)
+                            if ismember(r, id_ref)
+                                [lat, lon, h_ellips, h_ortho] = coo(r).getMedianPos.getGeodetic();
+                                str = {sprintf('Master station: %s', coo(r).name), ...
+                                    iif(length(coo(r).description) <= 4, sprintf('%s', coo(r).name_v3), sprintf('%s', coo(r).description)), ...
+                                    sprintf('Lat: %.5f deg', lat / pi * 180), ...
+                                    sprintf('Lon: %.5f deg', lon / pi * 180), ...
+                                    sprintf('El: %.2f m', h_ellips), ...
+                                    sprintf('El: %.2f m (orthometric)', h_ortho)};
+                            else
+                                [lat, lon, h_ellips, h_ortho] = coo(r).getMedianPos.getGeodetic();
+                                str = {sprintf('Station: %s', coo(r).name), ...
+                                    iif(length(coo(r).description) <= 4, sprintf('%s', coo(r).name_v3), sprintf('%s', coo(r).description)), ...
+                                    sprintf('Lat: %.5f deg', lat / pi * 180), ...
+                                    sprintf('Lon: %.5f deg', lon / pi * 180), ...
+                                    sprintf('El: %.2f m', h_ellips), ...
+                                    sprintf('El: %.2f m (orthometric)', h_ortho)};
+                                if not(isempty(id_ref))
+                                    loc_enu = coo(r).getMedianPos.getLocal(coo(id_ref).getMedianPos);
+                                    bsl = hypot(loc_enu(1), loc_enu(2));
+                                    if bsl > 1000
+                                        bsl = sprintf('%.3f km', bsl * 1e-3);
+                                    else
+                                        bsl = sprintf('%.3f m', bsl);
+                                    end
+                                    str = [str, {'--------------------------------', ...
+                                        sprintf('Baseline: %s - %s', coo(r).name, coo(id_ref).name), ...
+                                        sprintf('Len: %s (median)', bsl), ...
+                                        sprintf('El. diff: %.3f m (median)', loc_enu(3))}];
                                 end
-                                str = [str, {'--------------------------------', ...
-                                    sprintf('Baseline: %s - %s', coo(r).name, coo(id_ref).name), ...
-                                    sprintf('Len: %s (median)', bsl), ...
-                                    sprintf('El. diff: %.3f m (median)', loc_enu(3))}];
-                            end
 
-                            if show_velocities
-                                % if velocities have been computed
-                                str = [str {'', sprintf('%s %s', coo(r).name, mov_title), ...
-                                    sprintf('Planar: %.1f %s', sqrt(v_enu(r,1).^2 + v_enu(r,2).^2) .* 1e3, unit), ...
-                                    sprintf('Nord: %.1f %s', v_enu(r,2) .* 1e3, unit), ...
-                                    sprintf('East: %.1f %s', v_enu(r,1) .* 1e3, unit), ...
-                                    sprintf('Up: %.1f %s', v_enu(r,3) .* 1e3, unit)}];
+                                if show_velocities
+                                    % if velocities have been computed
+                                    str = [str {'', sprintf('%s %s', coo(r).name, mov_title), ...
+                                        sprintf('Planar: %.1f %s', sqrt(v_enu(r,1).^2 + v_enu(r,2).^2) .* 1e3, unit), ...
+                                        sprintf('Nord: %.1f %s', v_enu(r,2) .* 1e3, unit), ...
+                                        sprintf('East: %.1f %s', v_enu(r,1) .* 1e3, unit), ...
+                                        sprintf('Up: %.1f %s', v_enu(r,3) .* 1e3, unit)}];
+                                end
+                            end
+                            if ~isempty(fill_val)
+                                str = [str {sprintf('Value: %g', fill_val(r))}];
+                            end
+                            if verLessThan('matlab', '99.9') % (this is faster)
+                                txt = text(x(r), y(r), str, ...
+                                    'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
+                                    'Margin', 5, ...
+                                    'FontSize', 9, ...
+                                    'Visible', 'off', ...
+                                    'Interpreter', 'none');
+                                ph(r).UserData = struct('label', txt);
+                            else
+                                % Add datatip (this is too slow)
+                                n_el = numel(str);
+                                dt = datatip(ph(r));
+                                ph(r).DataTipTemplate.DataTipRows = dataTipTextRow('NONE','');
+                                for i = 1:n_el
+                                    ph(r).DataTipTemplate.DataTipRows(i).Label = str{i};
+                                end
+                                dt.Visible = 'off';
+                                ph(r).UserData = struct('datatip', dt);
                             end
                         end
-                        if ~isempty(fill_val)
-                            str = [str {sprintf('Value: %g', fill_val(r))}];
-                        end
-                        if verLessThan('matlab', '99.9') % (this is faster)
-                            txt = text(x(r), y(r), str, ...
-                                'BackgroundColor', [1 1 1], 'EdgeColor', [0.3 0.3 0.3], ...
-                                'Margin', 5, ...
-                                'FontSize', 9, ...
-                                'Visible', 'off', ...
-                                'Interpreter', 'none');
-                            ph(r).UserData = struct('label', txt);
+                        if isfield(fh.UserData, 'ph')
+                            fh.UserData.ph = [fh.UserData.ph(:); ph(:)];
                         else
-                            % Add datatip (this is too slow)
-                            n_el = numel(str);
-                            dt = datatip(ph(r));
-                            ph(r).DataTipTemplate.DataTipRows = dataTipTextRow('NONE','');
-                            for i = 1:n_el
-                                ph(r).DataTipTemplate.DataTipRows(i).Label = str{i};
-                            end
-                            dt.Visible = 'off';
-                            ph(r).UserData = struct('datatip', dt);
+                            fh.UserData.ph = ph(:);
                         end
-                    end
-                    if isfield(fh.UserData, 'ph')
-                        fh.UserData.ph = [fh.UserData.ph(:); ph(:)];
-                    else
-                        fh.UserData.ph = ph(:);
+                        ax = setAxis(fh);
+                        fh.WindowButtonMotionFcn = {@Coordinates.mouseMove, ax, [fh.UserData.x(:) fh.UserData.y(:)], fh.UserData.ph(:)};
+                        ax.Units = old_state;
                     end
 
                     % Complete fig presentation -----------------------------------
@@ -4918,11 +5024,7 @@ classdef Coordinates < Exportable & handle
                         Core_UI.addExportMenu(fh); Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'light');
                         fh.Visible = iif(Core_UI.isHideFig, 'off', 'on'); drawnow;
                     end
-                    
-                    ax = setAxis(fh);
-                    fh.WindowButtonMotionFcn = {@Coordinates.mouseMove, ax, [fh.UserData.x(:) fh.UserData.y(:)], fh.UserData.ph(:)};
-                    ax.Units = old_state;
-
+                                        
                     if new_fig
                         if ~isempty(fill_val)
                             colormap(p_cmap);
@@ -6243,7 +6345,7 @@ classdef Coordinates < Exportable & handle
                     end
                     [name, descr] = coo.getName();
                     str_tmp = sprintf('%s+LastChange     : %s\n', str_tmp, now_time.toString('dd-mmm-yyyy HH:MM'));
-                    str_tmp = sprintf('%s+Software       : goGPS\n', str_tmp);
+                    str_tmp = sprintf('%s+Software       : Breva\n', str_tmp);
                     str_tmp = sprintf('%s+Version        : %s\n', str_tmp, Core.APP_VERSION);
                     str_tmp = sprintf('%s+FileVersion    : %s\n', str_tmp, coo.VERSION);
                     str_tmp = sprintf('%s+MonitoringPoint: %s\n', str_tmp, coo.name);
@@ -6257,7 +6359,7 @@ classdef Coordinates < Exportable & handle
                     str_tmp = sprintf('%s+DataType       :\n', str_tmp);
                     str_tmp = sprintf('%s -00            : timeStamp\n', str_tmp);
                     str_tmp = sprintf('%s -01            : exportTime\n', str_tmp);
-                    str_tmp = sprintf('%s -02            : ellipsoidalHeight\n', str_tmp);
+                    str_tmp = sprintf('%s -02            : orthometricHeight\n', str_tmp);
                     str_tmp = sprintf('%s -03            : x\n', str_tmp);
                     str_tmp = sprintf('%s -04            : y\n', str_tmp);
                     str_tmp = sprintf('%s -05            : z\n', str_tmp);
@@ -6447,7 +6549,7 @@ classdef Coordinates < Exportable & handle
                 str_tmp = sprintf('%s+DataType       :\n', str_tmp);
                 str_tmp = sprintf('%s -00            : timeStamp\n', str_tmp);
                 str_tmp = sprintf('%s -01            : exportTime\n', str_tmp);
-                str_tmp = sprintf('%s -02            : ellipsoidalHeight\n', str_tmp);
+                str_tmp = sprintf('%s -02            : orthometricHeight\n', str_tmp);
                 str_tmp = sprintf('%s -03            : x\n', str_tmp);
                 str_tmp = sprintf('%s -04            : y\n', str_tmp);
                 str_tmp = sprintf('%s -05            : z\n', str_tmp);
@@ -7481,7 +7583,7 @@ classdef Coordinates < Exportable & handle
                             rec.work.obs_code = repmat('S  ', n_sat, 1);
                             rec.work.obs = ones(n_sat, n_epoch);
 
-                            % Prepare the computational enviroment (goGPS core)
+                            % Prepare the computational enviroment (BREVA core)
                             state = core.getState;
                             % Set session limits
                             state.setSessionStart(date_start);
@@ -7492,7 +7594,7 @@ classdef Coordinates < Exportable & handle
                             % Set the orbit type e.g. GFZ final
                             %state.setPreferredOrbit(5, 'code_predicted5')
                             %state.setPreferredOrbit(1, 'gfz'); % broadcast
-                            state.setPreferredOrbit(1, 'code_mgex_aiub'); % broadcast
+                            state.setPreferredOrbit(1, 'code_mgex_aiub_rnx3'); % broadcast
                             core.sky.clearOrbit();
                             state.updateNavFileName();
                             % Download the orbits if needed
@@ -7560,7 +7662,7 @@ classdef Coordinates < Exportable & handle
                     log.addMarkedMessage('Add the map of the point');
                     % Add the map
                     setAxis(fh,1);
-                    ax = setAxis(fh,1); coo_origin.showMap('new_fig', false, 'bg_type', 'gmap', 'add_margin', [-0.029 -0.046], 'contour_lines', false);
+                    ax = setAxis(fh,1); coo_origin.showMap('new_fig', false, 'bg_type', 'map', 'add_margin', [-0.029 -0.046], 'contour_lines', false);
                     % Move patch down:
                     patches = false(numel(ax.Children),1); 
                     for c = 1:numel(ax.Children)
@@ -7642,6 +7744,79 @@ classdef Coordinates < Exportable & handle
         end
     end
     
+    % =========================================================================
+    %%    COORDINATES OPERATIONS
+    % =========================================================================
+    
+    methods (Access = 'public', Static)
+
+        function distances = vincentyDistance(lat_ref, lon_ref, lat_list, lon_list)
+            % Distance on the ellipsoid in km
+            %
+            % INPUT
+            %   lat_ref     latitude of the reference point
+            %   lon_ref     longitude of the reference point
+            %   lat_list    latitude of a list of point to compute distances with
+            %   lon_ref     longitude of a list of point to compute distances with
+            %
+            % OUTPUT
+            %   distances   distances in kilometers
+            %
+            % SYNTAX
+            %   distances = Coordinates.vincentyDistance(lat_ref, lon_ref, lat_list, lon_list)
+
+            % WGS84 ellipsoid parameters
+            a = 6378137; % semi-major axis in meters
+            f = 1/298.257223563; % flattening
+            b = (1-f)*a; % semi-minor axis
+
+            % Convert degrees to radians
+            lat_ref = deg2rad(lat_ref);
+            lon_ref = deg2rad(lon_ref);
+            lat_list = deg2rad(lat_list);
+            lon_list = deg2rad(lon_list);
+
+            U1 = atan((1-f) * tan(lat_ref));
+            U2s = atan((1-f) * tan(lat_list));
+            Ls = lon_list - lon_ref;
+            Lambdas = Ls;
+            sinU1 = sin(U1);
+            cosU1 = cos(U1);
+            sinU2s = sin(U2s);
+            cosU2s = cos(U2s);
+
+            iterLimit = 1000;
+
+            for iteration = 1:iterLimit
+                sinLambdas = sin(Lambdas);
+                cosLambdas = cos(Lambdas);
+                sinSigmas = sqrt((cosU2s.*sinLambdas).^2 + (cosU1*sinU2s-sinU1*cosU2s.*cosLambdas).^2);
+                cosSigmas = sinU1*sinU2s + cosU1*cosU2s.*cosLambdas;
+                sigmas = atan2(sinSigmas, cosSigmas);
+                sinAlphas = cosU1 .* cosU2s .* sinLambdas ./ sinSigmas;
+                cos2Alphas = 1 - sinAlphas.^2;
+                cos2SigmasM = cosSigmas - 2*sinU1*sinU2s./cos2Alphas;
+                C = f/16*cos2Alphas.*(4+f*(4-3*cos2Alphas));
+                Lambdas_prev = Lambdas;
+                Lambdas = Ls + (1-C) .* f .* sinAlphas .* (sigmas + C.*sinSigmas.*(cos2SigmasM+C.*cosSigmas.*(-1+2.*cos2SigmasM.^2)));
+                if all(abs(Lambdas - Lambdas_prev) < 1e-12)
+                    break;
+                end
+            end
+
+            u2s = cos2Alphas * (a^2 - b^2) / (b^2);
+            A = 1 + u2s/16384.*(4096+u2s.*(-768+u2s.*(320-175*u2s)));
+            B = u2s/1024 .* (256+u2s.*(-128+u2s.*(74-47*u2s)));
+            deltaSigmas = B.*sinSigmas.*(cos2SigmasM+B/4.*(cosSigmas.*(-1+2.*cos2SigmasM.^2)- B/6.*cos2SigmasM.*(-3+4.*sinSigmas.^2).*(-3+4.*cos2SigmasM.^2)));
+
+            % Distance in meters
+            s = b.*A.*(sigmas-deltaSigmas);
+
+            % Convert to kilometers and return
+            distances = s / 1000;
+        end
+
+    end
     % =========================================================================
     %%    COORDINATES TRANSFORMATIONS
     % =========================================================================
@@ -8442,7 +8617,7 @@ classdef Coordinates < Exportable & handle
                     end
                     
                     % Suppose regularly sampled data, fill missing epochs with nan
-                    time =(data(:,1) - data(1))*86400;
+                    time = (data(:,1) - data(1))*86400;
                     rate = round(median(diff(time)));
                     if isnan(rate)
                         rate = 8640.0;
@@ -8574,6 +8749,7 @@ classdef Coordinates < Exportable & handle
                 
                 data = data + trend;
                 
+                %lid_ko = lid_ok | false; % DEBUGG <======================================================
                 
                 % figure; plot(data, 'Color', [0.5 0.5 0.5]);
                 data(lid_ko) = nan;

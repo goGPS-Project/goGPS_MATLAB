@@ -391,10 +391,20 @@ classdef Logger < handle
                     end
                 end
                 
-                try fclose(this.fid); catch; end % if is not open do nothing
+                %% try fclose(this.fid); catch; end % if is not open do nothing
+                try file_open = fopen(this.fid); catch; file_open = false; end
+                isopen = ~isempty(file_open);
+                out_file_path = strrep(out_file_path, '${NOW}', datestr(now, 'yyyymmdd HHMMSS'));
+                % If it's open and it's the same file
                 if path_ok
-                    out_file_path = strrep(out_file_path, '${NOW}', datestr(now, 'yyyymmdd HHMMSS'));
-                    this.fid = fopen(out_file_path, 'a+');
+                    if isopen
+                        if ~strcmp(file_open, out_file_path) % If it's open and but it's not the same file
+                            try fclose(this.fid); catch; end % if is not open do nothing
+                            this.fid = fopen(out_file_path, 'a+');
+                        end
+                    else
+                        this.fid = fopen(out_file_path, 'a+');
+                    end
                     if this.fid <= 0
                         this.fid = 0;
                         this.disableFileOut();

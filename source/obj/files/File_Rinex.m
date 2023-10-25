@@ -59,6 +59,7 @@ classdef File_Rinex < Exportable
         trk_availability_ph                          % boolean to get tracking availabilty the tracking are in Core_sky.CARRIER_PHASES_FLAGS
 
         marker_name = {};                            % marker name of the files
+        antenna = {};                                % antenna
         coo = Coordinates()                          % receiver coordinates
         first_epoch = GPS_Time();                    % first epoch stored in the RINEX (updated after checkValidity)
         last_epoch = GPS_Time();                     % last epoch stored in the RINEX (updated after checkValidity)
@@ -158,6 +159,7 @@ classdef File_Rinex < Exportable
             this.trk_availability_pr = file_rinex.trk_availability_pr;
             this.trk_availability_ph = file_rinex.trk_availability_ph;
             this.marker_name    = file_rinex.marker_name;
+            this.antenna        = file_rinex.antenna;            
             this.is_composed    = file_rinex.is_composed;
             this.first_epoch    = file_rinex.first_epoch.getEpoch(valid_id);
             this.last_epoch     = file_rinex.last_epoch.getEpoch(valid_id);
@@ -185,6 +187,7 @@ classdef File_Rinex < Exportable
             % for each file present in the list
             for f = 1 : numel(this.file_name_list)
                 marker_name = '';
+                antenna = '';
                 full_path = fullfile(this.base_dir{f}, [this.file_name_list{f} this.ext{f}]);
 
                 % try to find the first and the last epoch stored in the file
@@ -243,7 +246,7 @@ classdef File_Rinex < Exportable
                             date_stop = '';
                             coo = '';
                             eof = false;
-                            par_to_find = 4;
+                            par_to_find = 5;
                             %while (par_to_find > 0) && isempty(strfind(line,'END OF HEADER')) && not(eof)
                             while ~((length(line) > 61) && (line(61) == 'E')) && not(eof)
                                 l = l + 1;
@@ -270,6 +273,10 @@ classdef File_Rinex < Exportable
                                     if par_to_find > 0
                                         if numel(line) >= 70 && isempty(marker_name) && line(64) == 'K' &&  line(69) == 'A' % read marker_name
                                             marker_name = strtrim(regexp(line, '.*(?=MARKER NAME)', 'match', 'once'));
+                                            par_to_find = par_to_find - 1;
+                                        end
+                                        if numel(line) >= 70 && isempty(antenna) && line(61) == 'A' && line(64) == ' ' % read Antenna name
+                                            antenna = strtrim(regexp(line, '.*(?=ANT # \/ TYPE)', 'match', 'once'));
                                             par_to_find = par_to_find - 1;
                                         end
                                         if numel(line) >= 76
@@ -504,6 +511,12 @@ classdef File_Rinex < Exportable
                 else
                     this.marker_name{f} = upper(marker_name);
                 end
+                % store antenna
+                if isempty(antenna)
+                    this.antenna{f} = 'NONE';
+                else
+                    this.antenna{f} = upper(antenna);
+                end
             end
             this.is_valid = all(this.is_valid_list);
             if (~this.is_valid)
@@ -527,6 +540,7 @@ classdef File_Rinex < Exportable
             % for each file present in the list
             for f = 1 : numel(this.file_name_list)
                 marker_name = '';
+                antenna = '';
                 
                 % try to find the first and the last epoch stored in the file
                 try
@@ -541,14 +555,19 @@ classdef File_Rinex < Exportable
                         date_start = '';
                         date_stop = '';
                         coo = '';
-                        par_to_find = 4;
+                        par_to_find = 5;
                         while par_to_find > 0 && isempty(strfind(line,'END OF HEADER')) && ischar(line) %#ok<*STREMP>
                             l = l + 1;
                             line = fgetl(fid);
-                            if numel(line) > 70 && isempty(marker_name) && line(64) == 'K' % read marker_name
+                            if numel(line) >= 70 && isempty(marker_name) && line(64) == 'K' &&  line(69) == 'A' % read marker_name
                                 marker_name = strtrim(regexp(line, '.*(?=MARKER NAME)', 'match', 'once'));
                                 par_to_find = par_to_find - 1;
                             end
+                            if numel(line) >= 70 && isempty(antenna) && line(61) == 'A' && line(64) == ' ' % read Antenna name
+                                antenna = strtrim(regexp(line, '.*(?=ANT # \/ TYPE)', 'match', 'once'));
+                                par_to_find = par_to_find - 1;
+                            end
+
                             if numel(line) > 76
                                 if line(61) == 'T'
                                     %tmp = regexp(line, '.*(?=GPS         TIME OF FIRST OBS)', 'match', 'once');
@@ -659,6 +678,12 @@ classdef File_Rinex < Exportable
                     this.marker_name{f} = upper(this.file_name_list{f}(1:min(4, numel(this.file_name_list{f}))));
                 else
                     this.marker_name{f} = upper(marker_name);
+                end
+                % store antenna
+                if isempty(antenna)
+                    this.antenna{f} = 'NONE';
+                else
+                    this.antenna{f} = upper(antenna);
                 end
             end
             this.is_valid = all(this.is_valid_list);
