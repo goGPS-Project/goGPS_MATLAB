@@ -4782,7 +4782,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function [XS_tx_r ,XS_tx] = getXSTxRot(this, go_id)
+        function [XS_tx_r ,XS_tx, VS_tx_all] = getXSTxRot(this, go_id)
             % Compute satellite positions at transmission time and rotate them by the earth rotation
             % occured during time of travel of the signal
             %
@@ -4793,19 +4793,29 @@ classdef Receiver_Work_Space < Receiver_Commons
             %   sat = go_id of the satellite (optional)
             %
             % OUTPUT
+            %   XS_tx_r = satellite postions at transimission time rotated by earth rotation occured during time of travel
             %   XS_tx = satellite position computed at trasmission time
-            %   XS_tx_r = Satellite postions at transimission time rotated by earth rotation occured during time of travel
-            %
+            %   VS_tx_all = satellite velocity computed at trasmission time
             if nargin > 1
                 [XS_tx] = this.getXSTx(go_id);
                 [XS_tx_r] = this.earthRotationCorrection(XS_tx, go_id);
             else
                 n_sat = this.parent.getMaxSat;
                 XS_tx_r = zeros(this.time.length, n_sat, 3);
-                for i = unique(this.go_id)'
-                    [XS_tx] = this.getXSTx(i);
-                    [XS_tx_r_temp]  = this.earthRotationCorrection(XS_tx, i);
-                    XS_tx_r(logical(this.sat.avail_index(:,i)) ,i ,:) = permute(XS_tx_r_temp, [1 3 2]);
+                if nargout == 3
+                    VS_tx_all = zeros(this.time.length, n_sat, 3);
+                    for i = unique(this.go_id)'
+                        [XS_tx, VS_tx] = this.getXSTx(i);
+                        [XS_tx_r_temp]  = this.earthRotationCorrection(XS_tx, i);
+                        XS_tx_r(logical(this.sat.avail_index(:,i)) ,i ,:) = permute(XS_tx_r_temp, [1 3 2]);
+                        VS_tx_all(logical(this.sat.avail_index(:,i)) ,i ,:) = permute(VS_tx, [1 3 2]);
+                    end
+                else
+                    for i = unique(this.go_id)'
+                        [XS_tx] = this.getXSTx(i);
+                        [XS_tx_r_temp]  = this.earthRotationCorrection(XS_tx, i);
+                        XS_tx_r(logical(this.sat.avail_index(:,i)) ,i ,:) = permute(XS_tx_r_temp, [1 3 2]);
+                    end
                 end
             end
         end
@@ -4850,7 +4860,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function [XS_tx] = getXSTx(this, sat)
+        function [XS_tx, VS_tx] = getXSTx(this, sat)
             % SYNTAX
             %   [XS_tx_frame , XS_rx_frame] = this.getXSTx()
             %
@@ -4859,6 +4869,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %  sta : index of the satellite
             % OUTPUT
             % XS_tx = satellite position computed at trasmission time
+            % VS_tx = satellite velocity computed at trasmission time
             %
             % Compute satellite positions at trasmission time
             time_tx = this.getTimeTx(sat);
@@ -4869,17 +4880,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                 sky = Core.getCoreSky;
                 %sky.initSession(this.time.first, this.time.last, Core.getConstellationCollector);
                 [XS_tx] = sky.coordInterpolate(time_tx, sat);
-
-
-                %                 [XS_tx(idx,:,:), ~] = Core.getCoreSky.coordInterpolate(time_tx);
-                %             XS_tx  = zeros(size(this.sat.avail_index));
-                %             for s = 1 : size(XS_tx)
-                %                 idx = this.sat.avail_index(:,s);
-                %                 %%% compute staeliite position a t trasmission time
-                %                 time_tx = this.time.subset(idx);
-                %                 time_tx = time_tx.time_diff - this.sat.tot(idx,s)
-                %                 [XS_tx(idx,:,:), ~] = Core.getCoreSky.coordInterpolate(time_tx);
-                %             end
+                if nargout == 2
+                    [XS_tx, VS_tx] = sky.coordInterpolate(time_tx, sat);
+                end
             end
         end
         

@@ -3113,6 +3113,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             fw.downloadResource(par_type,Core.getState.getSessionsStartExt, Core.getState.getSessionsStopExt);
         end
         
+        function createNewProject(this, caller, event)
             % Create a new project            
             GUI_New_Project(this);
         end

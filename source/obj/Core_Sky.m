@@ -2686,7 +2686,7 @@ classdef Core_Sky < handle
             %    sat = satellite to be interpolated (optional) go_id index
             %
             % SYNTAX:
-            %   [X_sat] = this.coordInterpolateKF(gps_time, go_id)
+            %   [X_sat, V_sat] = this.coordInterpolateKF(gps_time, go_id)
             
             if isempty(this.time_ref_coord)
                 Core.getLogger.addWarning('Core_Sky appears to be empty, Breva is going to misbehave\nTrying to load needed data')
