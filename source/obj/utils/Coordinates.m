@@ -1214,6 +1214,11 @@ classdef Coordinates < Exportable & handle
             [east, north, utm_zone] = this.geod2utm(lat, lon);
             if nargout == 4
                 time = this.time.getCopy;
+            elseif nargout <=2 
+                    east = [east; north];            
+            end            
+            if nargout == 2
+                north = this.time.getCopy;
             end
         end
         
@@ -1412,7 +1417,8 @@ classdef Coordinates < Exportable & handle
             end
             this = this.getCopy;
             ref_pos = ref_pos.getCopy;
-            tmp = [ref_pos; this(:)]; tmp.setNewRef(1);
+            tmp = [ref_pos; this(:)]; 
+            tmp.setNewRef(1);
             ref_pos = tmp(1); 
             this = tmp(2:end);
             xyz_ref = ref_pos.getMedianPos.getXYZ;
@@ -4352,6 +4358,7 @@ classdef Coordinates < Exportable & handle
                 flag_tooltip = true;
                 flag_label = true;
                 flag_label_bg = true;
+                flag_fix_label = true;
                 label_color = [0.1 0.1 0.1];
                 label_size = 12;
                 point_size = 10;
@@ -4459,6 +4466,8 @@ classdef Coordinates < Exportable & handle
                                     label_color = args{a};
                                 case 'flag_label_bg'
                                     flag_label_bg = args{a};
+                                case 'flag_fix_label'
+                                    flag_fix_label = args{a};
                                 case 'contour_lines'
                                     contour_lines = args{a};
                                 case 'point_size'
@@ -4477,6 +4486,8 @@ classdef Coordinates < Exportable & handle
                         a = a + 1;
                     end
                 end
+                
+                id_ref(id_ref > numel(coo)) = [];
                 
                 if animate
                     animate =  animate && not(arrow_type(1) == 'n');
@@ -4571,7 +4582,7 @@ classdef Coordinates < Exportable & handle
                                 case 'equidistant'
                                     m_proj('equidistant', 'lon', dlon_ext, 'lat', dlat_ext);   % Projection
                                 case 'UTM'
-                                    m_proj('UTM', 'lon', dlon_ext,'lat', dladlat_extt);   % Projection
+                                    m_proj('UTM', 'lon', dlon_ext,'lat', dlat_ext);   % Projection
                                 case 'none'
                                 otherwise
                                     m_proj('equidistant', 'lon', dlon_ext, 'lat', dlat_ext);   % Projection
@@ -4921,10 +4932,12 @@ classdef Coordinates < Exportable & handle
 
                         % Check lbl overposition
                         if numel(lbl_pos(:,1)) < 90
-                            if flag_label_bg
-                                Coordinates.fixLabels(lbl_pos, [hlbl(:) hlbl_bg(:)]);
-                            else
-                                Coordinates.fixLabels(lbl_pos, hlbl(:));
+                            if flag_fix_label
+                                if flag_label_bg
+                                    Coordinates.fixLabels(lbl_pos, [hlbl(:) hlbl_bg(:)]);
+                                else
+                                    Coordinates.fixLabels(lbl_pos, hlbl(:));
+                                end
                             end
                         end
                         setAxis(fh);
@@ -6700,8 +6713,13 @@ classdef Coordinates < Exportable & handle
                 time_ref = coo_list(new_ref_id).time.getRoundedTime(coo_rate);
                 time0 = time_ref.first.getMatlabTime;
                 tid_ref = time_ref.getRefTime(time0) / coo_rate;
-                if any(time0)
-                    xyz_corr = round(repmat(new_fixed_xyz, numel(tid_ref), 1) - coo_list(new_ref_id).xyz, 6);
+                if any(time0) || (time_ref.length == 0)
+                    if (time_ref.length == 0)
+                        tid_ref = 1;
+                        xyz_corr = round(repmat(new_fixed_xyz, size(coo_list(new_ref_id).xyz,1), 1) - coo_list(new_ref_id).xyz, 6);
+                    else
+                        xyz_corr = round(repmat(new_fixed_xyz, numel(tid_ref), 1) - coo_list(new_ref_id).xyz, 6);
+                    end
                     if not(isempty(coo_list(new_ref_id).xyz_model)) && any(coo_list(new_ref_id).xyz_model(:))
                         xyz_corr_model = round(repmat(new_fixed_xyz, numel(tid_ref), 1) - coo_list(new_ref_id).xyz_model, 6);
                     else
@@ -6710,9 +6728,13 @@ classdef Coordinates < Exportable & handle
                     
                     % for each non reference coordinate
                     for c = setdiff(1 : numel(coo_list), new_ref_id)
-                        tid_coo = coo_list(c).time.getRoundedTime(coo_rate).getRefTime(time0)/coo_rate;
-                        [~, idc, idr] = intersect(tid_coo, tid_ref);
-                        
+                        if (time_ref.length == 0)
+                            idr = 1;
+                        else
+                            tid_coo = coo_list(c).time.getRoundedTime(coo_rate).getRefTime(time0)/coo_rate;                        
+                            [~, idc, idr] = intersect(tid_coo, tid_ref);
+                        end
+
                         if numel(idr) == 1
                             idc = (1:size(coo_list(c).xyz,1))';
                         end

@@ -431,7 +431,14 @@ function [img, latitudes, longitudes] = downloadMapTiles(lat_lim, lon_lim, buffe
 
             if ismember(provider, {'GoogleRoad', 'GoogleSatellite', 'GoogleTerrain', 'GoogleHybrid', 'road', 'satellite', 'terrain', 'hybrid'})
                 [img, latitudes, longitudes] = getGoogleMapImage(lat_lim, lon_lim, buffer, map_type, options);
-                return;
+                if ~any(img(:))
+                    % Fallback on ArcGIS in case the google image fails to be download (missing API key?)
+                    Core.getLogger.addWarning('Google map failed to be download, check your API key, switching to ArcGIS map');
+                    [img, latitudes, longitudes] = downloadMapTiles(lat_lim, lon_lim, buffer, zoom_lev, 'ArcGIS');
+                    return;
+                else
+                    return;
+                end
             end
 
             try
@@ -529,6 +536,12 @@ function [img, latitudes, longitudes] = getGoogleMapImage(lat_lim, lon_lim, buff
     scale = 2;    % default scale
     rrm = Remote_Resource_Manager.getInstance;
     api_key = rrm.getGoogleMapsAPI;  % fetch the API key
+    if isempty(api_key)
+        img = nan(2,2,3);
+        latitudes = [];
+        longitudes = [];
+        return
+    end
 
     % Compute the latitudes and longitudes for each pixel
     tile_size = 256; % default tile size

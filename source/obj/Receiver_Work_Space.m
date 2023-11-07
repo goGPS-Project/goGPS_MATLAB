@@ -4986,7 +4986,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function [P, T, H] = getPTH(this, use_id_sync)
+        function [P, T, H] = getPTH(this, use_id_sync, time)
             % Get Pressure temperature and humidity at the receiver location
             %
             % OUTPUT
@@ -4995,13 +4995,15 @@ classdef Receiver_Work_Space < Receiver_Commons
             %   H : %
             %
             % SYNTAX
-            %   [P, T, H] = getPTH(this,time,flag)
+            %   [P, T, H] = getPTH(this, use_id_sync, time)
             state =  Core.getState();
             flag = state.meteo_data;
-            if nargin < 2
+            if nargin < 2 || isempty(use_id_sync)
                 use_id_sync = false;
             end
-            time = this.time;
+            if nargin < 3 || isempty(time)
+                time = this.time;
+            end
             l = time.length;
             
             if (flag == 3) && isempty(this.meteo_data)
@@ -7238,9 +7240,13 @@ classdef Receiver_Work_Space < Receiver_Commons
     %% METHODS UPDATERS
     % ==================================================================================================================================================
     methods
-        function updateCoordinates(this)
+        function updateCoordinates(this, time)
             % upadte lat lon e ortometric height
-            [this.lat, this.lon, this.h_ellips, this.h_ortho] = this.getMedianPosGeodetic();
+            if nargin == 1
+                [this.lat, this.lon, this.h_ellips, this.h_ortho] = this.getMedianPosGeodetic();
+            else
+                [this.lat, this.lon, this.h_ellips, this.h_ortho] = this.getTimePosGeodetic(time);
+            end
         end
         
         function updateSyntPhases(this, sys_c)

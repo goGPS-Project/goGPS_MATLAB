@@ -544,6 +544,41 @@ classdef Receiver_Commons <  matlab.mixin.Copyable
             end
         end
         
+        function [lat_d, lon_d, h_ellips, h_ortho] = getTimePosGeodetic(this, time)
+            % return the computed median position of the receiver at time time
+            %
+            % OUTPUT
+            %   lat         latitude  [deg]
+            %   lon         longitude [deg]
+            %   h_ellips    ellipsoidical heigth [m]
+            %   h_ortho     orthometric heigth [m]
+            %
+            % SYNTAX
+            %   [lat, lon, h_ellips, h_ortho] = this.getTimePosGeodetic(time);
+            for r = 1 : numel(this)
+                if size(this(r).xyz,1) == this(r).time.length % It's epoch wise!
+                    time_ref  = this(r).time.getRefTime(time.getMatlabTime);
+                    [~, id_min] = min(abs(time_ref));
+                    xyz = xyz(id_min,:);
+                else
+                    xyz = this(r).getMedianPosXYZ;
+                end
+                if ~isempty(xyz) && ~isempty(this(r))
+                    [lat_d(r), lon_d(r), h_ellips(r)] = cart2geod(xyz);
+                    if nargout == 4
+                        ondu = getOrthometricCorr(lat_d(r), lon_d(r), Core.getRefGeoid());
+                        h_ortho(r) = h_ellips(r) - ondu;
+                    end
+                    lat_d(r) = lat_d(r) / pi * 180;
+                    lon_d(r) = lon_d(r) / pi * 180;
+                else
+                    lat_d(r) = nan;
+                    lon_d(r) = nan;
+                    h_ellips(r) = nan;
+                    h_ortho(r) = nan;
+                end
+            end
+        end
         
         % tropo
         function [tropo, time] = getTropoPar(sta_list, par_name)

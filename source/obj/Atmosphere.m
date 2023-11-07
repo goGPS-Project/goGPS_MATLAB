@@ -402,7 +402,7 @@ classdef Atmosphere < handle
             %   importAtmLoadCoeffFile(this, filename)
             fid = fopen([filename],'rt');
             if fid == -1
-                this.log.addWarning(sprintf('Athmosphere: File %s not found', filename));
+                this.log.addWarning(sprintf('Atmosphere: File %s not found', filename));
                 return
             else
                 this.log.addMessage(this.log.indent(sprintf('Loading  %s', File_Name_Processor.getFileName(filename))));
@@ -2304,6 +2304,10 @@ classdef Atmosphere < handle
             %initialization
             delay = zeros(size(el));
 
+            if isempty(ionoparams)
+                % just for robustness, but bad (iono parameters missing)
+                ionoparams = zeros(8);
+            end
             %ionospheric parameters
             a0 = ionoparams(1);
             a1 = ionoparams(2);
@@ -2509,5 +2513,73 @@ classdef Atmosphere < handle
             cotan_term = 1 ./ ( sin(el).*tan(el) + 0.0032);
         end
         
+        function zwd = getAprZWD(zd_model, P, T, H, lat, lon, h_ortho, h_ellips, time)
+            %   This function computes the wet tropospheric delay based on the given model
+            %   and input parameters.
+            %
+            % SYNTAX:
+            %   For zd_model 1: zwd = Athmosphere.getAprZWD(1, [], T, H, [], [], h_ortho)
+            %   For zd_model 2: zwd = Athmosphere.getAprZWD(2, [], T, H, lat, lon, h_ortho, h_ellips, time)
+            %
+            % INPUT:
+            %   zd_model - Model type (1 for saastamoinen, 2 for vmf gridded)
+            %   P, T, H  - Pressure, Temperature, and Humidity respectively
+            %   lat, lon - Latitude and Longitude respectively
+            %   h_ortho  - Orthometric height
+            %   h_ellips - Ellipsoidal height
+            %   time     - Time instance (required for model 2)
+            %
+            % OUTPUT:
+            %   zwd      - Wet tropospheric delay
+
+            switch zd_model
+                case 1 % saastamoinen
+                    zwd = single(Atmosphere.saast_wet(T, H, h_ortho));
+                case 2 % vmf gridded
+                    try
+                        atmo = Core.getAtmosphere();
+                        zwd = single(atmo.getVmfZwd(time.getGpsTime, lat, lon, h_ellips));
+                    catch ex
+                        Core.getLogger.addWarning('Current VMF ZWD seems broken, switch to Saastamoinen');
+                        zwd = single(Atmosphere.saast_wet(T, H, h_ortho));
+                    end
+            end
+
+        end
+
+        function zhd = getAprZHD(zd_model, P, T, H, lat, lon, h_ortho, h_ellips, time)
+            %   This function computes the dry tropospheric delay based on the given model
+            %   and input parameters.
+            %
+            % SYNTAX:
+            %   For zd_model 1: zhd = Athmosphere.getAprZHD(1, P, [], [], lat, [], h_ortho)
+            %   For zd_model 2: zhd = Athmosphere.getAprZHD(2, P, [], [], lat, lon, h_ortho, h_ellips, time)
+            %
+            % INPUT:
+            %   zd_model - Model type (1 for saastamoinen, 2 for vmf gridded)
+            %   P, T, H  - Pressure, Temperature, and Humidity respectively
+            %   lat, lon - Latitude and Longitude respectively
+            %   h_ortho  - Orthometric height
+            %   h_ellips - Ellipsoidal height
+            %   time     - Time instance (required for model 2)
+            %
+            % OUTPUT:
+            %   zhd      - Dry tropospheric delay
+
+            switch zd_model
+                case 1 % saastamoinen
+                    zhd = Atmosphere.saast_dry(P, h_ortho, lat);
+                case 2 % vmf gridded
+                    try
+                        atmo = Core.getAtmosphere();
+                        zhd = single(atmo.getVmfZhd(time.getGpsTime, lat, lon, h_ellips));
+                    catch ex
+                        Core.getLogger.addWarning('Current VMF ZHD seems broken, switch to Saastamoinen');
+                        zhd = Atmosphere.saast_dry(P, h_ortho, lat);
+                    end
+            end
+
+        end
+
     end
 end
