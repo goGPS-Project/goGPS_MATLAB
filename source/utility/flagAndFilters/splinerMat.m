@@ -67,6 +67,9 @@ function [y_splined, x_spline, s_weights, y_splined_ext] = splinerMat(x, y, dxs,
         inan = inan(:,1) | inan(:,2);
     end
     
+    x = double(x);
+    y = double(y);
+
     x(inan) = [];
     y(inan,:) = [];
     
@@ -242,11 +245,14 @@ function [y_splined, x_spline, s_weights] = spliner_v51(x, y, y_var, dxs)
     end
     s_weights = [s_weights; s_par];
 
+    mask = false(size(y_splined));
     for s = first_spline:cur_spline
-        if ((skips(s)<skips(s+1)))
+        if ((skips(s)<skips(s+1))) && (s < 2 || (skips(s) > skips(s-1)))
             y_splined(skips(s)+first_obs:skips(s+1)+first_obs-1) = y_splined(skips(s)+first_obs:skips(s+1)+first_obs-1) + A((skips(s):skips(s+1)-1)+1,:) * s_par(s-first_spline+1:s+3-first_spline+1);
+            mask(skips(s)+first_obs:skips(s+1)+first_obs-1) = true;
         end
     end
+    y_splined(~mask) = nan;
     
     x_spline = x_spline + x0;
 end
@@ -305,7 +311,7 @@ function [y_splined, x_spline, s_weights] = spliner_v51R(x, y, y_var, dxs, reg_f
             if (n_skip < 4)
                 if (n_skip == 1)
                     A2 = A((skips(cur_spline)+1):i-first_obs,:);
-                    iQ = sparse(diag(1./y_var(first_obs + skips(cur_spline):i-1)));
+                    iQ = sparse(double(diag(1./y_var(first_obs + skips(cur_spline):i-1))));
                     N(cur_local_spline:cur_local_spline+3,cur_local_spline:cur_local_spline+3) =   sparse(N(cur_local_spline:cur_local_spline+3,cur_local_spline:cur_local_spline+3) + A2'*iQ*A2);
 
                     % Computing TN
@@ -328,7 +334,7 @@ function [y_splined, x_spline, s_weights] = spliner_v51R(x, y, y_var, dxs, reg_f
     skips(cur_spline+1) = i-first_obs;
     if (n_skip == 0)
         A2 = A(skips(cur_spline)+1:i-first_obs,:);
-        iQ = sparse(diag(1./y_var(first_obs+skips(cur_spline):i-1)));
+        iQ = sparse(diag(double(1./y_var(first_obs+skips(cur_spline):i-1))));
         N(cur_spline-first_spline+1:cur_spline+3-first_spline+1,cur_spline-first_spline+1:cur_spline+3-first_spline+1) = sparse(N(cur_spline-first_spline+1:cur_spline+3-first_spline+1,cur_spline-first_spline+1:cur_spline+3-first_spline+1) + A2'*iQ*A2);
 
         % Computing TN
@@ -359,12 +365,14 @@ function [y_splined, x_spline, s_weights] = spliner_v51R(x, y, y_var, dxs, reg_f
     end
     s_weights = [s_weights; s_par];
 
+    mask = false(size(y_splined));
     for s = first_spline:cur_spline
-        if ((skips(s)<skips(s+1)))
+        if ((skips(s)<skips(s+1))) && (s < 2 || (skips(s) > skips(s-1)))
             y_splined(skips(s)+first_obs:skips(s+1)+first_obs-1) = y_splined(skips(s)+first_obs:skips(s+1)+first_obs-1) + A((skips(s):skips(s+1)-1)+1,:) * s_par(s-first_spline+1:s+3-first_spline+1);
+            mask(skips(s)+first_obs:skips(s+1)+first_obs-1) = true;
         end
     end
-    
+    y_splined(~mask) = nan;
     x_spline = x_spline + x0;
 end
 
@@ -513,14 +521,23 @@ function [y_splined, x_spline, s_weights] = spliner_v5R(x, y, dxs, reg_factor)
     end
     s_weights = [s_weights; s_par];
 
+    % for s = first_spline:cur_spline
+    %     if (skips(s) == 0 && s > 1)
+    %         skips(s) = skips(s-1);
+    %     end
+    %     if ((skips(s)<skips(s+1)))
+    %         y_splined(skips(s)+first_obs:skips(s+1)+first_obs-1) = y_splined(skips(s)+first_obs:skips(s+1)+first_obs-1) + A((skips(s):skips(s+1)-1)+1,:) * s_par(s-first_spline+1:s+3-first_spline+1);
+    %     end
+    % end
+
+    mask = false(size(y_splined));
     for s = first_spline:cur_spline
-        if (skips(s) == 0 && s > 1)
-            skips(s) = skips(s-1);
-        end
-        if ((skips(s)<skips(s+1)))
+        if ((skips(s)<skips(s+1))) && (s < 2 || (skips(s) > skips(s-1)))
             y_splined(skips(s)+first_obs:skips(s+1)+first_obs-1) = y_splined(skips(s)+first_obs:skips(s+1)+first_obs-1) + A((skips(s):skips(s+1)-1)+1,:) * s_par(s-first_spline+1:s+3-first_spline+1);
+            mask(skips(s)+first_obs:skips(s+1)+first_obs-1) = true;
         end
     end
+    y_splined(~mask) = nan;
     
     x_spline = x_spline + x0;
 end

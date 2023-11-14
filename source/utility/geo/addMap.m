@@ -108,7 +108,7 @@ function [im_h, latitudes, longitudes, img_bg] = addMap(varargin)
                 img_only = varargin{k + 1};
             case 'ax'
                 ax = varargin{k + 1};
-            case 'provider'
+            case {'provider', 'map', 'map_type'}
                 provider = varargin{k + 1};
             case 'lat_lim'
                 lat_lim = varargin{k + 1};
@@ -121,7 +121,7 @@ function [im_h, latitudes, longitudes, img_bg] = addMap(varargin)
             case 'm_map'
                 flag_m_map = varargin{k + 1};
             otherwise
-                error('Unknown parameter: %s', varargin{k});
+                warning('Unknown parameter: %s', varargin{k});
         end
         k = k + 2;        
     end

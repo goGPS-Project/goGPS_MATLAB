@@ -160,6 +160,7 @@ classdef Coordinates < Exportable & handle
             
             try % legacy support
                 this.reflectometry = pos.reflectometry;
+                this.reflectometry.time = pos.reflectometry.time.getCopy;
             catch
                 this.reflectometry = struct('time', GPS_Time(), 'value', [], 'n_obs', [], 'std', [], 'p2n', []);
             end
@@ -1925,8 +1926,9 @@ classdef Coordinates < Exportable & handle
                 for i = 1:time.length()
                     [t_dist, id_close] = min(abs(t_ref - time.getEpoch(i)));
                     if t_dist ~= 0 % this is not same time
+                        % there is a new epoch!
                         this.reflectometry.time.append(time.getEpoch(i));
-                        id_close = numel(this.reflectometry.value(i)) + 1;
+                        id_close = numel(this.reflectometry.value) + 1;
                     end
                     this.reflectometry.value(id_close,1) = single(value(i));
                     this.reflectometry.n_obs(id_close,1) = uint16(n_obs(i));
@@ -2626,27 +2628,31 @@ classdef Coordinates < Exportable & handle
     % =========================================================================
     
     methods (Access = 'public')
-        function str_description = toString(coo_list)
+        function str_description = toString(coo_list, flag_reverse)
+            if nargin < 2 || isempty(flag_reverse)
+                flag_reverse = true;
+            end
             i = 0;
             for coo = coo_list
                 i = i + 1;
                 [lat, lon, h_ellips, h_ortho] = coo.getMedianPos.getGeodetic(); 
                 lat = lat.*180/pi; lon = lon .*180/pi;
-                loc_info = Core_Utils.getLocationInfo(lat, lon);
                 [E,N,Z] = coo.getUTM();
                 
                 str = {sprintf('Master station: %s', coo.name), ...
                     iif(length(coo.description) <= 4, sprintf('%s', coo.getNameV3), sprintf('%s', coo.description)), ...
-                    sprintf('Lat: %.5f deg', lat), ...
-                    sprintf('Lon: %.5f deg', lon), ...
+                    sprintf('Lat: %.6f deg', lat), ...
+                    sprintf('Lon: %.6f deg', lon), ...
                     sprintf('El:  %.3f m', h_ellips), ...
                     sprintf('El:  %.3f m (orthometric)', h_ortho), ...
                     sprintf('UTM:  %.3f m E, %.3f m N, %s', E, N, Z)};
 
-                
-                if ~isempty(loc_info)
-                    str = [str, {'--------------------------------', ...
-                    sprintf('%s', loc_info.display_name)}];
+                if flag_reverse
+                    loc_info = Core_Utils.getLocationInfo(lat, lon);
+                    if ~isempty(loc_info)
+                        str = [str, {'--------------------------------', ...
+                            sprintf('%s', loc_info.display_name)}];
+                    end
                 end
                 str_description{i} = '';
                 for str_line = str
@@ -2872,11 +2878,11 @@ classdef Coordinates < Exportable & handle
                     [~, id_ref] = coo_list.get(id_ref);
                 end
             end
-            if numel(id_ref) > 1
-                fh = coo_list.showCoordinatesPlanarUp(coo_list(id_ref));
-            else
-                fh = coo_list.showCoordinatesPlanarUp(coo_list(id_ref));
-            end
+            %if numel(id_ref) > 1
+            fh = coo_list.showCoordinatesPlanarUp(coo_list(id_ref));
+            %else
+            %    fh = coo_list.showCoordinatesPlanarUp(coo_list(id_ref));
+            %end
         end
 
         function fh = showPositionENU(coo_list)
@@ -5167,6 +5173,189 @@ classdef Coordinates < Exportable & handle
             end
         end
         
+        function [smooth_rh, time_out, err] = getReflectorHeightInterp(coo, spline_base, rate, max_merge)
+            % Compute an interpolation of the rreflector height (useful in the cases of raw sample saved)
+            %
+            % INPUT
+            %   coo           a single coordinate
+            %   spline_base   default 3 hours (in seconds)
+            %   out_rate      default 15 minutes (in seconds)
+            %   max_merge     apply output mask (max n epochs for extrapolation)
+            %
+            % OUTPUT
+            %   smooth_rh     spline interpolated reflector height
+            %   time_out      time of the interpolated points
+            %   err           approximate estimated error as interpolated dispersion of the data
+            %
+            % SYNTAX
+            %   [smooth_rh, time_out, err] = getReflectorHeightInterp(coo, spline_base, rate)
+
+            if nargin < 2 || isempty(spline_base)
+                spline_base = 86400/24*3;
+            end
+            if nargin < 3 || isempty(rate)
+                rate = 900;
+            end
+            if nargin < 4 || isempty(max_merge)
+                max_merge = 8; % 2 hours
+            end
+
+            % Get the data
+            rh = coo.reflectometry;
+            % Compute the output time
+            ref_time = floor(rh.time.first.getMatlabTime);
+            time_in = rh.time.getRefTime(ref_time);
+            start_time = floor(time_in(1)/rate)*rate;
+            stop_time =  ceil(time_in(end)/rate)*rate;
+            time_out = (start_time:rate:stop_time)';
+            % prepare data
+            data_filt = double([rh.value max(0.05, rh.std).^2]);
+            
+            % compute a mask
+            mask_out = false(size(time_out));
+            mask_out(round(time_in/rate)+1 - floor(time_in(1)/rate)) = true;
+            mask_out = flagMerge(mask_out, max_merge);
+
+            % Compute a sort of std, based on the dispersion of the observations
+            t_span = time_out(end)-time_in(1);
+            n = ceil(t_span / spline_base - 1);
+            t_dispersion = linspace(time_out(1), time_out(end), n);
+            step = t_span/(n-1);
+            idd = min(round(time_in/step)+1, numel(time_out));
+            err = nan(n,1);
+            for i = 1:n
+                err(i) = std(rh.value(idd == i));
+            end
+            id_ok = ~isnan(err);
+            err = interp1(t_dispersion(id_ok), err(id_ok), time_out, 'pchip'); % piece wise cubic interpolation
+
+            % compute interpolation
+            m = robAdj(data_filt(:,1)');
+            
+            % compute splines for regularization
+            s = 10*robStd(data_filt(:,1))/2;
+            % calibrate them on the biggest gap, min 4 spline_bas, max 1 day
+            max_gap = min(86400, max(4*spline_base, max(diff(find(mask_out))) * rate));
+            [~, ~, ~, smooth_rh] = splinerMat(time_in, [data_filt(:,1) - m data_filt(:,2)], max_gap, 1, time_out);
+            % keep the regularization data as values in the gaps
+            % use s of error for them
+            data_filt = [data_filt; [smooth_rh(~mask_out) + m ones(sum(~mask_out),1) * s^2]];
+            time_in = [time_in; time_out(~mask_out)];
+            % sort the input with added pseudo obs
+            [time_in, ids] = sort(time_in);
+            data_filt = data_filt(ids,:);
+            [~, ~, ~, smooth_rh] = splinerMat(time_in, [data_filt(:,1) - m data_filt(:,2)], spline_base, 0.5, time_out);
+            smooth_rh = smooth_rh + m;
+            % mask values in the gaps
+            smooth_rh(~mask_out) = nan;
+            err(~mask_out) = nan;
+
+            % Convert back time_out to GPS_Time
+            time_out = GPS_Time(ref_time + time_out(:)/86400);
+            
+            % check for divergence
+            % if the interpolation is less than the min value or higher than the higher value by more the 1/2 of
+            % the observation variation, mark it as outlier
+            data_lim = minMax(data_filt(:,1));
+            tollerance = diff(data_lim)/2;
+            smooth_rh(smooth_rh < data_lim(1) - tollerance | smooth_rh > data_lim(2) + tollerance) = nan;
+        end
+
+        function fh = showReflectorHeightFromRaw(coo, flag_height)
+            % Show the results from raw reflectometry data as height
+            %
+            % INPUT
+            %   coo         Coordinate object containing raw reflectometry data
+            %   flag_height if true, display height; otherwise, display distance from the antenna
+            %
+            % SYNTAX
+            %   fh = coo.showReflectorHeightFromRaw(flag_height)
+
+            % Check input arguments
+            if nargin < 2 || isempty(flag_height)
+                flag_height = true;
+            end
+
+            % Get interpolated reflector height data on a regular grid
+            [rh_value, time_data, err] = coo.getReflectorHeightInterp(86400/4, 900);
+            coo_name = coo.getNameV3;
+
+            % Get original reflectometry time and value
+            raw_time = coo.reflectometry.time;
+            raw_value = coo.reflectometry.value;
+            [~, ~, h_ell, h_ort] = coo.getGeodetic;
+            time_coo = coo.getTime;
+                    
+            % Adjust original values if flag_height is true
+            if flag_height
+                if time_coo.length > 1
+                    raw_value = interp1(time_coo.getMatlabTime, h_ort, raw_time.getMatlabTime, 'spline') - raw_value;
+                    rh_value = interp1(time_coo.getMatlabTime, h_ort, time_data.getMatlabTime, 'spline') - rh_value;
+                else
+                    raw_value = h_ort - raw_value;
+                    rh_value = h_ort - rh_value;
+                end
+            end
+
+            % Create a new figure
+            fh = figure('Visible', 'off');
+            fig_name = sprintf('%s RH', coo_name);
+            fh = figure('Visible', 'off');  Core_UI.beautifyFig(fh);
+            fh.Name = sprintf('%03d: %s', fh.Number, fig_name);  fh.NumberTitle = 'off';
+            if flag_height
+                fig_name = sprintf('IR_Results_%s_%s-%s', coo_name, time_data.first.toString('yyyymmdd_HHMM'), time_data.last.toString('yyyymmdd_HHMM'));
+            else
+                fig_name = sprintf('IR_Results_distance_%s_%s-%s', coo_name, time_data.first.toString('yyyymmdd_HHMM'), time_data.last.toString('yyyymmdd_HHMM'));
+            end
+            fh.UserData = struct('fig_name', fig_name);
+            set(fh,'defaultAxesColorOrder',Cmap.getColor([15 70],100, 'viridis'));
+
+            Core_UI.beautifyFig(fh);
+
+            % Get the datetime array for x-axis from the interpolated data
+            t = time_data.getDateTime();
+
+            % Add the patch for standard deviation as a confidence interval
+            id_ok = true(size(rh_value));
+            Core_Utils.plotConfBand(t, rh_value, 3*err, Core_UI.BLUE, 0.1);
+            Core_Utils.plotConfBand(t, rh_value, err, Core_UI.BLUE, 0.1);
+            fh.Visible = 'on';
+            hold on;
+
+            % Plot original observations as light gray dots
+            t_raw = raw_time.getDateTime();
+            plot(t_raw, raw_value, '.', 'Color', ones(1,3)*0.7, 'DisplayName', 'RAW Observations');
+            
+            % Plot interpolated data
+            plot(time_data.getDateTime(), rh_value, '.-', 'LineWidth', 2, 'MarkerSize', 8, 'DisplayName', 'Interpolated Water Level', 'Color', Core_UI.BLUE);
+
+            % Set labels and title based on flag_height
+            if flag_height
+                ylabel('Reflector Height [m]');
+                title(sprintf('GNSS-IR results: %s\\fontsize{5}\n', coo_name));
+            else
+                ylabel('Reflector Distance [m]');
+                title(sprintf('GNSS-IR results: %s\\fontsize{5}\n', coo_name));
+                set(gca,'Ydir','reverse'); % Reverse Y-axis if displaying distance
+            end
+
+            % Add a legend
+            legend('Location', 'best');
+
+            % Additional plotting setup
+            grid on;
+            xlim(minMax([t; t_raw])); % Set the x-axis limits to include both original and interpolated data
+
+            % Beautify and export options for the figure
+            Core_UI.addBeautifyMenu(fh);
+            Core_UI.addExportMenu(fh);
+            Core_UI.beautifyFig(fh);
+            fh.Visible = iif(Core_UI.isHideFig, 'off', 'on');
+
+            drawnow;
+        end
+
+
         function fh = showReflectorHeight(coo, flag_height, flag_info)
             % Show the results from reflectometry height (default) | distance
             %
@@ -5724,10 +5913,10 @@ classdef Coordinates < Exportable & handle
             % SYNTAX
             %   out_file_path = this.getReflectorTxtOutPath(<out_file_prefix>)
             
-            if (nargin == 2)
-                out_file_name = strrep([this.getOutPath(out_file_prefix) this.name '_rfx.txt'], ' ', '_');
-            else
+            if (nargin < 2) || isempty(out_file_prefix)
                 out_file_name = strrep([this.getOutPath() this.name '_rfx.txt'], ' ', '_');
+            else
+                out_file_name = strrep([this.getOutPath(out_file_prefix) this.name '_rfx.txt'], ' ', '_');
             end
         end
         
@@ -6273,7 +6462,118 @@ classdef Coordinates < Exportable & handle
             end
         end
         
-        function exportReflectometryTxt(coo_list, out_file_name)
+        function file_list_path = exportReflectometryTxtInterp(coo_list, out_dir, first_day, last_day, rt_par)
+            
+            state = Core.getState;
+            if nargin < 2 || isempty(out_dir)
+                out_dir = state.getOutDir();
+                out_dir = fullfile(out_dir, 'refl');
+            end
+            if nargin < 3 || isempty(first_day)
+                first_day = state.getSessionsStart;
+            end
+            if nargin < 4 || isempty(last_day)
+                last_day = state.getSessionsStop;
+            end
+
+            file_list_path = {};
+
+            log = Logger.getInstance;
+            log.addMarkedMessage(sprintf('Exporting reflector heights'));
+
+            % get a copy, we are going to trim the data
+            coo = coo_list.getCopy;
+            lim_start = first_day.getCopy; lim_start.addIntSeconds(-2*86400); % trim in window of 10 days
+            lim_stop = last_day.getCopy; lim_stop.addIntSeconds(+2*86400); % trim in window of 10 days
+            coo.keep(lim_start, lim_stop); % cut to avoid too complex computations
+            
+            [rh, time_data, err] = coo.getReflectorHeightInterp(86400/4, 900);
+            [~, ~, ~, h_masl] = coo.getGeodetic;
+
+            % Get station position, and interpolate
+            time_coo = coo.getTime;
+            if ~any(rh)
+                log.addError('No reflectometry data to export');
+                return
+            end
+            if time_coo.length > 1
+                value = interp1(time_coo.getMatlabTime, h_masl, time_data.getMatlabTime, 'spline', 'extrap') - rh;
+            else
+                value = h_masl - coo.reflectometry.value;
+            end
+
+            if time_coo.length == 1
+                xyz = coo.xyz;
+            else
+                x = interp1(time_coo.getMatlabTime, coo.xyz(:,1), time_data.getMatlabTime, 'spline');
+                y = interp1(time_coo.getMatlabTime, coo.xyz(:,2), time_data.getMatlabTime, 'spline');
+                z = interp1(time_coo.getMatlabTime, coo.xyz(:,3), time_data.getMatlabTime, 'spline');
+                xyz = [x y z];
+            end
+
+            %% Export a file for each day files will be ovewritten with the newest interpolation
+            first_day = floor(first_day.getMatlabTime);
+            last_day = floor(last_day.getMatlabTime);
+            time_str = time_data.toString('yyyy-mm-dd HH:MM:SS');
+            time_data = time_data.getMatlabTime;
+            for d = first_day:last_day
+                e_start  = find(time_data >= d, 1, 'first');
+                e_stop  = find(time_data < d+1, 1, 'last');
+                day = GPS_Time(d);
+                [year, doy] = day.getDOY;
+                cur_out_dir = fullfile(out_dir, num2str(year));
+                if ~exist(cur_out_dir,'dir')
+                    mkdir(cur_out_dir);
+                end
+                out_file_path = fullfile(cur_out_dir, [coo.getNameV3,'_', num2str(year), num2str(doy,'%03d'), '_rt_rfx.txt']);
+
+                % Start exporting operation:
+                % Prepare header
+                str_tmp = sprintf('+Description    : Approximate reflector height [m] on the geoid WGS84 generated on %s\n', GPS_Time.now.toString('dd-mmm-yyyy HH:MM'));
+
+                [name, descr] = coo.getName();
+                str_tmp = sprintf('%s+LastChange     : %s\n', str_tmp, GPS_Time.now.toString('dd-mmm-yyyy HH:MM'));
+                str_tmp = sprintf('%s+Software       : Breva\n', str_tmp);
+                str_tmp = sprintf('%s+Version        : %s\n', str_tmp, Core.APP_VERSION);
+                str_tmp = sprintf('%s+FileVersion    : %s\n', str_tmp, coo.VERSION);
+                str_tmp = sprintf('%s+MonitoringPoint: %s\n', str_tmp, coo.name);
+                str_tmp = sprintf('%s+NameV3         : %s\n', str_tmp, coo.name_v3);
+                str_tmp = sprintf('%s+LongName       : %s\n', str_tmp, coo.description);
+                str_tmp = sprintf('%s+SensorType     : GNSS Reflectometry\n', str_tmp);
+                str_tmp = sprintf('%s+SensorName     : GNSS Reflectometry\n', str_tmp);
+                str_tmp = sprintf('%s+DataScale      : m (masl)\n', str_tmp);
+                str_tmp = sprintf('%s+DataScale std  : m\n', str_tmp);
+                str_tmp = sprintf('%s+DataRate       : %f s\n', str_tmp, coo.getRate);
+                str_tmp = sprintf('%s+DataType       :\n', str_tmp);
+                str_tmp = sprintf('%s -00            : timeStamp\n', str_tmp);
+                str_tmp = sprintf('%s -01            : orthometricHeight\n', str_tmp);
+                str_tmp = sprintf('%s -02            : x\n', str_tmp);
+                str_tmp = sprintf('%s -03            : y\n', str_tmp);
+                str_tmp = sprintf('%s -04            : z\n', str_tmp);
+                str_tmp = sprintf('%s -05            : std\n', str_tmp);
+
+                str_tmp = sprintf('%s+DataStart\n', str_tmp);
+
+                % prepare data export:
+                for e = e_start:e_stop
+                    if ~isnan(value(e))
+                    str_tmp = sprintf('%s%s;%8.3f;%.4f;%.4f;%.4f;%.4f\n', str_tmp, time_str(e,:), ...
+                        value(e), ...
+                        xyz(e,1), xyz(e,2), xyz(e,3), ...
+                        err(e));
+                    end
+                end
+
+                file_list_path = [file_list_path; {out_file_path}];
+                fid = fopen(out_file_path, 'Wb');
+                    fprintf(fid, str_tmp);
+                    fprintf(fid, '+DataEnd\n');
+                    fclose(fid);
+                    log.addStatusOk(sprintf('Exporting of "%s" completed successfully', out_file_path));
+            end
+        end
+
+        function exportReflectometryTxt(coo_list, out_file_path)
             % Export as Reflector height as Text File
             % Compatibility layer with GeoGuard
             %
@@ -6285,19 +6585,19 @@ classdef Coordinates < Exportable & handle
             
             for coo = coo_list(:)'
                 now_time = GPS_Time.now();
-                if nargin < 2 || isempty(out_file_name)
-                    out_file_name = coo.getReflectorTxtOutPath();
+                if nargin < 2 || isempty(out_file_path)
+                    out_file_path = coo.getReflectorTxtOutPath();
                 end
                 log  = Logger.getInstance;
-                log.addMarkedMessage(sprintf('Updating reflector height to %s', out_file_name));
+                log.addMarkedMessage(sprintf('Updating reflector height to %s', out_file_path));
                 try
-                    [file_dir, file_name, file_ext] = fileparts(out_file_name);
+                    [file_dir, file_name, file_ext] = fileparts(out_file_path);
                     if exist(file_dir, 'dir') ~= 7
                         mkdir(file_dir);
                     end
-                    if exist(out_file_name, 'file') == 2
+                    if exist(out_file_path, 'file') == 2
                         % Read and append
-                        [txt, lim] = Core_Utils.readTextFile(out_file_name, 3);
+                        [txt, lim] = Core_Utils.readTextFile(out_file_path, 3);
                         if isempty(lim)
                             file_ok = false;
                             timestamp = [];
@@ -6307,7 +6607,7 @@ classdef Coordinates < Exportable & handle
                             version_ok = not(isempty(regexp(txt(lim(id_ver, 1):lim(id_ver, 2)), ['(?<=FileVersion[ ]*: )' coo.VERSION], 'once')));
                             if not(version_ok)
                                 log = Logger.getInstance;
-                                log.addWarning(sprintf('"%s" is in an older format', out_file_name));
+                                log.addWarning(sprintf('"%s" is in an older format', out_file_path));
                             end
                             file_ok = not(isempty(regexp(txt(lim(id_ver, 1):lim(id_ver, 2)), '(?<=FileVersion[ ]*: )1.', 'once')));
                             
@@ -6354,7 +6654,7 @@ classdef Coordinates < Exportable & handle
                     end
                     
                     if not(file_ok)
-                        str_tmp = sprintf('+Description    : Approximate reflector height [m] on the ellipsoid generated on %s\n', now_time.toString('dd-mmm-yyyy HH:MM'));
+                        str_tmp = sprintf('+Description    : Approximate reflector height [m] on the geoid WGS84 generated on %s\n', now_time.toString('dd-mmm-yyyy HH:MM'));
                     end
                     [name, descr] = coo.getName();
                     str_tmp = sprintf('%s+LastChange     : %s\n', str_tmp, now_time.toString('dd-mmm-yyyy HH:MM'));
@@ -6438,7 +6738,7 @@ classdef Coordinates < Exportable & handle
                         str_tmp = sprintf('%s%s\n', str_tmp, old_line);
                         e = e +1;
                     end
-                    fid = fopen(out_file_name, 'Wb');
+                    fid = fopen(out_file_path, 'Wb');
                     fprintf(fid, str_tmp);
                     fprintf(fid, '+DataEnd\n');
                     fclose(fid);
@@ -6897,7 +7197,7 @@ classdef Coordinates < Exportable & handle
             if sync_time.getRate < 43200
                 w_obs = zero2nan(n_obs); % Estimate the weights on the base of the number of data and std dev
             else
-                w_obs = (zero2nan(n_obs) ./ zero2nan(std_obs).^2); % Estimate the weights on the base of the number of data and std dev
+                w_obs = (zero2nan(n_obs) ./ zero2nan(std_obs+1e-3).^2); % Estimate the weights on the base of the number of data and std dev
             end
             w_obs = nan2zero(w_obs ./ repmat(sum(nan2zero(w_obs),2), 1, size(w_obs,2))); % normalize weigths
             m_data = sum(nan2zero(data_sync) .* nan2zero(w_obs), 2); % compute weighted mean
@@ -6958,7 +7258,7 @@ classdef Coordinates < Exportable & handle
             if sync_time.getRate < 43200
                 w_obs = zero2nan(n_obs.^2); % Estimate the weights on the base of the number of data and std dev
             else
-                w_obs = (zero2nan(n_obs.^2) ./ zero2nan(std_obs).^2);  % Estimate the weights on the base of the number of data and std dev
+                w_obs = (zero2nan(n_obs.^2) ./ zero2nan(std_obs+1e-3).^2);  % Estimate the weights on the base of the number of data and std dev
             end            
             w_obs = nan2zero(w_obs ./ repmat(sum(nan2zero(w_obs),2), 1, size(w_obs,2)));
             m_data = sum(nan2zero(data_sync) .* nan2zero(w_obs), 2);

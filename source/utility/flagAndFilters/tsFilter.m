@@ -1,7 +1,7 @@
-% timeSeriesDetector - Detect and filter outliers in a time series data
+% tsFilter - Detect and filter outliers in a time series data
 %
 % SYNTAX:
-%   [smoothed_data, smoothed_spline, data_filtered] = timeSeriesDetector(time, data, big_win, thr_big, small_win, thr_small)
+%   [smoothed_data, id_ko, smoothed_spline, data_filtered] = tsFilter(time, data, big_win, thr_big, small_win, thr_small)
 %
 % INPUT:
 %   time        : Time vector (can be in GPS_Time format or MATLAB time format)
@@ -13,6 +13,7 @@
 %
 % OUTPUTS:
 %   smoothed_data   : Data after removing detected outliers
+%   id_ko           : Flags
 %   smoothed_spline : Smoothed spline representation of the data
 %   data_filtered   : Data with detected outliers set to NaN
 %
@@ -55,7 +56,7 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-function [smoothed_data, id_ko, smoothed_spline, data_filtered] = timeSeriesDetector(time, data, big_win, thr_big, small_win, thr_small, varargin)
+function [smoothed_data, id_ko, smoothed_spline, data_filtered] = tsFilter(time, data, big_win, thr_big, small_win, thr_small, varargin)
 
     % Convert time if in GPS_Time format
     if isa(time,'GPS_Time')        
@@ -69,24 +70,26 @@ function [smoothed_data, id_ko, smoothed_spline, data_filtered] = timeSeriesDete
     smoothed_data = robFilt(time, [data_filtered data(:,2)], big_win);
     residuals = data_filtered - smoothed_data;
     id_ko = (abs(residuals) / robStd(residuals)) > thr_big;
-    data_filtered(id_ko) = nan;
+    %data_filtered(id_ko) = nan;
     
     flag_2step = nargin > 5 && ~isempty(small_win) && ~isempty(thr_small);
     flag_plot = (nargin == 7  && strcmp(varargin{1}, '-plot')) || (nargin == 5  && strcmp(small_win, '-plot'));
 
     % Small outliers detection (if parameters provided)
     if flag_2step
-        smoothed_data = robFilt(time, [data_filtered data(:,2)], small_win);
+        residuals(id_ko) = (2*residuals(id_ko)).^2; % weight more residuals above the threshold
+        smoothed_data = robFilt(time, [data_filtered residuals.^2], small_win);
         residuals = data(:,1) - smoothed_data;
         id_ko = (abs(residuals) / robStd(data_filtered - smoothed_data)) > thr_small;
     end
-        
-    % Compute smoothed_spline (if output requested)
+           
+    % Compute smoothed_spline with smoothed data based weights (if output requested)
     if nargout > 2 || flag_plot
+        residuals(id_ko) = (2*residuals(id_ko)).^2; % weight more residuals above the threshold
         if flag_2step
-            smoothed_spline = splinerMat(time, smoothed_data, small_win, 1e-5);
+            smoothed_spline = splinerMat(time, [smoothed_data residuals.^2], small_win / 2, 1e-5);
         else
-            smoothed_spline = splinerMat(time, smoothed_data, big_win, 1e-5);
+            smoothed_spline = splinerMat(time, [smoothed_data residuals.^2], big_win / 2, 1e-5);
         end
     end
     

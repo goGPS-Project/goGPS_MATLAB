@@ -2326,6 +2326,11 @@ classdef Core_Utils < handle
             if diff(dlat) <= 0
                 dlat = dlat + [-1 1] * 0.00001;
             end
+            dlat(1) = max(-90,dlat(1));
+            dlat(2) = max(-90,dlat(2));
+            if diff(dlon) > 360
+                dlon = [-180.5 180.5];
+            end
             % Set the image proportions to be max 3/4 (I don't like images that are too long)
             prop = 3/4;
             if diff(dlon) > diff(dlat) / cosd(mean(dlat))
@@ -2584,6 +2589,38 @@ classdef Core_Utils < handle
             end
         end
         
+        function ph_list = plotConfBand(t, data, err, color, alpha, varargin)
+            % Special wrapper to regular plot
+            % Works on regularly sampled data
+            % When there is a gap of data, it closes the patch
+            %
+            % INPUT
+            %   t           column array of epochs
+            %   data        columns of data (could be a matrix)
+            %   color       color of the patch
+            %   alpha       alpha of the patch
+            %   varagin     add other useful parameters of the plot
+            %
+            % SYNTAX
+            %   lh = Core_Utils.plotConfBand(t, data, color, varargin);
+            %
+            % SEE ALSO
+
+            if nargin < 3 || isempty(color)
+                color = Core_UI.GRAY;
+            end
+            if nargin < 4 || isempty(alpha)
+                alpha = 0.1;
+            end
+            ph_list = [];
+            patch_lim = getFlagsLimits(~isnan(err));
+            for p = 1:size(patch_lim, 1)
+                x_patch = [t(patch_lim(p,1):patch_lim(p,2)); flipud(t(patch_lim(p,1):patch_lim(p,2)))]; % concatenate x values back-to-front
+                y_patch = [data(patch_lim(p,1):patch_lim(p,2)) + err(patch_lim(p,1):patch_lim(p,2)); flipud(data(patch_lim(p,1):patch_lim(p,2)) - err(patch_lim(p,1):patch_lim(p,2)))]; % concatenate y values for upper and lower bounds
+                ph_list = [ph_list patch(x_patch, y_patch, 'k', 'FaceColor', color, 'EdgeColor', 'none', 'FaceAlpha', alpha, 'HandleVisibility', 'off')];
+            end
+        end
+
         function lh = patchSep(t, data, color, varargin)
             % Special wrapper to regular plot
             % Works on regularly sampled data
@@ -2836,7 +2873,7 @@ classdef Core_Utils < handle
                     
                     % removing empty lines at end of file
                     if size(lim,1) > 1
-                        while (lim(end,1) - lim(end-1,1))  < 2
+                        while lim(end,3)  < 1
                             lim(end,:) = [];
                         end
                     end
@@ -3041,7 +3078,7 @@ classdef Core_Utils < handle
             fh = figure;
             xlim([lon-0.002, lon+0.002]);
             ylim([lat-0.002, lat+0.002]);
-            gm = addMap('alpha', 0.95);
+            gm = addMap('alpha', 0.95, 'provider', 'satellite');
             plot(lon, lat, '^', 'color', Core_UI.ORANGE, 'markersize', 10, 'linewidth', 5); hold on;
             title(sprintf('Design a polygon, create a new point by right clicking'))
             % Initialize variables

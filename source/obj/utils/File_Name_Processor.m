@@ -56,6 +56,7 @@ classdef File_Name_Processor < handle
         GPS_3H = '${3H}';
         GPS_6H = '${6H}';
         GPS_HH = '${HH}';
+        GPS_RHH = '${rHH}'; % roundd hour
         GPS_YY = '${YY}';
         GPS_YYDOY = '${YYDOY}';
         GPS_YYYY = '${YYYY}';
@@ -127,6 +128,7 @@ classdef File_Name_Processor < handle
                     file_name_out = strrep(file_name_out, this.GPS_3H, sprintf('%02d', fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(3*3600))*3));
                     file_name_out = strrep(file_name_out, this.GPS_6H, sprintf('%02d', fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(6*3600))*6));
                     file_name_out = strrep(file_name_out, this.GPS_HH, sprintf('%02d', fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(3600))));
+                    file_name_out = strrep(file_name_out, this.GPS_RHH, sprintf('%02d', round((gps_sow(1) - double(gps_dow(1)) * 86400)/(3600))));
                     file_name_out = strrep(file_name_out, this.GPS_QQ, sprintf('%02d', mod(15 * fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(900)), 60)));
                     file_name_out = strrep(file_name_out, this.GPS_5M, sprintf('%02d', mod(5 * fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(300)), 60)));
                 end

@@ -91,11 +91,23 @@ function filtered = robFilt(varargin)
         filter_size = varargin{2};
     elseif nargin == 3
         flag_time = true;
-        time = (varargin{1}); % Convert days to seconds
+        time = (varargin{1});
         ts = (varargin{2});
         filter_size = varargin{3}; % filter_size is in seconds
     else
         error('Invalid number of input arguments. Provide either ts, filter_size or time, ts, filter_size.');
+    end
+
+    % scale variances
+    if size(ts,2) == 2 %time series contains sigma values
+        scale_factor = (robAdj(abs(ts(:,1)-robAdj(ts(:,1)'))')) / robAdj(sqrt(ts(:,2))');
+        ts(:,2) = (sqrt(ts(:,2))*scale_factor).^2;
+    end
+    try
+        filtered = robFilt_cpp(time, ts, filter_size);
+        return;
+    catch
+        % fast implementation is not available
     end
 
     if size(ts,2) == 2 %time series contains sigma values
@@ -105,22 +117,25 @@ function filtered = robFilt(varargin)
         initial_vars = [];
     end
     
+    
     % Get the size of the time series
     n = length(ts);
     
-    filter_size = min(filter_size,n);
+    pad_size = min(filter_size/robAdj(diff(time)'), 2*n);
 
     % Determine the padding size and initial values for padding
-    pad_size = max(1,floor(filter_size / 2));
+    pad_size = min(max(1,floor(pad_size / 2)), n-1);
     initial_values = initPad(ts(1:pad_size), pad_size);
     final_values = initPad(flipud(ts(end-pad_size+1:end)), pad_size);
 
     % Pad the data
     ts = [2*initial_values-flipud(ts(2:pad_size+1)); ts; 2*final_values-flipud(ts(end-pad_size:end-1))];
-    initial_vars = [flipud(initial_vars(2:pad_size+1)); initial_vars; flipud(initial_vars(end-pad_size:end-1))];
-    time = [repmat(time(1), pad_size,1) + (time(1) - time(pad_size+1:-1:2)); ...
+    if ~isempty(initial_vars)
+        initial_vars = [flipud(initial_vars(2:pad_size+1)); initial_vars; flipud(initial_vars(end-pad_size:end-1))];
+    end
+    time = [time(1) + (time(1) - time(pad_size+1:-1:2)); ...
             time; ...
-            repmat(time(end), pad_size,1) + (time(end) - time(end-1:-1:end-pad_size));];
+            time(end) + (time(end) - time(end-1:-1:end-pad_size));];
     % Pad the time
 
     % Initialize the output
@@ -132,16 +147,17 @@ function filtered = robFilt(varargin)
     for i = 1:n
         if flag_time  % If time is provided
             % Determine the indices of the time points within the desired time window
-            window_indices = abs(time - time(i+pad_size)) <= filter_size/2;
+            window_indices = find(abs(time - time(i+pad_size)) <= filter_size/2);
             window = ts(window_indices);            
         else
             % Original behavior when time is not provided
-            window_indices = max(1, i - pad_size):min(n, i + floor(filter_size/2));
+            border = floor(filter_size/2);
+            window_indices = max(1, i + pad_size - border):min(size(ts,1), i + pad_size + border);
             window = ts(window_indices);
         end       
 
         % Ignore NaNs
-        window_indices(isnan(window)) = false;
+        window_indices(isnan(window)) = [];
         window = window(~isnan(window));
         
         % If window is empty, continue to the next iteration
@@ -156,7 +172,7 @@ function filtered = robFilt(varargin)
             s02 = max(initial_vars(window_indices), thrs^2*1e-6);
         else
             s02 = ones(size(window))*thrs^2*1e-1;
-        end
+        end        
 
         % Perform the robust adjustment
         j = 0;
@@ -165,8 +181,8 @@ function filtered = robFilt(varargin)
         while (j < max_iter && abs(data - data_prev) > 0.005)
             data_prev = data;
             w = 1./s02;
-            ares_n = abs(window - data_prev) / thrs;
-            idx_rw = ares_n > 1;
+            ares_n = abs(window - data_prev);
+            idx_rw = ares_n ./ thrs > 1;
             if any(idx_rw)
                 w(idx_rw) =  1 ./ (s02(idx_rw) + ares_n(idx_rw).^2);
             end
@@ -176,14 +192,14 @@ function filtered = robFilt(varargin)
         
         % Save the result
         filtered(i) = data;
+        %figure(100); clf; plot(zero2nan(filtered));
     end
 end
 
 function initial_value = initPad(data, pad_size)
-    % Determine the number of data points to use for the initial value
-
     % Ignore NaNs
     data = data(~isnan(data));
+    pad_size = min(size(data,1)-1, pad_size);
 
     % If data is empty, return NaN
     if isempty(data)
@@ -191,6 +207,7 @@ function initial_value = initPad(data, pad_size)
         return;
     end
 
+    % Determine the number of data points to use for the initial value
     num_points = min(pad_size, 3);
     dt_prev = data(1);
     dt = robAdj(data(1:num_points)');

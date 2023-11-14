@@ -131,7 +131,6 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
 
         % COMPUTATION CENTERS
         % With official products for orbits and clocks
-        %REMOTE_RES_CONF_DIR = [Prj_Settings.DEFAULT_DIR_IN filesep 'goGPSconfig' filesep];
         REMOTE_RES_CONF_DIR = './';
 
         FLAG_DOWNLOAD = true;      % automatically try to download resources
@@ -5140,7 +5139,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 vmf_height_name = fnp.checkPath(strcat(strrep(strrep(strrep(this.vmf_dir, '${YYYY}',''), '${VMFR}',''), '${VMFS}',''), filesep, 'orography_ell'), this.getHomeDir());
             elseif strcmpi(this.vmf_res,'1x1')
                 vmf_height_name = fnp.checkPath(strcat(strrep(strrep(strrep(this.vmf_dir, '${YYYY}',''), '${VMFR}',''), '${VMFS}',''), filesep, 'orography_ell_1x1'), this.getHomeDir());
-            elseif strcmpi(this.vmf_res,'5x5')
+            else %if strcmpi(this.vmf_res,'5x5')
                 vmf_height_name = fnp.checkPath(strcat(strrep(strrep(strrep(this.vmf_dir, '${YYYY}',''), '${VMFR}',''), '${VMFS}',''), filesep, 'orography_ell_5x5'), this.getHomeDir());
             end
 

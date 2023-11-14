@@ -1,4 +1,11 @@
-
+% Return the robust sigma of the series
+% The robust mean error
+% 
+% INPUT
+%   data    [n x 1]
+%
+% SYNTAX
+%   sigma] = robStd(data)
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
@@ -31,14 +38,7 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
+
 function [sigma] = robStd(data)
-    % Return the robust sigma of the series
-    % The robust mean error
-    % 
-    % INPUT
-    %   data    [n x 1]
-    %
-    % SYNTAX
-    %   sigma] = robStd(data)
     sigma = robAdj((abs(data - robAdj(data(:)')))');
 end

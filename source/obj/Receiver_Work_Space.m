@@ -1226,6 +1226,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % Remove observation marked as bad in crx file and satellites
             % whose prn exceed the maximum prn (spare satellites, in maintenance, etc ..)
             % remove spare satellites
+            % remove ecplipsed satellites
             % SYNTAX
             %   this.remBad();
             
@@ -1247,46 +1248,13 @@ classdef Receiver_Work_Space < Receiver_Commons
             cs = Core.getCoreSky;
             nan_coord = sum(isnan(cs.coord) | cs.coord == 0,3) > 0;
             nan_clock = isnan(cs.clock) | cs.clock == 0;
-            first_epoch = this.time.first;
-            coord_ref_time_diff = first_epoch - cs.time_ref_coord;
-            clock_ref_time_diff = first_epoch - cs.time_ref_clock;
 
             sat_nan_clock = '';
             sat_bad_clock = '';
             for s = 1 : cc.getMaxNumSat()
                 o_idx = this.go_id == s;
-                dnancoord = diff(nan_coord(:,s));
-                st_idx = find(dnancoord == 1);
-                end_idx = find(dnancoord == -1);
-                if ~isempty(st_idx) || ~isempty(end_idx)
-                    if isempty(st_idx)
-                        st_idx = 1;
-                    end
-                    if isempty(end_idx)
-                        end_idx = length(nan_coord);
-                    end
-                    if end_idx(1) < st_idx(1)
-                        st_idx = [1; st_idx];
-                    end
-                    if st_idx(end) > end_idx(end)
-                        end_idx = [end_idx ; length(nan_coord)];
-                    end
-                    for i = 1:length(st_idx)
-                        is = st_idx(i);
-                        ie = end_idx(i);
-                        c_rate = cs.coord_rate;
-                        % Delete observations that are within the end of an orbit to avoid bad polynomial interpolation
-                        bad_ep_st = min(this.time.length+1,max(1, floor((-coord_ref_time_diff + is * c_rate - c_rate * 0)/this.getRate())-1));
-                        bad_ep_en = max(0,min(this.time.length, ceil((-coord_ref_time_diff + ie * c_rate + c_rate * 0)/this.getRate())+1));
-                        this.obs(o_idx , bad_ep_st : bad_ep_en) = 0;
-                    end
-                else
-                    if nan_coord(1,s) == 1
-                        this.obs(o_idx , :) = 0;
-                    end
-                end
                 
-                if any(nan_clock(:,s))
+                if any(o_idx) && any(nan_clock(:,s))
                     [sys_c, prn] = cc.getSysPrn(s);
                     if all(nan_clock(:,s))
                         sat_nan_clock = sprintf('%s, %s%02d', sat_nan_clock, sys_c, prn);
@@ -1294,37 +1262,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             this.obs(o_idx, :) = 0;
                         end
                     else
-                        sat_bad_clock = sprintf('%s, %s%02d', sat_bad_clock, sys_c, prn);
-                        % removing near empty clock -> think a better solution
-                        dnanclock = diff(nan_clock(:,s));
-                        st_idx = find(dnanclock == 1);
-                        end_idx = find(dnanclock == -1);
-                        if ~isempty(st_idx) || ~isempty(end_idx)
-                            if isempty(st_idx)
-                                st_idx = 1;
-                            end
-                            if isempty(end_idx)
-                                end_idx = length(nan_clock);
-                            end
-                            if end_idx(1) < st_idx(1)
-                                st_idx = [1; st_idx];
-                            end
-                            if st_idx(end) > end_idx(end)
-                                end_idx = [end_idx ; length(nan_clock)];
-                            end
-                            for i = 1:length(st_idx)
-                                is = st_idx(i);
-                                ie = end_idx(i);
-                                c_rate = cs.clock_rate;
-                                bad_ep_st = min(this.time.length+1,max(1, floor((-clock_ref_time_diff + is*c_rate)/this.time.getRate())));
-                                bad_ep_en = max(0,min(this.time.length, ceil((-clock_ref_time_diff + ie*c_rate)/this.time.getRate())));
-                                this.obs(o_idx , bad_ep_st : bad_ep_en) = 0;
-                            end
-                        else
-                            if nan_clock(1,s) == 1
-                                this.obs(o_idx , :) = 0;
-                            end
-                        end
+                        sat_bad_clock = sprintf('%s, %s%02d', sat_bad_clock, sys_c, prn);                        
                     end
                 end
             end
@@ -2502,40 +2440,6 @@ classdef Receiver_Work_Space < Receiver_Commons
             %   this.clearPr()
             [pr , id_pr] = this.getPseudoRanges;
             sensor = abs(pr - this.getSyntPrObs);
-
-            flag_debug = false;
-
-            % remove pseudo-ranges bias
-            % get all the pseudo-ranges tracking
-            obs_code_num = Core_Utils.code4Char2Num([this.system(id_pr)' this.obs_code(id_pr,:)]);
-            unique_obs_code_num = unique(obs_code_num);
-
-            % for each tracking estimate a bias
-            biases = zeros(numel(unique_obs_code_num),1);
-            trk_mean = nan(size(sensor,1), size(biases,1));
-            log = Core.getLogger;
-            log.addMarkedMessage('Estimating approximate code tracking biases');
-            for b = 1:numel(unique_obs_code_num)
-                cur_obs_num = unique_obs_code_num(b);
-                % Get the robust mean af all the tracking residuals epoch by epoch
-                id_trk = obs_code_num == cur_obs_num;
-                trk_mean(:,b) = robAdj(sensor(:,id_trk));
-                % The bias is the robust mean of the mean tracking residuals
-                biases(b) = strongMean(robAdj(sensor(:,obs_code_num == cur_obs_num)), 0.9);
-                log.addMessage(log.indent(sprintf(' - %s %.3f m', Core_Utils.num2Code4Char(cur_obs_num), biases(b))))
-                sensor(:, id_trk) = sensor(:, id_trk) -  biases(b);
-            end
-
-            if flag_debug
-                % Show mean tracking residuals
-                figure;
-                for b = 1:numel(unique_obs_code_num)
-                    plot(trk_mean(:,b),'color', Core_UI.getColor(b)); hold on;
-                end
-                title('Epoch-wise mean tracking by tracking');
-                legend(Core_Utils.num2Code4Char(unique_obs_code_num))
-            end
-
 
             flag_debug = false;
 
@@ -11003,7 +10907,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         this.updateAllAvailIndex();
                         if this.hasAPriori
                             if isempty(this.sat.el)
-                                            this.updateAzimuthElevation()
+                                this.updateAzimuthElevation()
                             end
                             % All of these can be done only with valid a-priori coordinats
                             if isempty(this.sat.err_tropo)

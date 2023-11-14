@@ -4280,7 +4280,7 @@ classdef GNSS_Station < handle
             axes
             xlim(clon);
             ylim(clat);
-            [lon_ggl,lat_ggl, img_ggl] = addMap('alpha', 0.95);
+            [imh, lon_ggl,lat_ggl, img_ggl] = addMap('alpha', 0.95);
             xlim(lon_lim);
             ylim(lat_lim);
             

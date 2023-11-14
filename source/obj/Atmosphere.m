@@ -992,7 +992,7 @@ classdef Atmosphere < handle
         end
         
         function thin_shell_height = getThinShellHeight(this)
-            % Get Thin Shell Height from Core_Athmosphere
+            % Get Thin Shell Height from Core_Atmosphere
             % 
             % SYNTAX
             %   thin_shell_height = getThinShellHeight(this)
@@ -2532,13 +2532,22 @@ classdef Atmosphere < handle
             % OUTPUT:
             %   zwd      - Wet tropospheric delay
 
+            if isempty(zd_model)
+                state =  Core.getState();
+                zd_model =  state.zd_model;
+            end
             switch zd_model
                 case 1 % saastamoinen
                     zwd = single(Atmosphere.saast_wet(T, H, h_ortho));
                 case 2 % vmf gridded
                     try
                         atmo = Core.getAtmosphere();
-                        zwd = single(atmo.getVmfZwd(time.getGpsTime, lat, lon, h_ellips));
+                        if isa(time, 'GPS_Time')
+                            zwd = single(atmo.getVmfZwd(time.getGpsTime, lat, lon, h_ellips));
+                        else
+                            % Suppose it's a GPS time (seconds from 1980)
+                            zwd = single(atmo.getVmfZwd(time.getGpsTime, lat, lon, h_ellips));
+                        end
                     catch ex
                         Core.getLogger.addWarning('Current VMF ZWD seems broken, switch to Saastamoinen');
                         zwd = single(Atmosphere.saast_wet(T, H, h_ortho));
@@ -2552,8 +2561,8 @@ classdef Atmosphere < handle
             %   and input parameters.
             %
             % SYNTAX:
-            %   For zd_model 1: zhd = Athmosphere.getAprZHD(1, P, [], [], lat, [], h_ortho)
-            %   For zd_model 2: zhd = Athmosphere.getAprZHD(2, P, [], [], lat, lon, h_ortho, h_ellips, time)
+            %   For zd_model 1: zhd = Atmosphere.getAprZHD(1, P, [], [], lat, [], h_ortho)
+            %   For zd_model 2: zhd = Atmosphere.getAprZHD(2, P, [], [], lat, lon, h_ortho, h_ellips, time)
             %
             % INPUT:
             %   zd_model - Model type (1 for saastamoinen, 2 for vmf gridded)
@@ -2566,13 +2575,22 @@ classdef Atmosphere < handle
             % OUTPUT:
             %   zhd      - Dry tropospheric delay
 
+            if isempty(zd_model)
+                state =  Core.getState();
+                zd_model =  state.zd_model;
+            end
             switch zd_model
                 case 1 % saastamoinen
                     zhd = Atmosphere.saast_dry(P, h_ortho, lat);
                 case 2 % vmf gridded
                     try
                         atmo = Core.getAtmosphere();
-                        zhd = single(atmo.getVmfZhd(time.getGpsTime, lat, lon, h_ellips));
+                        if isa(time, 'GPS_Time')
+                            zhd = single(atmo.getVmfZhd(time.getGpsTime, lat, lon, h_ellips));
+                        else
+                            % Suppose it's a GPS time (seconds from 1980)
+                            zhd = single(atmo.getVmfZhd(time, lat, lon, h_ellips));
+                        end
                     catch ex
                         Core.getLogger.addWarning('Current VMF ZHD seems broken, switch to Saastamoinen');
                         zhd = Atmosphere.saast_dry(P, h_ortho, lat);
