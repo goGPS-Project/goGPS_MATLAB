@@ -486,11 +486,11 @@ classdef Constellation_Collector < Settings_Interface
             %
             % SYNTAX
             %  band = this.getBand(sys, freq)
-            if isnumeric(freq)
-                freq = num2str(freq);
+            if ischar(freq)
+                freq = str2num(freq(:));
             end
             ss = this.getSys(sys);
-            band = find(ss.CODE_RIN3_2BAND' == freq);
+            [~, band] = intersect(str2num(ss.CODE_RIN3_2BAND'), freq);
         end
         
         function go_ids = getGoIds(this, sys_c)
@@ -1131,6 +1131,10 @@ classdef Constellation_Collector < Settings_Interface
                 band = 'G2';
             elseif strcmp(ocode,'RL3')
                 band = 'G3';
+            elseif strcmp(ocode,'RL4')
+                band = 'G1a';
+            elseif strcmp(ocode,'RL6')
+                band = 'G2a';
             elseif strcmp(ocode,'EL1')
                 band = 'E1';
             elseif strcmp(ocode,'EL5')

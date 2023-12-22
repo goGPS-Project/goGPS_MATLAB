@@ -96,6 +96,7 @@ classdef Satellite_System < Settings_Interface
             if nargin < 2
                 f_id = [1 2];
             end
+            [~, f_id] = intersect(str2num(this.CODE_RIN3_2BAND'), f_id);
             iono_free.alpha1 = this.F_VEC(f_id(1)) .^ 2 ./ (this.F_VEC(f_id(1)) .^ 2 - this.F_VEC(f_id(2)) .^ 2);
             iono_free.alpha2 = this.F_VEC(f_id(2)) .^ 2 ./ (this.F_VEC(f_id(1)) .^ 2 - this.F_VEC(f_id(2)) .^ 2);
             gcd_f = gcd(this.F_VEC(f_id(1)),this.F_VEC(f_id(2)));

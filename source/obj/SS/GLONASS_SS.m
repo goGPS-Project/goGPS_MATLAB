@@ -59,11 +59,13 @@
 classdef GLONASS_SS < Satellite_System
     properties (Constant, Access = 'public')
         % System frequencies as struct [MHz]
-        f0 = struct('BASE', struct('G1', 1602.000, 'G2', 1246.000, 'G3', 1202.025), ...
-                    'DELTA',struct('G1', 0.5625, 'G2', 0.4375, 'G3', 0), ...
+        f0 = struct('BASE', struct('G1', 1602.000, 'G2', 1246.000, 'G3', 1202.025, 'G1a', 1600.995, 'G2a', 1248.06), ...
+                    'DELTA',struct('G1', 0.5625, 'G2', 0.4375, 'G3', 0, 'G1a', 0, 'G2a', 0), ...
                     'G1_CHANNELS', -7:1:6, ...
                     'G2_CHANNELS', -7:1:6, ...
-                    'G3_CHANNELS', -7:1:8);
+                    'G3_CHANNELS', -7:1:8, ...
+                    'G1a_CHANNELS', -7:1:8, ...
+                    'G2a_CHANNELS', -7:1:8);
 
         % GLONASS (PZ-90.02) Ellipsoid semi-major axis [m]
         ELL_A = 6378136;
@@ -88,10 +90,12 @@ classdef GLONASS_SS < Satellite_System
                    'G3_CHANNELS', GLONASS_SS.f0.G3_CHANNELS, ...
                    'G1', GLONASS_SS.f0.G1_CHANNELS' .* GLONASS_SS.f0.DELTA.G1 + GLONASS_SS.f0.BASE.G1, ...
                    'G2', GLONASS_SS.f0.G2_CHANNELS' .* GLONASS_SS.f0.DELTA.G2 + GLONASS_SS.f0.BASE.G2, ...
-                   'G3', GLONASS_SS.f0.G3_CHANNELS' .* GLONASS_SS.f0.DELTA.G3 + GLONASS_SS.f0.BASE.G3);
+                   'G3', GLONASS_SS.f0.G3_CHANNELS' .* GLONASS_SS.f0.DELTA.G3 + GLONASS_SS.f0.BASE.G3, ...
+                   'G1a', GLONASS_SS.f0.G1a_CHANNELS' .* GLONASS_SS.f0.DELTA.G1a + GLONASS_SS.f0.BASE.G1a, ...
+                   'G2a', GLONASS_SS.f0.G2a_CHANNELS' .* GLONASS_SS.f0.DELTA.G2a + GLONASS_SS.f0.BASE.G2a);
 
         % Array of supported frequencies [MHz]
-        F_VEC = [[GLONASS_SS.F.G1; 0; 0], [GLONASS_SS.F.G2; 0; 0], GLONASS_SS.F.G3] * 1e6;
+        F_VEC = [[GLONASS_SS.F.G1; 0; 0], [GLONASS_SS.F.G2; 0; 0], GLONASS_SS.F.G3, GLONASS_SS.F.G1a, GLONASS_SS.F.G2a] * 1e6;
 
         % Array of the corresponding wavelength - lambda => wavelengths
         L_VEC = 299792458 ./ GLONASS_SS.F_VEC;
@@ -106,10 +110,10 @@ classdef GLONASS_SS < Satellite_System
         PRN2IDCH = GLONASS_SS.PRN2CH + 8;
         
         % CODE2DATA ftp://igs.org/pub/data/format/rinex303.pdf
-        CODE_RIN3_ATTRIB  = {'PC F' 'PC F' 'XIQ F'}; % last letter of the observation code
-        CODE_RIN3_DEFAULT_ATTRIB  = {'C' 'C' 'Q'}; % last letter of the observation code
-        CODE_RIN3_2BAND  = '123';             % id for the freq as stored in F_VEC
-        IONO_FREE_PREF  = ['12';'13';'23'];  % to be evaluated which combination is really better
+        CODE_RIN3_ATTRIB  = {'PC F' 'PC F' 'XIQ F' 'XAB F', 'XAB F'}; % last letter of the observation code
+        CODE_RIN3_DEFAULT_ATTRIB  = {'C' 'C' 'Q', 'X', 'X'}; % last letter of the observation code
+        CODE_RIN3_2BAND  = '12346';             % id for the freq as stored in F_VEC
+        IONO_FREE_PREF  = ['12'; '46'; '13';'23'];  % to be evaluated which combination is really better
     end
 
     properties (Constant, Access = 'public')
