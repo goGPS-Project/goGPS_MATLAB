@@ -391,9 +391,9 @@ classdef GNSS_Station < handle
                             dct(:,s) = strongMean(all_dph_red(:,:,s));
                         end
                         dct = squeeze(median(all_dph_red, 1, 'omitnan'));
-                        dct(sum(~isnan(zero2nan(all_dph_red))) <= 1) = 0;
+                        dct(sum(logical(all_dph_red)) <= 1) = 0;
 
-                        id_even = squeeze(sum(~isnan(zero2nan(all_dph_red))) == 2);
+                        id_even = squeeze(sum(logical(all_dph_red)) == 2);
                         if any(id_even(:))
                             % find the observation that is closer to zero
                             [tmp, id] = min(abs(zero2nan(all_dph_red)));
@@ -762,16 +762,20 @@ classdef GNSS_Station < handle
             if ~isempty(sta_list)
                 out_list = [sta_list.out];
                 
+                id_ok = false(numel(sta_list),1 );
                 for o = 1:numel(out_list)
                     out = out_list(o);
                     if (isempty(out.time_pos))
                         Core.getLogger.addWarning(sprintf('Receiver "%s" has no coordinates stored', out.parent.getMarkerNameV3));
                         Core.getLogger.addError(sprintf('Exporting failed'));
                     else
+                        id_ok(o) = true;
                         state = Core.getState();
                         now_time = GPS_Time.now();
                         if nargin < 3 || isempty(out_file_name)
                             out_dir = state.getOutDir();
+                            prefix = '';
+                            % Create the right name for the file (single-station name)
                             if numel(sta_list) == 1
                                 prefix = strrep(sta_list.getMarkerName, ' ', '_');
                                 if not(isempty(out.time_pos))
@@ -782,89 +786,99 @@ classdef GNSS_Station < handle
                                 prefix = strrep(state.getPrjName, ' ', '_');
                             end
                             out_file_name = fullfile(out_dir, sprintf('Pos_%s_%s_%s.txt', type, prefix, now_time.toString('yyyymmdd_HHMMSS')));
-                        else
-                            % Add the folder if not present
-                            if sum(out_file_name == filesep) == 0
-                                out_dir = state.getOutDir();
-                                out_file_name = fullfile(out_dir, out_file_name);
-                            end
-                        end
-                        
-                        n_sta = numel(sta_list);
-                        
-                        % Find first and last stored epoch for each receiver
-                        st_time = zeros(n_sta, 1);
-                        en_time = zeros(n_sta, 1);
-                        for r = 1 : numel(out)
-                            st_time(r) = out(r).time_pos.first.getMatlabTime;
-                            en_time(r) = out(r).time_pos.last.getMatlabTime;
-                        end
-                        
-                        Core.getLogger.addMarkedMessage(sprintf('Exporting %s coordinates to %s', type, out_file_name));
-                        try
-                            fid = fopen(out_file_name, 'Wb');
-                            
-                            str_tmp = sprintf('# XYZ Position file generated on %s \n', now_time.toString('dd-mmm-yyyy HH:MM'));
-                            str_tmp = sprintf('%s#--------------------------------------------------------------------------------\n', str_tmp);
-                            str_tmp = sprintf('%s#LOCAL GEODETIC DATUM: WGS - 84\n\n', str_tmp);
-                            str_tmp = sprintf('%s#  NUM | STATION NAME |     FIRST EPOCH |      LAST EPOCH |  N_POS\n', str_tmp);
-                            for r = 1 : n_sta
-                                str_tmp = sprintf('%s# %4d | %12s | %15s | %15s | %6d\n', str_tmp, r, sta_list(r).getMarkerName4Ch, datestr(st_time(r), 'yyyymmdd HHMMSS'), datestr(en_time(r), 'yyyymmdd HHMMSS'), out(r).getTimePositions.length());
-                            end
-                            str_tmp = sprintf('%s\n#--------------------------------------------------------------------------------\n', str_tmp);
-                            str_tmp = sprintf('%s# STAR T OF POSITIONS \n', str_tmp);
-                            str_tmp = sprintf('%s#--------------------------------------------------------------------------------\n\n', str_tmp);
-                            if upper(type(1)) == 'X' % XYZ
-                                str_tmp = sprintf('%s  NUM  STATION NAME      DATE   TIME          X (M)           Y (M)           Z (M)    FLAG\n\n', str_tmp);
-                            elseif upper(type(1)) == 'E' % ENU
-                                str_tmp = sprintf('%s  NUM  STATION NAME      DATE   TIME       East (M)       North (M)          Up (M)    FLAG\n\n', str_tmp);
-                            else % if upper(type(1)) == 'G' % Geodetic
-                                str_tmp = sprintf('%s  NUM  STATION NAME      DATE   TIME      lat (deg)       lon (deg)    Ortho. H (M)   Ellips. H (M)    FLAG\n\n', str_tmp);
-                            end
-                            
-                            fprintf(fid, str_tmp);
-                            
-                            
-                            n_rec = length(sta_list);
-                            rf = Core.getReferenceFrame;
-                            for r = 1 : n_rec
-                                str_tmp = '';
-                                if upper(type(1)) == 'X' % XYZ
-                                    coo = out(r).getPos;
-                                    coo = coo.getXYZ;
-                                elseif upper(type(1)) == 'E' % ENU
-                                    coo = out(r).getPosENU;
-                                else % if upper(type(1)) == 'G' % Geodetic
-                                    [lat, lon, h_ellips, h_ortho]= out(r).getPosGeodetic;
-                                end
-                                
-                                t_pos = out(r).getTimePositions.getMatlabTime;
-                                % Is the station fixed?
-                                marker = sta_list(r).getMarkerName4Ch;
-                                flag = iif(rf.getFlag(marker) == 2, 'F', 'P');
-                                if upper(type(1)) == 'X' % XYZ
-                                    for e = 1 : size(coo, 1)
-                                        str_tmp = sprintf('%s %4d  %12s  %15s  %14.4f  %14.4f  %14.4f    %1s\n', str_tmp, r, marker, datestr(t_pos(e), 'yyyymmdd HHMMSS'), coo(e, 1), coo(e, 2), coo(e, 3), flag);
-                                    end
-                                elseif upper(type(1)) == 'E' % ENU
-                                    for e = 1 : size(coo, 1)
-                                        str_tmp = sprintf('%s %4d  %12s  %15s  %14.4f  %14.4f  %14.4f    %1s\n', str_tmp, r, marker, datestr(t_pos(e), 'yyyymmdd HHMMSS'), coo(e, 1), coo(e, 2), coo(e, 3), flag);
-                                    end
-                                else % if upper(type(1)) == 'E' % ENU
-                                    for e = 1 : size(lat, 1)
-                                        str_tmp = sprintf('%s %4d  %12s  %15s  %14.9f  %14.9f  %14.4f  %14.4f    %1s\n', str_tmp, r, marker, datestr(t_pos(e), 'yyyymmdd HHMMSS'), lat(e) / pi * 180, lon(e) / pi * 180, h_ortho(e), h_ellips(e), flag);
-                                    end
-                                end
-                                fprintf(fid, str_tmp);
-                            end
-                            fclose(fid);
-                            out_file_list = [out_file_list(:); {out_file_name}];
-                            Core.getLogger.addStatusOk(sprintf('Exporting completed successfully'));
-                        catch ex
-                            Core.getLogger.addError(sprintf('Exporting failed'));
-                            Core_Utils.printEx(ex);
                         end
                     end
+                end
+                if ~any(id_ok)
+                    Core.getLogger.addError(sprintf('Exporting failed'));
+                    return;
+                end
+
+                % Create the right name for the file (multi-station name)
+                if numel(sta_list) > 1
+                    % Add the folder if not present
+                    if sum(out_file_name == filesep) == 0
+                        out_dir = state.getOutDir();
+                        out_file_name = fullfile(out_dir, out_file_name);
+                    end
+                end
+
+
+                n_sta = sum(id_ok);
+
+                % Find first and last stored epoch for each receiver
+                st_time = zeros(n_sta, 1);
+                en_time = zeros(n_sta, 1);
+                for r = 1 : numel(out)
+                    if id_ok(r)
+                        st_time(r) = out(r).time_pos.first.getMatlabTime;
+                        en_time(r) = out(r).time_pos.last.getMatlabTime;
+                    end
+                end
+
+                Core.getLogger.addMarkedMessage(sprintf('Exporting %s coordinates to %s', type, out_file_name));
+                try
+                    fid = fopen(out_file_name, 'Wb');
+
+                    str_tmp = sprintf('# XYZ Position file generated on %s \n', now_time.toString('dd-mmm-yyyy HH:MM'));
+                    str_tmp = sprintf('%s#--------------------------------------------------------------------------------\n', str_tmp);
+                    str_tmp = sprintf('%s#LOCAL GEODETIC DATUM: WGS - 84\n\n', str_tmp);
+                    str_tmp = sprintf('%s#  NUM | STATION NAME |     FIRST EPOCH |      LAST EPOCH |  N_POS\n', str_tmp);
+                    for r = find(id_ok)'
+                        str_tmp = sprintf('%s# %4d | %12s | %15s | %15s | %6d\n', str_tmp, r, sta_list(r).getMarkerName4Ch, datestr(st_time(r), 'yyyymmdd HHMMSS'), datestr(en_time(r), 'yyyymmdd HHMMSS'), out_list(r).getTimePositions.length());
+                    end
+                    str_tmp = sprintf('%s\n#--------------------------------------------------------------------------------\n', str_tmp);
+                    str_tmp = sprintf('%s# STAR T OF POSITIONS \n', str_tmp);
+                    str_tmp = sprintf('%s#--------------------------------------------------------------------------------\n\n', str_tmp);
+                    if upper(type(1)) == 'X' % XYZ
+                        str_tmp = sprintf('%s  NUM  STATION NAME      DATE   TIME          X (M)           Y (M)           Z (M)    FLAG\n\n', str_tmp);
+                    elseif upper(type(1)) == 'E' % ENU
+                        str_tmp = sprintf('%s  NUM  STATION NAME      DATE   TIME       East (M)       North (M)          Up (M)    FLAG\n\n', str_tmp);
+                    else % if upper(type(1)) == 'G' % Geodetic
+                        str_tmp = sprintf('%s  NUM  STATION NAME      DATE   TIME      lat (deg)       lon (deg)    Ortho. H (M)   Ellips. H (M)    FLAG\n\n', str_tmp);
+                    end
+
+                    fprintf(fid, str_tmp);
+
+
+                    n_rec = length(sta_list);
+                    rf = Core.getReferenceFrame;
+                    for r = find(id_ok)'
+                        str_tmp = '';
+                        if upper(type(1)) == 'X' % XYZ
+                            coo = out_list(r).getPos;
+                            coo = coo.getXYZ;
+                        elseif upper(type(1)) == 'E' % ENU
+                            coo = out_list(r).getPosENU;
+                        else % if upper(type(1)) == 'G' % Geodetic
+                            [lat, lon, h_ellips, h_ortho]= out_list(r).getPosGeodetic;
+                        end
+
+                        t_pos = out_list(r).getTimePositions.getMatlabTime;
+                        % Is the station fixed?
+                        marker = sta_list(r).getMarkerName4Ch;
+                        flag = iif(rf.getFlag(marker) == 2, 'F', 'P');
+                        if upper(type(1)) == 'X' % XYZ
+                            for e = 1 : size(coo, 1)
+                                str_tmp = sprintf('%s %4d  %12s  %15s  %14.4f  %14.4f  %14.4f    %1s\n', str_tmp, r, marker, datestr(t_pos(e), 'yyyymmdd HHMMSS'), coo(e, 1), coo(e, 2), coo(e, 3), flag);
+                            end
+                        elseif upper(type(1)) == 'E' % ENU
+                            for e = 1 : size(coo, 1)
+                                str_tmp = sprintf('%s %4d  %12s  %15s  %14.4f  %14.4f  %14.4f    %1s\n', str_tmp, r, marker, datestr(t_pos(e), 'yyyymmdd HHMMSS'), coo(e, 1), coo(e, 2), coo(e, 3), flag);
+                            end
+                        else % if upper(type(1)) == 'E' % ENU
+                            for e = 1 : size(lat, 1)
+                                str_tmp = sprintf('%s %4d  %12s  %15s  %14.9f  %14.9f  %14.4f  %14.4f    %1s\n', str_tmp, r, marker, datestr(t_pos(e), 'yyyymmdd HHMMSS'), lat(e) / pi * 180, lon(e) / pi * 180, h_ortho(e), h_ellips(e), flag);
+                            end
+                        end
+                        fprintf(fid, str_tmp);
+                    end
+                    fclose(fid);
+                    out_file_list = [out_file_list(:); {out_file_name}];
+                    Core.getLogger.addStatusOk(sprintf('Exporting completed successfully'));
+                catch ex
+                    Core.getLogger.addError(sprintf('Exporting failed'));
+                    Core_Utils.printEx(ex);
                 end
             end
         end
