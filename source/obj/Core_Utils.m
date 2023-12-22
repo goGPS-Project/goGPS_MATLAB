@@ -2767,7 +2767,16 @@ classdef Core_Utils < handle
             end
             fh_list = tmp_rec.showMultiPathModel(mp_type, ant_mp);
         end
-        
+
+        function setFigureName(fh, fig_name)
+            % Set the name of the figure
+            %
+            % SYNTAX
+            %   setFigureName(fh, fig_name)
+            
+            fh.NumberTitle = 'off'; fh.Name = [num2str(fh.Number, '%03d:') sprintf(' %s', fig_name)];
+        end
+
         %--------------------------------------------------------------------------
         %% MEMORY
         %--------------------------------------------------------------------------
