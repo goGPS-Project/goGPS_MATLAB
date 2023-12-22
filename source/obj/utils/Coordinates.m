@@ -3383,7 +3383,7 @@ classdef Coordinates < Exportable & handle
                         r_xyz_original = coo_ref.getXYZ;
                         r_xyz = nan(new_ref_time.length, 3); 
                         for c = 1:3
-                            if coo_ref.time.length == 1
+                            if coo_ref.time.length <= 1
                                 r_xyz(:,c) = r_xyz_original(:,c);
                             else
                                 r_xyz(:,c) = interp1(coo_ref.time.getMatlabTime, r_xyz_original(:,c), new_ref_time.getMatlabTime, 'nearest', 'extrap');
@@ -3407,7 +3407,7 @@ classdef Coordinates < Exportable & handle
                         std1_original = coo_ref.getStdENU.^2;
                         std1 = nan(new_ref_time.length, 3); 
                         for c = 1:3
-                            if coo_ref.time.length == 1
+                            if coo_ref.time.length <= 1
                                 std1(:,c) = std1_original(:,c);
                             else
                                 std1(:,c) = interp1(coo_ref.time.getMatlabTime, std1_original(:,c), new_ref_time.getMatlabTime, 'nearest', 'extrap');
@@ -3445,7 +3445,7 @@ classdef Coordinates < Exportable & handle
                 if any(pos_diff_model)
                     pos_diff_model = bsxfun(@minus, pos_diff_model, median(pos_diff,1,'omitnan'));
                 end
-                pos_diff = bsxfun(@minus, pos_diff, robAdj(pos_diff')');
+                %pos_diff = bsxfun(@minus, pos_diff, robAdj(pos_diff')');
             end
 
             if any(pos_std)
@@ -5445,7 +5445,7 @@ classdef Coordinates < Exportable & handle
                     ylabel('Obs results std [cm]');
                     Core_Utils.patchSep(t, coo.reflectometry.std(:) .* 1e2, Core_UI.getColor(4), 'FaceColor', Cmap.getColor(70,100, 'viridis'), 'EdgeColor','none','FaceAlpha',0.3,'HandleVisibility','off'); hold on;
                     yl = max([0 perc(coo.reflectometry.std(:) .* 1e2, 0.997)], 2);
-                    if ~isnan(zero2nan(yl(end)))
+                    if logical(yl(end))
                         ylim(ax2, [0 yl(2)*3/2]);
                     end
                     yyaxis left
@@ -8602,7 +8602,7 @@ classdef Coordinates < Exportable & handle
         end
         
         function [loc,  rot_mat] = cart2loca(xyz_ref, xyz_baseline)
-            [loc,  rot_mat] = Coordinates.cart2local(xyz_ref, xyz_baseline); % maybe the function was used with the wrong name
+            [loc, rot_mat] = Coordinates.cart2local(xyz_ref, xyz_baseline); % maybe the function was used with the wrong name
         end
         
         function [xyz_baseline, rot_mat] = loca2cart(xyz_ref, loc)

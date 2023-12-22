@@ -1241,7 +1241,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 coo(i).setName(name{i});
             end
 
-            coo.showMap('proj', none, 'fig_handle', fh, 'flag_tooltip', false);
+            coo.showMap('provider', 'satellite', 'proj', 'none', 'fig_handle', fh, 'flag_tooltip', true, 'flag_fix_label', false);
             
             title('Receiver position');
             %xlabel('Longitude [deg]');
@@ -1254,7 +1254,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
         
         function addCrdRow(this, caller, event)
             % Add a new row to the CRD table
-            this.coo_tbl.Data = [this.coo_tbl.Data; {'NAME', 0, 0, 0, Core_Reference_Frame.FLAG_STRING{1}, GPS_Time(0).toString('yyyy-mm-dd HH:MM:SS'), GPS_Time(datenum('2099/12/31')).toString('yyyy-mm-dd HH:MM:SS'), 0, 0, 0}];
+            this.coo_tbl.Data = [this.coo_tbl.Data; {'NAME', 0, 0, 0, Core_Reference_Frame.FLAG_STRING{1}, 50, 50, GPS_Time(0).toString('yyyy-mm-dd HH:MM:SS'), GPS_Time(datenum('2099/12/31')).toString('yyyy-mm-dd HH:MM:SS'), 0, 0, 0}];
         end
         
         function delCrd(this, caller, event)
@@ -1465,6 +1465,8 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_glo, '(L1) G1', 'GLO_G1', @this.onCheckBoxCCChange, color_bg);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_glo, '(L2) G2', 'GLO_G2', @this.onCheckBoxCCChange, color_bg);
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_glo, '(L3) G3', 'GLO_G3', @this.onCheckBoxCCChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_glo, '(L4) G1a', 'GLO_G1a', @this.onCheckBoxCCChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_glo, '(L6) G2a', 'GLO_G2a', @this.onCheckBoxCCChange, color_bg);
             
             
             this.check_boxes{end+1} = Core_UI.insertCheckBoxCC(n_b_gal, '(L1) E1 ', 'GAL_E1', @this.onCheckBoxCCChange, color_bg);

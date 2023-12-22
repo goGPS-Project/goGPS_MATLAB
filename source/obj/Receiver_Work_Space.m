@@ -87,7 +87,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         system         % char id of the satellite system corresponding to the row_id
         
         obs_code       % obs code for each line of the data matrix obs
-        aligned        % boolean field to check if the code has been aligned to the others , (i.e. DCB(external or estimated from network) applied
+        aligned        % (DEPRECATE) kept for compatibility reasons - boolean field to check if the code has been aligned to the others , (i.e. DCB(external or estimated from network) applied
         obs            % huge observation matrix with all the observables for all the systems / frequencies / ecc ...
         synt_ph        % syntetic phases
         sat_cache      % cached range / sat_positions
@@ -300,7 +300,6 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.system     = '';         % char id of the satellite system corresponding to the row_id
             
             this.obs_code   = [];         % obs code for each line of the data matrix obs
-            this.aligned    = [];         % pseudorange measurements aligned or not
             this.obs        = [];         % huge observation matrix with all the observables for all the systems / frequencies / ecc ...
             
             this.ph_idx = [];
@@ -332,7 +331,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.system     = '';         % char id of the satellite system corresponding to the row_id
                 
                 this.obs_code   = [];         % obs code for each line of the data matrix obs
-                this.aligned    = [];         % alignement of the pseudorange measurements
                 this.obs        = [];         % huge observation matrix with all the observables for all the systems / frequencies / ecc ...
                 this.n_spe      = [];         % number of sat per epoch
                 this.xyz        = [];         % approximate position of the receiver (XYZ geocentric)
@@ -624,7 +622,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                         this.go_id    = [this.go_id   ; rec.go_id(i)];
                         this.system   = [this.system rec.system(i)];
                         this.obs_code = [this.obs_code; rec.obs_code(i,:)];
-                        this.aligned  = [this.aligned; rec.aligned];
                     end
                 end
             else
@@ -637,7 +634,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.go_id      = rec.go_id;
                 this.system     = rec.system;
                 this.obs_code   = rec.obs_code;
-                this.aligned    = rec.aligned;
                 this.n_spe      = rec.n_spe;
                 this.xyz        = rec.xyz;
                 this.xyz_approx = rec.xyz_approx;
@@ -2369,7 +2365,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                                     % and differenciate it
                                                     dgf(~isnan(dgf)) = [0; diff(dgf(~isnan(dgf)))];
                                                     dgf = dgf(cs_bf:cs_aft);
-                                                    if sum(~isnan(zero2nan(dgf))) > 4 % If there are data to inspect
+                                                    if sum(logical(nan2zero(dgf))) > 4 % If there are data to inspect
                                                         % if gf jump is less than 0.15 the cycle or if the idfference of mwb is less than 0.15 the widelane
                                                         id_buf_cs = max(1, id_jmp2 + [-10:0]); % check if there is a jump in the previous 10 epochs
                                                         % I prefer to be conservative instead of removing too many CS
@@ -3768,7 +3764,6 @@ classdef Receiver_Work_Space < Receiver_Commons
                 n_ss = numel(sys_c); % number of satellite system
                 
                 this.obs_code = [];
-                this.aligned = [];
                 this.prn = [];
                 this.system = [];
                 this.f_id = [];
@@ -3789,13 +3784,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                     % replicate obs_code for n_sat
                     obs_code = serialize(repmat(obs_code, 1, n_sat)');
                     obs_code = reshape(obs_code, 3, numel(obs_code) / 3)';
-                    aligned = false(size(obs_code,1),1);
                     
                     prn_ss = repmat(prn.(sys)', n_code, 1);
                     % discarding satellites whose number exceed the maximum ones for constellations e.g. spare satellites GLONASS
                     this.prn = [this.prn; prn_ss];
                     this.obs_code = [this.obs_code; obs_code];
-                    this.aligned  = [this.aligned; aligned];
                     this.n_sat = this.n_sat + n_sat;
                     this.system = [this.system repmat(sys, 1, size(obs_code, 1))];
                     
@@ -4013,7 +4006,6 @@ classdef Receiver_Work_Space < Receiver_Commons
 
                     % init datasets
                     this.obs_code = [];
-                    this.aligned = [];
                     this.prn = [];
                     this.system = [];
                     this.f_id = [];
@@ -4035,13 +4027,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                         % replicate obs_code for n_sat
                         obs_code = serialize(repmat(obs_code, 1, n_sat)');
                         obs_code = reshape(obs_code, 3, numel(obs_code) / 3)';
-                        aligned = false(size(obs_code,1),1);
 
                         prn_ss = repmat(prn.(sys)', n_code, 1);
                         % discarding satellites whose number exceed the maximum ones for constellations e.g. spare satellites GLONASS
                         this.prn = [this.prn; prn_ss];
                         this.obs_code = [this.obs_code; obs_code];
-                        this.aligned  = [this.aligned; aligned];
                         this.n_sat = this.n_sat + n_sat;
                         this.system = [this.system repmat(sys, 1, size(obs_code, 1))];
 
@@ -4197,7 +4187,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 log.addMarkedMessage(sprintf('Data numerosity'));
                 for id = ucid(:)'
                     log.addMessage(log.indent(sprintf(' - %s: %d', Core_Utils.num2Code4Char(id), ...
-                        sum(~isnan(zero2nan(serialize(this.obs(cid == id, :))))))));
+                        sum(logical(serialize(this.obs(cid == id, :)))))));
                 end
                 log.newLine();
 
@@ -5564,7 +5554,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         idbt = find(this.obs_code(id_snr(idb), 3) == t);
                         elbt = el(:,this.go_id(id_snr(idb(idbt))));
                         snr_bt_all = snr(:, idb(idbt));
-                        id_ok = ~isnan(zero2nan(snr_bt_all));
+                        id_ok = logical(snr_bt_all);
                         snr_bt(:, i) = Core_Utils.interp1LS([sind(elbt(id_ok)); 2-sind(elbt(id_ok))], [snr_bt_all(id_ok); snr_bt_all(id_ok)], 9, sind(0 : 90));
                         %figure; plot(elbt, zero2nan(ssnr(:, idb(idbt))), '.');
                         %hold on; plot(0:90, snr_bt, 'k.-', 'LineWidth', 2);
@@ -5597,7 +5587,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % remove possible local biases due to bad satellites
             sensor = zero2nan(res * 1e3);
             starting_bias = nan2zero(median((sensor(1:find(tmp_ko, 1, 'first'), :)), 'omitnan'));
-            tmp_jmp = cumsum(nan2zero(Core_Utils.diffAndPred(sensor) .* double(repmat(tmp_ko, 1, n_sat)))) .* ~isnan(zero2nan(sensor)) + repmat(starting_bias, size(sensor, 1), iif(numel(starting_bias) == 1, size(sensor, 2), 1));
+            tmp_jmp = cumsum(nan2zero(Core_Utils.diffAndPred(sensor) .* double(repmat(tmp_ko, 1, n_sat)))) .* logical(sensor) + repmat(starting_bias, size(sensor, 1), iif(numel(starting_bias) == 1, size(sensor, 2), 1));
             
             if nargin < 4
                 % flag outliers above 5cm
@@ -6336,6 +6326,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 p2 =  this.prn(i2);
                 w1 =  this.wl(i1);
                 w2 =  this.wl(i2);
+                
                 % form cycle to meters
                 if flag1(2) == 'L'
                     o1 = o1.*repmat(w1',size(o1,1),1);
@@ -6419,19 +6410,25 @@ classdef Receiver_Work_Space < Receiver_Commons
                 else
                     cs_out(:, p) = cs2(:, ii2) | cs1(:, ii1);
                     if strcmp(know_comb,'IF')
-                        [i,j] = rat(w2(ii2)/w1(ii1),0.001);
-                        j= -j;
+                        f1 = Core_Utils.V_LIGHT ./ w1(ii1);
+                        f2 = Core_Utils.V_LIGHT ./ w2(ii2);
+                        gcd_f = gcd(f1, Core_Utils.V_LIGHT ./ w2(ii2));
+                        t = f1/gcd_f;
+                        n = -f2/gcd_f; 
+                        % alpha1 = t^2/(t^2-n^2)
+                        % alpha2 = -n^2/(t^2-n^2)
+                        % wl(p) = t*w1(ii1)/(t^2 - n^2);
                     elseif strcmp(know_comb,'NL')
-                        i = 1;
-                        j = 1;
+                        t = 1;
+                        n = 1;
                     elseif strcmp(know_comb,'WL')
-                        i = 1;
-                        j = -1;
+                        t = 1;
+                        n = -1;
                     else
-                        i = -w2(ii2)/2;
-                        j = -w1(ii1)/2; %so wavelength is -1
+                        t = -w2(ii2)/2;
+                        n = -w1(ii1)/2; %so wavelength is -1
                     end
-                    wl(p) = w1(ii1)*w2(ii2)/(i*w2(ii2) + j*w1(ii1)); % see: https://www.tekmon.gr/online-gps-tutorial/1-4-1-linear-combinations-of-simultaneous-observations-between-frequencies
+                    wl(p) = w1(ii1)*w2(ii2)/(t*w2(ii2) + n*w1(ii1));
                 end
             end
             obs_set = Observation_Set(this.time.getCopy(), obs_out ,obs_code, wl, el, az, common_prns);
@@ -7296,6 +7293,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             % satellite based on all code and phase
             
             % if the size of avail index is not the same of the obs matrix
+            this.sat.avail_index = logical(this.sat.avail_index);
             if isempty(this.sat.avail_index) || (size(this.sat.avail_index,1) ~= size(this.obs,2))
                 % reset avail index
                 cc = Core.getState.getConstellationCollector;
@@ -8105,8 +8103,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             slant_td = bsxfun(@rdivide, this.getSlantTD, this.getZtd());
             
             % keep only valid data
-            el = el(~isnan(zero2nan(slant_td)));
-            slant_td = slant_td(~isnan(zero2nan(slant_td)));
+            el = el(logical(slant_td));
+            slant_td = slant_td(logical(slant_td));
             [el, id] = sort(el); slant_td = slant_td(id);
             if (nargin < 2) || isempty(el_points)
                 el_points = max(0, (min(el(:)))) : 0.1 : min(90, (max(el(:))));
@@ -9004,7 +9002,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         % -------------------------------------------------------
         
         function phaseWindUpCorr(this,sgn)
-            %  add or subtract ocean loading from observations
+            %  add or subtract phase windup loading from observations
             ph_wind_up = this.computePhaseWindUp();
             
             cc = Core.getState.getConstellationCollector;
@@ -9047,10 +9045,12 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function [ph_wind_up] = computePhaseWindUp(this)
+        function [ph_wind_up] = computePhaseWindUp(this, XR)
             
             %east (a) and north (b) local unit vectors
-            XR = this.getXR();
+            if (nargin == 1)
+                XR = this.getXR();
+            end
             [phi, lam] = cart2geod(XR(:,1), XR(:,2), XR(:,3));
             a = [-sin(lam) cos(lam) zeros(size(lam))];
             b = [-sin(phi).*cos(lam) -sin(phi).*sin(lam) cos(phi)];
@@ -9058,18 +9058,17 @@ classdef Receiver_Work_Space < Receiver_Commons
             s_a = a;%(av_idx,:);
             s_b = b;%(av_idx,:);
             
-            
             cc = Core.getState.getConstellationCollector;
             sat = 1: cc.getMaxNumSat();
             
             [x, y, z] = Core.getCoreSky.getSatFixFrame(s_time);
             ph_wind_up = zeros(this.time.length,length(sat));
             for s = sat
-                av_idx = this.sat.avail_index(:,s);
-                i_s = squeeze(x(:,s,:));
-                j_s = squeeze(y(:,s,:));
-                k_s = squeeze(z(:,s,:));
-                
+                av_idx = logical(this.sat.avail_index(:,s));
+                i_s = reshape(x(:,s,:),[],3);
+                j_s = reshape(y(:,s,:),[],3);
+                k_s = reshape(z(:,s,:),[],3);
+
                 %receiver and satellites effective dipole vectors
                 Dr = s_a - k_s.*repmat(sum(k_s.*s_a,2),1,3) + cross(k_s,s_b);
                 Ds = i_s - k_s.*repmat(sum(k_s.*i_s,2),1,3) - cross(k_s,j_s);
@@ -10230,7 +10229,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             last_ep_coarse = min(100, this.time.length);
             ep_coarse = 1 : last_ep_coarse;
             % alternative keep the epochs with more satellites
-            [~, id_best] = sort(sum(~isnan(zero2nan(obs_set.obs)),2), 'descend');
+            [~, id_best] = sort(sum(logical(obs_set.obs),2), 'descend');
             ep_coarse = sort(id_best(ep_coarse));
             while(not( sum(sum(obs_set.obs(ep_coarse,:) ~= 0, 2) > 2) > min_ep_thrs) && sum(ep_coarse == this.time.length)  == 0) % checking if the selected epochs contains at least some usabele obseravables
                 ep_coarse = [ep_coarse(:)' ep_coarse(end)+1];
@@ -12468,7 +12467,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.w_bar.createNewBar(' Exporting Receiver as Rinex 3.03 file...');
             this.w_bar.setBarLen(n_epo);
             for e = 1 : n_epo
-                id_ok = ~isnan(zero2nan(this.obs(:, e)));
+                id_ok = logical(this.obs(:, e));
                 go_id = unique(this.go_id(id_ok));
                 if ~isempty(id_ok)
                     %txt = sprintf('%s> %4d %02d %02d %02d %02d %10.7f  %d%3d      %15.12f\n', txt, date6col(e, :), flag_ok, numel(go_id), clock_offset);
@@ -13257,7 +13256,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 decl_n = (serialize(90 - this.sat.el(this.id_sync(:), this.go_id(ph_id))) / 180*pi) / (pi/2);
                 x = sin(serialize(this.sat.az(this.id_sync(:), this.go_id(ph_id))) / 180 * pi) .* decl_n; x(serialize(this.sat.az(this.id_sync(:), this.go_id(ph_id))) == 0) = [];
                 y = cos(serialize(this.sat.az(this.id_sync(:), this.go_id(ph_id))) / 180 * pi) .* decl_n; y(serialize(this.sat.az(this.id_sync(:), this.go_id(ph_id))) == 0) = [];
-                m = serialize(~isnan(zero2nan(this.obs(ph_id, this.id_sync(:)))')); m(serialize(this.sat.az(this.id_sync(:), this.go_id(ph_id))) == 0) = [];
+                m = serialize(logical(this.obs(ph_id, this.id_sync(:)))'); m(serialize(this.sat.az(this.id_sync(:), this.go_id(ph_id))) == 0) = [];
                 plot(x(m), y(m), '.', 'Color', [0.4 0.4 0.4]); % sat in vew
                 decl_n = (serialize(90 - this.sat.el(:, this.go_id(ph_id))) / 180*pi) / (pi/2);
                 x = sin(serialize(this.sat.az(:, this.go_id(ph_id))) / 180 * pi) .* decl_n; x(serialize(this.sat.az(:, this.go_id(ph_id))) == 0) = [];

@@ -42,6 +42,7 @@
 classdef Observation_Set < handle
     properties
         time     % GPS_Time [n_epochs x 1]
+        time_sec % progressive time used for KF computations (does not keep consistency)
         obs      % the actual observatiions [n_epochs x n_obs_type]
         obs_code % the code for each observation [n_obs_type x max_n_char_obs_code] , general obs_code structure [sys xxx yyy comb_type], exmaple [GC1WC2WI]
                  % comb_type : I -> iono free
@@ -276,12 +277,20 @@ classdef Observation_Set < handle
             %     idx = this.getTimeIdx(this,time_st, rate)
             %
             if nargin == 3
-                idx = round((this.time - time_st) / rate) +1;
-            else % assume time_st is the full time
+                % Original code by Giulio, does not always work if the data is not regulary sampled
+                % idx = round((this.time - time_st) / rate) +1;
+                % New implementation:
+                time_rec = time_st.getNominalTime(rate).getRefTime(round(time_st.first.getMatlabTime));
+                time_obs = this.time.getNominalTime(rate).getRefTime(round(time_st.first.getMatlabTime));
+                idx = (time_obs-time_rec)/rate + 1;
+            else % assume time_st is the full time 
                 rate = time_st.getRate();
                 time_rec = time_st.getNominalTime(rate).getRefTime(round(time_st.first.getMatlabTime));
                 time_obs = this.time.getNominalTime(rate).getRefTime(round(time_st.first.getMatlabTime));
-                [~, idx] = intersect(round(time_rec * rate), round(time_obs * rate));                
+                % this is actually a different function, with 3 parameters time_st is usually a single epoch
+                % here is not, Giulio create this for Engine_U2, not very clean,
+                % It should be revised
+                [~, idx] = intersect(round(time_rec * rate), round(time_obs * rate));
             end
         end
         

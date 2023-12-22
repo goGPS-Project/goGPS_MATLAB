@@ -1543,13 +1543,23 @@ classdef GPS_Time < Exportable & handle
                 date_string = '';
             else
                 if (nargin == 2)
-                    date_format(date_format == 's') = 'A';
-                    time = this.getMatlabTime();
-                    time(isnan(time)) = 0;
-                    if any(date_format == 'A')
-                        date_string = datestr(floor(time*86400)/86400, date_format);
+                    if ischar(date_format) && contains(date_format,'$')
+                        fnp = File_Name_Processor;
+                        date_string = fnp.dateKeyRep(date_format, this.first);
+                        date_string = repmat(date_string, this.length,1);
+                        for i = 2:this.length
+                            date_string(i,:) = fnp.dateKeyRep(date_format, this.getEpoch(i));
+                        end
+                        return;
                     else
-                        date_string = datestr(time, date_format);
+                        date_format(date_format == 's') = 'A';
+                        time = this.getMatlabTime();
+                        time(isnan(time)) = 0;
+                        if any(date_format == 'A')
+                            date_string = datestr(floor(time*86400)/86400, date_format);
+                        else
+                            date_string = datestr(time, date_format);
+                        end
                     end
                 else
                     time = round(this.getMatlabTime() * 86400 * 1e7) / 1e7 / 86400;
@@ -2176,7 +2186,7 @@ classdef GPS_Time < Exportable & handle
             %   this = GPS_Time.today()
             mat_time = now();
             mat_time = mat_time + java.util.Date().getTimezoneOffset/(60*24);
-            this = GPS_Time(floor(mat_time), true);
+            this = GPS_Time(floor(mat_time) -1/86400, true);
         end
         
         function this = yesterday()
@@ -2186,7 +2196,7 @@ classdef GPS_Time < Exportable & handle
             %   this = GPS_Time.yesterday()
             mat_time = now();
             mat_time = mat_time + java.util.Date().getTimezoneOffset/(60*24);
-            this = GPS_Time(floor(mat_time) - 1, true);
+            this = GPS_Time(floor(mat_time) - 1  -1/86400, true);
         end
 
         function str = info(time)
@@ -2634,4 +2644,3 @@ classdef GPS_Time < Exportable & handle
     end
     
 end
-

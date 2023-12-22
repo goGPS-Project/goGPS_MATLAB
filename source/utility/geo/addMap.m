@@ -195,7 +195,12 @@ function [im_h, latitudes, longitudes, img_bg] = addMap(varargin)
     lon_lim_buffered(2) = min(lon_lim_buffered(2), 180);
 
     % Download the tiles with the buffered lat/lon limits
-    [img_bg, latitudes, longitudes] = downloadMapTiles(lat_lim_buffered, lon_lim_buffered, buffer, zoom_lev, provider);
+    try
+        [img_bg, latitudes, longitudes] = downloadMapTiles(lat_lim_buffered, lon_lim_buffered, buffer, zoom_lev, provider);
+    catch
+        Core.getLogger.addError('No map downloaded, check internet connection!');
+        return
+    end
     
     if ~img_only
         if isempty(ax)

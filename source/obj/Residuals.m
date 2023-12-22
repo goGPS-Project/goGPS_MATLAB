@@ -764,7 +764,7 @@ classdef Residuals < Exportable
                                 for s = 1 : numel(res_go_id)
                                     id_ok = ~isnan(res(:,s));
                                     if any(id_ok)
-                                        line = Core_Utils.plotSep(time(id_ok), serialize(res(id_ok, s)), '.-', 'Color', Core_UI.getColor(s, numel(res_go_id)));
+                                        line = Core_Utils.plotSep(time(id_ok), serialize(res(id_ok, s)), '.-', 'Color', Core_UI.getColor(s, numel(res_go_id)), 'DisplayName', cc.getSatName(res_go_id(s)));
                                         line.UserData = res_go_id(s);
                                         hold on;
                                         go_id_list = [go_id_list; res_go_id(s)];
@@ -778,14 +778,15 @@ classdef Residuals < Exportable
                                     ylim([-1 1] * max(abs(ylim)));
                                     setTimeTicks();
                                     h = title(sprintf('Receiver %s - %s %s\\fontsize{5} \n', strrep(marker_name,'_','\_'), cc.getSysExtName(sys_c), strtrim(trk_code(2:end))));  h.FontWeight = 'bold';
-                                    [~, icons] = legend(sat_name_list, 'Location', 'NorthEastOutside');
-                                    icons = icons(numel(sat_name_list) + 2 : 2 : end);
-                                    for i = 1 : numel(icons)
-                                        icons(i).MarkerSize = 18;
-                                        icons(i).LineWidth = 2;
-                                    end
+                                    legend('Location', 'NorthEastOutside');
+                                    %[~, icons] = legend(sat_name_list, 'Location', 'NorthEastOutside');
+                                    %icons = icons(numel(sat_name_list) + 2 : 2 : end);
+                                    %for i = 1 : numel(icons)
+                                    %    icons(i).MarkerSize = 18;
+                                    %    icons(i).LineWidth = 2;
+                                    %end
                                     ylabel(sprintf('Satellite Residuals %s', iif(scale == 1e2, '[cm]', '[mm]')));
-                                    Core_UI.addSatMenu(fh, go_id_list);
+                                    Core_UI.addLineMenu(fh);
                                     Core_UI.beautifyFig(fh);
                                     Core_UI.addExportMenu(fh);
                                     Core_UI.addBeautifyMenu(fh);
@@ -864,7 +865,7 @@ classdef Residuals < Exportable
                             data_found = false;
                             figure(fh); % get focus;
                             for s = 1 : numel(id)
-                                id_ok = find(~isnan(zero2nan(res(:,s))));
+                                id_ok = find(logical(res(:,s)));
                                 if any(id_ok)
                                     data_found = true;
                                     [~, id_sort] = sort(abs(res(id_ok, s)));

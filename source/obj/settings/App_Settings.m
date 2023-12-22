@@ -141,35 +141,40 @@ classdef App_Settings < Settings_Interface
             % SYNTAX
             %   App_Settings.setUpSlaves(slaves_folder)
             app_settings = App_Settings.getInstance;
-            use_deployed = false;
             if isunix
-                % Compiled slaves at the moment works only for linux
+                % Compiled slaves at the moment works only for unix
                 use_deployed = app_settings.useDeployedSlaves;
-            end
-            
-            app_settings.import();
-            if nargin < 1 || isempty(slaves_folder)
-                if use_deployed
-                    slaves_folder = app_settings.getBinDir;
-                    if ~exist(fullfile(slaves_folder, 'run_startSlave.sh'), 'file')
-                        Core.getLogger.addWarning(sprintf('Slave executable not found at "%s", please select the directory containing the binaries', fullfile(slaves_folder, 'run_startSlave.sh')));
-                        msg = Core.getMsgGUI();
-                        slaves_folder = uigetdir(slaves_folder, 'Select the directory containing binaries files');
-                        app_settings.setBinDir(slaves_folder);
-                        close(msg.win);
+
+                app_settings.import();
+                if nargin < 1 || isempty(slaves_folder)
+                    if use_deployed
+                        slaves_folder = app_settings.getBinDir;
+                        if ~exist(fullfile(slaves_folder, 'run_startSlave.sh'), 'file')
+                            Core.getLogger.addWarning(sprintf('Slave executable not found at "%s", please select the directory containing the binaries', fullfile(slaves_folder, 'run_startSlave.sh')));
+                            msg = Core.getMsgGUI();
+                            slaves_folder = uigetdir(slaves_folder, 'Select the directory containing binaries files');
+                            app_settings.setBinDir(slaves_folder);
+                            close(msg.win);
+                        end
+                        fnp = File_Name_Processor;
+                        slaves_folder = fnp.getFullDirPath(slaves_folder, pwd);
+                    else
+                        slaves_folder = pwd;
                     end
-                    fnp = File_Name_Processor;
-                    slaves_folder = fnp.getFullDirPath(slaves_folder, pwd);
                 else
-                    slaves_folder = pwd;
+                    app_settings.setBinDir(slaves_folder);
+                end
+                if ~use_deployed
+                    uiwait(errordlg(sprintf(['Set use_deployed in app_settings to use binaries'])));
+                else
+                    if exist(fullfile(slaves_folder, 'run_startSlave.sh'), 'file')
+                        uiwait(msgbox(sprintf('The slave binary have been found at "%s"\goGPS can now work with parallel workers', slaves_folder), 'goGPS'));
+                    else
+                        uiwait(errordlg(sprintf('The slave binary have not been found at "%s".\nRerun this setup and set the right folder!', slaves_folder), 'goGPS'));
+                    end
                 end
             else
-                app_settings.setBinDir(slaves_folder);
-            end
-            if exist(fullfile(slaves_folder, 'run_startSlave.sh'), 'file')
-                uiwait(msgbox(sprintf('The slave binary have been found at "%s"\ngoGPS can now work with parallel workers', slaves_folder), 'goGPS'));
-            else
-                uiwait(errordlg(sprintf('The slave binary have not been found at "%s".\nRerun this setup and set the right folder!', slaves_folder), 'goGPS'));
+                uiwait(errordlg(sprintf('Compiled slaves at the moment works only for unix systems')));
             end
         end
     end
@@ -427,4 +432,3 @@ classdef App_Settings < Settings_Interface
     end
     
 end
-

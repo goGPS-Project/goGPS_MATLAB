@@ -218,7 +218,7 @@ classdef Receiver_Settings < Exportable
 
             
             ss = cc.getSys(sys_c);
-            coeff = ss.getIonoFree;
+            coeff = ss.getIonoFree(str2num(obs_code([3 6])')');
 
             if (~isfield(this.stds, ([sys_c t1(2:3)])) + ~isfield(this.stds, ([sys_c t2(2:3)])))>0 
                  % Do something
