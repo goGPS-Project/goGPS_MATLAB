@@ -921,7 +921,7 @@ classdef Engine_U1 < Exportable
                         idx_tot = [idx_tot; find(idx)];
                     end
                 end
-                av_res = sum(res, 3, 'omitnan') ./  sum(~isnan(zero2nan(res)),3);
+                av_res = sum(res, 3, 'omitnan') ./  sum(logical(res),3);
                 
                 
                 res = res - repmat(av_res,1,1,n_rec);

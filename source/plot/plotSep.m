@@ -71,7 +71,7 @@ function lh = plotSep(t, data, varargin)
                     data = data';
                 end
             end
-        catch
+        catch ex
             % probably data is undefined
             data = t;
             if size(data, 1) == 1

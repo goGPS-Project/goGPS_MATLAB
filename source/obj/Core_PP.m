@@ -161,7 +161,7 @@ classdef Core_PP < handle
                 i = i + 1;
                 % expand the set of observations to allow flogging at the border of the valid intervals
                 sensor = movstd(sensor, win_size, 'omitnan');
-                flag = sensor > max(thr_min, thr_factor * mean(serialize(zero2nan(sensor .* ~isnan(zero2nan(data)))), 'omitnan'));
+                flag = sensor > max(thr_min, thr_factor * mean(serialize(zero2nan(sensor .* logical(data))), 'omitnan'));
                 data(flag) = NaN;
                 data_interp(flag) = NaN;
                 flagged_out  = flagged_out | flag;
@@ -204,7 +204,7 @@ classdef Core_PP < handle
                 i = i + 1;
                 % expand the set of observations to allow flogging at the border of the valid intervals
                 sensor = movstd(sensor, win_size, 'omitnan');
-                flag = sensor > max(thr_min, thr_factor * mean(serialize(zero2nan(sensor .* ~isnan(zero2nan(data)))), 'omitnan'));
+                flag = sensor > max(thr_min, thr_factor * mean(serialize(zero2nan(sensor .* logical(data))), 'omitnan'));
                 data(flag) = NaN;
                 data_interp(flag) = NaN;
                 flagged_out  = flagged_out | flag;

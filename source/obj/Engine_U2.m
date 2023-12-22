@@ -1473,7 +1473,7 @@ classdef Engine_U2 < handle
                             idx_rm = [idx_rm; idx_par(idx_rm_rm)];
                         end
                     end
-                    
+
                     idx_par = idx_time_y(time_tmp_y(:,1) <= e & ( is_y_ep_wise| time_tmp_y(:,2) > e));
                     if any(idx_par)
                         [~,idx_rm_rm] = min(this.rec_par(idx_par));
@@ -1481,7 +1481,7 @@ classdef Engine_U2 < handle
                             idx_rm = [idx_rm; idx_par(idx_rm_rm)];
                         end
                     end
-                    
+
                     idx_par = idx_time_z(time_tmp_z(:,1) <= e & ( is_z_ep_wise| time_tmp_z(:,2) > e));
                     if any(idx_par)
                         [~,idx_rm_rm] = min(this.rec_par(idx_par));
@@ -1497,7 +1497,7 @@ classdef Engine_U2 < handle
                                 idx_rm = [idx_rm; uint32(idx_par(idx_rm_rm))];
                             end
                         end
-                        
+
                         idx_par = idx_time_e(time_tmp_e(:,1) <= e & ( is_e_ep_wise | time_tmp_e(:,2) > e));
                         if any(idx_par)
                             [~,idx_rm_rm] = min(this.rec_par(idx_par));
@@ -1505,7 +1505,7 @@ classdef Engine_U2 < handle
                                 idx_rm = [idx_rm; uint32(idx_par(idx_rm_rm))];
                             end
                         end
-                        
+
                         idx_par = idx_time_n(time_tmp_n(:,1) <= e & ( is_n_ep_wise | time_tmp_n(:,2) > e));
                         if any(idx_par)
                             [~,idx_rm_rm] = min(this.rec_par(idx_par));
@@ -1518,7 +1518,6 @@ classdef Engine_U2 < handle
             end
             this.idx_rd = unique(noZero(idx_rm));
         end
-        
         
         function removeEstParam(this, idx)
             % remove and estimated parameter from the system

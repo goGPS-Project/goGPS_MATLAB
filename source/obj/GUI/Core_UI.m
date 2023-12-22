@@ -50,6 +50,7 @@ classdef Core_UI < Logos
         LIGHT_GREY_BG_NOT_SO_LIGHT2 =  0.73 * ones(3, 1);
         LIGHT_GREY_BG_NOT_SO_LIGHT =  0.79 * ones(3, 1);
         LIGHT_GREY_BG = 0.85 * ones(3, 1);
+        LIGHT_GREY = 0.75 * ones(3, 1);
         DARK_GREY_BG = [0.2431372549 0.2470588235 0.2509803922];
         DARKER_GREY_BG = [0.1529411765 0.1529411765 0.1568627451];
         WHITE = ones(1, 3);

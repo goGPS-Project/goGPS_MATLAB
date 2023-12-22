@@ -2518,8 +2518,8 @@ classdef Atmosphere < handle
             %   and input parameters.
             %
             % SYNTAX:
-            %   For zd_model 1: zwd = Athmosphere.getAprZWD(1, [], T, H, [], [], h_ortho)
-            %   For zd_model 2: zwd = Athmosphere.getAprZWD(2, [], T, H, lat, lon, h_ortho, h_ellips, time)
+            %   For zd_model 1: zwd = Atmosphere.getAprZWD(1, [], T, H, [], [], h_ortho)
+            %   For zd_model 2: zwd = Atmosphere.getAprZWD(2, [], T, H, lat, lon, h_ortho, h_ellips, time)
             %
             % INPUT:
             %   zd_model - Model type (1 for saastamoinen, 2 for vmf gridded)

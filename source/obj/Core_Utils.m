@@ -919,7 +919,7 @@ classdef Core_Utils < handle
             %   id_ok = Core_Utils.polarCleaner(az, el, data, step_deg)
             
             % az -180 : 180
-            %% el 0 : 90
+            % el 0 : 90
             %figure; polarScatter(az, pi/2-el, 5, data); colormap(gat);
             if nargin < 4
                 step_deg = [360, 1; 3, 3];
@@ -2597,12 +2597,13 @@ classdef Core_Utils < handle
             % INPUT
             %   t           column array of epochs
             %   data        columns of data (could be a matrix)
+            %   err         error level around data
             %   color       color of the patch
             %   alpha       alpha of the patch
             %   varagin     add other useful parameters of the plot
             %
             % SYNTAX
-            %   lh = Core_Utils.plotConfBand(t, data, color, varargin);
+            %   lh = Core_Utils.plotConfBand(t, data, err, color, varargin);
             %
             % SEE ALSO
 
@@ -2613,11 +2614,13 @@ classdef Core_Utils < handle
                 alpha = 0.1;
             end
             ph_list = [];
-            patch_lim = getFlagsLimits(~isnan(err));
-            for p = 1:size(patch_lim, 1)
-                x_patch = [t(patch_lim(p,1):patch_lim(p,2)); flipud(t(patch_lim(p,1):patch_lim(p,2)))]; % concatenate x values back-to-front
-                y_patch = [data(patch_lim(p,1):patch_lim(p,2)) + err(patch_lim(p,1):patch_lim(p,2)); flipud(data(patch_lim(p,1):patch_lim(p,2)) - err(patch_lim(p,1):patch_lim(p,2)))]; % concatenate y values for upper and lower bounds
-                ph_list = [ph_list patch(x_patch, y_patch, 'k', 'FaceColor', color, 'EdgeColor', 'none', 'FaceAlpha', alpha, 'HandleVisibility', 'off')];
+            for c = 1:size(err,2)
+                patch_lim = getFlagsLimits(~isnan(err(:,c)));
+                for p = 1:size(patch_lim, 1)
+                    x_patch = [t(patch_lim(p,1):patch_lim(p,2)); flipud(t(patch_lim(p,1):patch_lim(p,2)))]; % concatenate x values back-to-front
+                    y_patch = [data(patch_lim(p,1):patch_lim(p,2),c) + err(patch_lim(p,1):patch_lim(p,2),c); flipud(data(patch_lim(p,1):patch_lim(p,2),c) - err(patch_lim(p,1):patch_lim(p,2),c))]; % concatenate y values for upper and lower bounds
+                    ph_list = [ph_list patch(x_patch, y_patch, 'k', 'FaceColor', color, 'EdgeColor', 'none', 'FaceAlpha', alpha, 'HandleVisibility', 'off')];
+                end
             end
         end
 
@@ -2681,7 +2684,6 @@ classdef Core_Utils < handle
             %  fh_list = Core_Utils.showVMFModel(vmf_file)
             
             try
-                %%
                 [txt, lim, has_cr] = Core_Utils.readTextFile(vmf_file);
                 data_lim = str2num(txt((lim(6,1) + 22):lim(6,2))); % begin_lat begin_lon ah aw zhd zwd 
                 
@@ -2708,21 +2710,21 @@ classdef Core_Utils < handle
                 zhd(id) = data_table(:,5);
                 zwd(id) = data_table(:,6);
                 %clear id data_table txt lim;
-                %%
+                
                 fh_list = figure;
                 cmap = Cmap.gat2(128);
                 subplot(2,2,1); imagesc(flipud(ah)*1e3); colorbar; colormap(cmap); title('ah'); caxis([1.1 1.3]);
                 subplot(2,2,2); imagesc(flipud(aw)*1e3); colorbar; title('aw'); caxis([0.3 0.8]);
                 subplot(2,2,3); imagesc(flipud(zhd)*1e2); colorbar; title('ZHD'); caxis([110 240]);
                 subplot(2,2,4); imagesc(flipud(zwd)*1e2); colorbar; title('ZWD'); caxis([0 45]);
-%%
+
                 fh_list = figure;
                 cmap = Cmap.gat2(128);
                 subplot(2,2,1); imagesc(flipud(zhd1)*1e2); colorbar; colormap(cmap); title('ZHD'); caxis([110 240]);
                 subplot(2,2,2); imagesc(flipud(zwd1)*1e2); colorbar; title('ZWD'); caxis([0 45]);
                 subplot(2,2,3); imagesc(flipud(zhd3)*1e2); colorbar; title('ZHD'); caxis([110 240]);
                 subplot(2,2,4); imagesc(flipud(zwd3)*1e2); colorbar; title('ZWD'); caxis([0 45]);
-                %%
+                
                 cmap = Cmap.gat2(128);
                 figure; imagesc(flipud(zhd1 - zhd3)*1e2); colorbar; colormap(gat); title('ZHD diff'); %caxis([110 240]);
                 figure; imagesc(flipud(zwd1 - zwd3)*1e2); colorbar; title('ZWD diff'); %caxis([0 45]);
@@ -4422,7 +4424,7 @@ classdef Core_Utils < handle
                 recursive_dirs = [recursive_dirs dir_list];
             end
             dir_list = recursive_dirs;
-            %%
+            
             % search for station files STAT${DOY}${S}${QQ}.${YY}
             file_list = {};
             for d = 1 : numel(dir_list)

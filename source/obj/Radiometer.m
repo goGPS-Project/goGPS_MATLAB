@@ -266,7 +266,7 @@ classdef Radiometer < handle
             fun = @(dist) exp(-((dist/max_delta)*1e5/5e3).^2);
             
             for i = 1 : 5: size(zwd_wvr,1)
-                id_ok = not(isnan(zero2nan(zwd_wvr(i,:))));
+                id_ok = logical(zwd_wvr(i,:));
                 delay = funInterp2(xp(:), yp(:), x(id_ok), y(id_ok), zwd_wvr(i,id_ok)', fun);
                 if i == 1
                     figure;
