@@ -59,7 +59,6 @@ classdef Engine_U2 < handle
         PAR_TROPO_N = 8;
         PAR_TROPO_E = 9;
         PAR_TROPO_V = 10;
-        PAR_TROPO_Z = 24;
         PAR_SAT_CLK = 11;
         PAR_ANT_MP = 12;
         PAR_IONO = 13;
@@ -71,8 +70,9 @@ classdef Engine_U2 < handle
         PAR_REC_EB_LIN = 19;
         PAR_REC_PPB = 20; % phase psudorange bias (to make ambiguity integer with common phase pseudorange observables)
         PAR_SAT_PPB = 21; % phase psudorange bias (to make ambiguity integer with common phase pseudorange observables)
-        PAR_REC_EBFR = 22; % electronic bias frequency depandant
-        PAR_SAT_EBFR = 23; % electronic bias frequency depandant
+        PAR_REC_EBFR = 22; % electronic bias frequency dependant
+        PAR_SAT_EBFR = 23; % electronic bias frequency dependant
+        PAR_TROPO_Z = 24;
         PAR_REC_CLK_PH = 25;
         PAR_REC_CLK_PR = 26;
         PAR_SAT_CLK_PH = 27;
@@ -81,7 +81,67 @@ classdef Engine_U2 < handle
         PAR_SS_PR_EB = 30; % satellite specific pseudorange bias 
         
         
-        CLASS_NAME = {'PAR_REC_X', 'PAR_REC_Y', 'PAR_REC_Z', 'PAR_REC_EB', 'PAR_AMB', 'PAR_REC_CLK', 'PAR_TROPO', 'PAR_TROPO_N', 'PAR_TROPO_E', 'PAR_TROPO_V', 'PAR_SAT_CLK', 'PAR_ANT_MP', 'PAR_IONO', 'PAR_TROPO_S', 'PAR_SAT_X', 'PAR_SAT_Y', 'PAR_SAT_Z', 'PAR_SAT_EB', 'PAR_REC_EB_LIN', 'PAR_REC_PPB', 'PAR_SAT_PPB', 'PAR_REC_EBFR', 'PAR_SAT_EBFR', 'PAR_TROPO_Z', 'PAR_REC_CLK_PH', 'PAR_REC_CLK_PR', 'PAR_SAT_CLK_PH', 'PAR_SAT_CLK_PR', 'PAR_GEOM', 'PAR_SS_PR_EB'};
+        CLASS_NAME = {'PAR_REC_X', ...
+            'PAR_REC_Y', ...
+            'PAR_REC_Z', ...
+            'PAR_REC_EB', ...
+            'PAR_AMB', ...
+            'PAR_REC_CLK', ...
+            'PAR_TROPO', ...
+            'PAR_TROPO_N', ...
+            'PAR_TROPO_E', ...
+            'PAR_TROPO_V', ...
+            'PAR_SAT_CLK', ...
+            'PAR_ANT_MP', ...
+            'PAR_IONO', ...
+            'PAR_TROPO_S', ...
+            'PAR_SAT_X', ...
+            'PAR_SAT_Y', ...
+            'PAR_SAT_Z', ...
+            'PAR_SAT_EB', ...
+            'PAR_REC_EB_LIN', ...
+            'PAR_REC_PPB', ...
+            'PAR_SAT_PPB', ...
+            'PAR_REC_EBFR', ...
+            'PAR_SAT_EBFR', ...
+            'PAR_TROPO_Z', ...
+            'PAR_REC_CLK_PH', ...
+            'PAR_REC_CLK_PR', ...
+            'PAR_SAT_CLK_PH', ...
+            'PAR_SAT_CLK_PR', ...
+            'PAR_GEOM', ...
+            'PAR_SS_PR_EB'};
+        
+        PAR_NAME = {'Rec X', ...
+            'Rec Y', ...
+            'Rec Z', ...
+            'Rec EB', ...
+            'Ambiguity', ...
+            'Rec Clock', ...
+            'Tropo ZTD', ...
+            'Tropo GR N', ...
+            'Tropo GR E', ...
+            'Tropo GR V', ...
+            'Sat Clock', ...
+            'Ant MP', ...
+            'Ionosphere', ...
+            'Troposphere', ...
+            'Sat X', ...
+            'Sat Y', ...
+            'Sat Z', ...
+            'Sat EB', ...
+            'Rec EB lin', ...
+            'Rec Ph PR B', ...
+            'Sat Ph PR B', ...
+            'Rec EB fr', ...
+            'Sat EB fr', ...
+            'Tropo Zernike', ...
+            'Rec Clock Ph', ...
+            'Rec Clock PR', ...
+            'Sat Clock Ph', ...
+            'Sat Clock PR', ...
+            'Geometry', ...
+            'SS PR EB'};
 
         % Change the mode of GLONASS fixing, Teunissen code vs Giulio
         FLAG_GLONASS_GIULIO = false;
@@ -138,7 +198,7 @@ classdef Engine_U2 < handle
         rec_par    % receiver of the parameter
         sat_par    % satellite of the parameter
         class_par  % class of the parameter
-        obs_codes_id_par  % obs code id fo the parameter
+        obs_codes_id_par  % obs code id of the parameter
         wl_id_par  % wl id of the parameter
         out_par    % parameters that are observed only by outlier observation
         phase_par  % is pahse coode or both
@@ -173,6 +233,76 @@ classdef Engine_U2 < handle
         end
     end
     
+    methods
+        function printState(this)
+            % PRINTSTATE Print the current settings.
+
+            % Define parameter names
+            par_name = this.PAR_NAME;
+
+            % Print header with vertical labels
+            fprintf('      +----+-----+-----+-----+----------+-------------------------+\n');
+            fprintf('      | Cl | REC | SAT |  id | Tracking |       Parameter         |\n');
+            fprintf('      +----+-----+-----+-----+----------+-------------------------+\n');
+
+            for i = 1:length(this.class_par)
+                fprintf(' %4d | %2s | %3s | %3s | %3s |  %7s%c|%c%-23s |\n', ...
+                    i, ...
+                    getClassValue(this.class_par(i)), ...
+                    getRecValue(this.rec_par(i)), ...
+                    getSatValue(this.sat_par(i)), ...
+                    getSatId(this.sat_par(i)), ...
+                    getTrkValue(this.unique_obs_codes{abs(this.obs_codes_id_par(i))}), ...
+                    iif((this.obs_codes_id_par(i)) < 0, '-', ' '), ...
+                    iif(ismember(i, this.idx_rd), '*', ' '), ...
+                    par_name{this.class_par(i)});
+            end
+            fprintf('      +----+-----+-----+-----+---------+-------------------------+\n');
+
+            % Helper functions to convert NaN or 0 to '-'
+            function val = getSatId(param)
+                if isnan(param) || param == 0
+                    val = '-';
+                else
+                    val = num2str(param);
+                end
+            end
+
+            function val = getClassValue(param)
+                if isnan(param) || param == 0
+                    val = '-';
+                else
+                    val = num2str(param);
+                end
+            end
+
+            function val = getRecValue(param)
+                if isnan(param) || param < 0
+                    val = '-';
+                else
+                    val = num2str(param);
+                end
+            end
+
+            function val = getSatValue(param)
+                cc = Core.getConstellationCollector();
+                if param < 0
+                    val = '-';
+                else
+                    val = cc.getSatName(param);
+                end
+            end
+
+            function val = getTrkValue(param)
+                if isempty(param)
+                    val = '-';
+                else
+                    val = sprintf('%7s', param);
+                end
+            end
+        end
+    end
+
     methods
         function addObsEq(this, rec, obs_set, param_selection)
             % add observation equations to the matrices
@@ -1232,46 +1362,49 @@ classdef Engine_U2 < handle
             %
             % SYNTAX:
             %    this.removeFullRankDeficency()
-            
+
             % TODO make a log of what is taken off to solve the rank
             % deficency
-            
+
             log = Core.getLogger;
             log.addMessage(log.indent('Solving the system'));
             cc = Core.getConstellationCollector();
-            
+
             % remove two bias per receiver
             n_rec = size(this.rec_xyz,1);
             n_sat = length(this.unique_sat_goid);
             this.idx_rd = []; %empty previous par choosen to solve the rank deficency
             idx_rm = [];
             u_ep = unique(this.time_par);
-            
+
             % remove ones bias per satellite
-            
-            
+
             if sum(this.param_class == this.PAR_SAT_EBFR) > 0
                 idx_sat_ebfr = find(this.class_par == this.PAR_SAT_EBFR);
                 for s = this.unique_sat_goid
                     idx_par = idx_sat_ebfr(this.sat_par(idx_sat_ebfr) == s);
                     if ~isempty(idx_par)
-                    wl_par = this.wl_id_par(idx_par);
-                    u_wl_par = unique(wl_par);
-                    if sum(this.param_class == this.PAR_SAT_CLK) > 0 || sum(this.param_class == this.PAR_SAT_CLK_PH) > 0  || sum(this.param_class == this.PAR_SAT_CLK_PR) > 0
-                        idx_rm = [idx_rm; uint32(idx_par(wl_par == u_wl_par(1)))];
-                    end
-                    if length(u_wl_par) > 1
-                        if sum(this.param_class == this.PAR_IONO) > 0 & this.ls_parametrization.iono(2) == LS_Parametrization.SING_REC & length(u_wl_par) > 1
-                            idx_rm = [idx_rm; uint32(idx_par(wl_par == u_wl_par(2)))];
+                        wl_par = this.wl_id_par(idx_par);
+                        u_wl_par = unique(wl_par);
+                        if sum(this.param_class == this.PAR_SAT_CLK) > 0 || ...
+                                sum(this.param_class == this.PAR_SAT_CLK_PH) > 0  || ...
+                                sum(this.param_class == this.PAR_SAT_CLK_PR) > 0  
+                            idx_rm = [idx_rm; uint32(idx_par(wl_par == u_wl_par(1)))];
+                        end
+                        if length(u_wl_par) > 1
+                            if sum(this.param_class == this.PAR_IONO) > 0 && ...
+                                    this.ls_parametrization.iono(2) == LS_Parametrization.SING_REC & length(u_wl_par) > 1
+                                idx_rm = [idx_rm; uint32(idx_par(wl_par == u_wl_par(2)))];
+                            end
                         end
                     end
-                    end
                 end
-                
+
             end
-            
-            if sum(this.param_class == this.PAR_SAT_EB) > 0 && false
-                idx_sat_eb = find(this.class_par == this.PAR_SAT_EB);
+
+            % disabled
+            if false && sum(this.param_class == this.PAR_SAT_EB) > 0
+                idx_sat_eb = find(this.class_par == this.PAR_SAT_EB & ~this.out_par);
                 for s = this.unique_sat_goid
                     idx_par = idx_sat_eb(this.sat_par(idx_sat_eb) == s & this.phase_par(idx_sat_eb) == 1);
                     wl_par = this.wl_id_par(idx_par);
@@ -1293,34 +1426,39 @@ classdef Engine_U2 < handle
                     end
                 end
             end
-            
-            if sum(this.param_class == this.PAR_REC_EBFR) > 0 
-                idx_sat_ebfr = find(this.class_par == this.PAR_REC_EBFR);
+
+            if sum(this.param_class == this.PAR_REC_EBFR) > 0
+                idx_sat_ebfr = find(this.class_par == this.PAR_REC_EBFR & ~this.out_par);
                 for s = 1 : length(this.unique_rec_name)
                     idx_par = idx_sat_ebfr(this.rec_par(idx_sat_ebfr) == s);
                     if ~isempty(idx_par)
                         wl_par = this.wl_id_par(idx_par);
                         u_wl_par = unique(wl_par);
-                        if sum(this.param_class == this.PAR_REC_CLK) > 0 || sum(this.param_class == this.PAR_REC_CLK_PH) > 0  || sum(this.param_class == this.PAR_REC_CLK_PR) > 0
+                        if sum(this.param_class == this.PAR_REC_CLK) > 0 || ...
+                                sum(this.param_class == this.PAR_REC_CLK_PH) > 0  || ...
+                                sum(this.param_class == this.PAR_REC_CLK_PR) > 0
                             idx_rm = [idx_rm; uint32(idx_par(wl_par == u_wl_par(1)))];
                         end
                         if length(u_wl_par) > 1
-                            if sum(this.param_class == this.PAR_IONO) > 0 & this.ls_parametrization.iono(2) == LS_Parametrization.SING_REC & length(u_wl_par) > 1
+                            if sum(this.param_class == this.PAR_IONO) > 0 && ...
+                                    this.ls_parametrization.iono(2) == LS_Parametrization.SING_REC & length(u_wl_par) > 1
                                 idx_rm = [idx_rm; uint32(idx_par(wl_par == u_wl_par(2)))];
                             end
                         end
                     end
                 end
             end
-            
-            if sum(this.param_class == this.PAR_REC_EB) > 0 && false
-                idx_sat_eb = find(this.class_par == this.PAR_REC_EB);
+
+            % dsabled
+            if false && sum(this.param_class == this.PAR_REC_EB) > 0
+                idx_sat_eb = find(this.class_par == this.PAR_REC_EB & ~this.out_par);
                 for r = 1 : length(this.unique_rec_name)
                     idx_par = idx_sat_eb(this.rec_par(idx_sat_eb) == r & this.phase_par(idx_sat_eb) == 1);
                     wl_par = this.wl_id_par(idx_par);
                     oi_apr = this.obs_codes_id_par(idx_par);
                     u_wl_par = unique(wl_par);
-                    if sum(this.param_class == this.PAR_IONO) > 0 & this.ls_parametrization.iono(2) == LS_Parametrization.SING_REC & length(u_wl_par) > 1
+                    if sum(this.param_class == this.PAR_IONO) > 0 && ...
+                            this.ls_parametrization.iono(2) == LS_Parametrization.SING_REC & length(u_wl_par) > 1
                         idx = 1:2;
                     else
                         idx = 1;
@@ -1342,22 +1480,24 @@ classdef Engine_U2 < handle
                         end
                     end
                 end
-                idx_rm_rec_eb = idx_rm(this.class_par(idx_rm) ==  this.PAR_REC_EB);
+                idx_rm_rec_eb = idx_rm(this.class_par(idx_rm) ==  this.PAR_REC_EB & ~this.out_par);
                 for c = 1 : length(this.unique_obs_codes)
                     idx_par = idx_sat_eb(this.obs_codes_id_par(idx_sat_eb) == c);
                     if sum(this.obs_codes_id_par(idx_rm_rec_eb) == c) == 0
                         idx_rm = [idx_rm; idx_par(1)];
                     end
-                    
+
                 end
             end
-            if sum(this.param_class == this.PAR_REC_PPB) > 0 &  sum(this.param_class == this.PAR_SAT_PPB) > 0
-                idx_rec_ppb = find(this.class_par == this.PAR_REC_PPB);
+            if sum(this.param_class == this.PAR_REC_PPB) > 0 && ...
+                    sum(this.param_class == this.PAR_SAT_PPB) > 0
+                idx_rec_ppb = find(this.class_par == this.PAR_REC_PPB & ~this.out_par);
                 idx_rm = [idx_rm; idx_rec_ppb(1)];
             end
-            
-            if sum(this.param_class == this.PAR_IONO) > 0 & this.ls_parametrization.iono(2) == LS_Parametrization.ALL_REC
-                idx_sat_ebfr = find(this.class_par == this.PAR_IONO);
+
+            if sum(this.param_class == this.PAR_IONO) > 0 && ...
+                    this.ls_parametrization.iono(2) == LS_Parametrization.ALL_REC
+                idx_sat_ebfr = find(this.class_par == this.PAR_IONO & ~this.out_par);
                 for s = this.unique_sat_goid
                     idx_par = idx_sat_ebfr(this.sat_par(idx_sat_ebfr) == s);
                     u_wl_par = unique(this.wl_id_obs(this.satellite_obs == s & ~this.outlier_obs));
@@ -1366,12 +1506,13 @@ classdef Engine_U2 < handle
                     end
                 end
             end
-            
-            
-            
-            
+
+
+
+
             % remove one clock per epoch
-            if sum(this.param_class == this.PAR_REC_CLK) > 0 && sum(this.param_class == this.PAR_SAT_CLK) > 0
+            if sum(this.param_class == this.PAR_REC_CLK) > 0 && ...
+                    sum(this.param_class == this.PAR_SAT_CLK) > 0
                 idx_rec_par = find(this.class_par == this.PAR_REC_CLK  & ~this.out_par);
                 time_par_tmp = this.time_par(idx_rec_par,1);
                 for e = u_ep'
@@ -1382,8 +1523,9 @@ classdef Engine_U2 < handle
                     end
                 end
             end
-            if sum(this.param_class == this.PAR_REC_CLK_PH) > 0 && sum(this.param_class == this.PAR_SAT_CLK_PH) > 0
-                idx_rec_par = find(this.class_par == this.PAR_REC_CLK_PH  & ~this.out_par);
+            if sum(this.param_class == this.PAR_REC_CLK_PH) > 0 && ...
+                    sum(this.param_class == this.PAR_SAT_CLK_PH) > 0
+                idx_rec_par = find(this.class_par == this.PAR_REC_CLK_PH & ~this.out_par);
                 time_par_tmp = this.time_par(idx_rec_par,1);
                 for e = u_ep'
                     idx_par = idx_rec_par(time_par_tmp == e);
@@ -1393,8 +1535,9 @@ classdef Engine_U2 < handle
                     end
                 end
             end
-            if sum(this.param_class == this.PAR_REC_CLK_PR) > 0 && sum(this.param_class == this.PAR_SAT_CLK_PR) > 0
-                idx_rec_par = find(this.class_par == this.PAR_REC_CLK_PR  & ~this.out_par);
+            if sum(this.param_class == this.PAR_REC_CLK_PR) > 0 && ...
+                    sum(this.param_class == this.PAR_SAT_CLK_PR) > 0
+                idx_rec_par = find(this.class_par == this.PAR_REC_CLK_PR & ~this.out_par);
                 time_par_tmp = this.time_par(idx_rec_par,1);
                 for e = u_ep'
                     idx_par = idx_rec_par(time_par_tmp == e);
@@ -1404,10 +1547,11 @@ classdef Engine_U2 < handle
                     end
                 end
             end
-            
-            
-            
-            if sum(this.param_class == this.PAR_REC_CLK) > 0 || sum(this.param_class == this.PAR_REC_CLK_PH) > 0
+
+
+
+            if sum(this.param_class == this.PAR_REC_CLK) > 0 || ...
+                    sum(this.param_class == this.PAR_REC_CLK_PH) > 0
                 idx_rc = find(this.class_par == this.PAR_REC_CLK & ~this.out_par);
                 idx_pr = find(~this.outlier_obs & ~this.phase_obs);
                 for r = 1 : n_rec
@@ -1415,13 +1559,14 @@ classdef Engine_U2 < handle
                     idx_o_r = idx_pr(this.receiver_obs(idx_pr) == r);
                     if ~isempty(idx_o_r)
                         idx_po = unique(this.A_idx(idx_o_r,this.param_class == this.PAR_REC_CLK));
-                        idx_rm = [idx_rm; setdiff(idx_rcr,idx_po)]; % clock param that are not linked to no code obsevration
+                        idx_rm = [idx_rm; setdiff(idx_rcr,idx_po)]; % clock param that are not linked to any code obsevration
                     end
-                    
+
                 end
             end
-            
-            if sum(this.param_class == this.PAR_SAT_CLK) > 0 || sum(this.param_class == this.PAR_SAT_CLK_PH) > 0
+
+            if sum(this.param_class == this.PAR_SAT_CLK) > 0 || ...
+                    sum(this.param_class == this.PAR_SAT_CLK_PH) > 0
                 idx_rc = find(this.class_par == this.PAR_SAT_CLK & ~this.out_par);
                 idx_pr = find(~this.outlier_obs & ~this.phase_obs);
                 for s = 1 : n_sat
@@ -1429,22 +1574,31 @@ classdef Engine_U2 < handle
                     idx_o_r = idx_pr(this.satellite_obs(idx_pr) == s);
                     if ~isempty(idx_o_r)
                         idx_po = unique(this.A_idx(idx_o_r,this.param_class == this.PAR_SAT_CLK));
-                        idx_rm = [idx_rm; setdiff(idx_rcr,idx_po)]; % clock param that are not linked to no code obsevration
+                        idx_rm = [idx_rm; setdiff(idx_rcr,idx_po)]; % clock param that are not linked to any code obsevration
                     end
                 end
             end
-            
-            for p = [this.PAR_REC_CLK this.PAR_REC_CLK_PH this.PAR_REC_CLK_PR ]
-                if sum(this.param_class == p) > 0 && sum(this.param_class == this.PAR_SAT_EB) > 0
+
+            for p = [this.PAR_REC_CLK this.PAR_REC_CLK_PH this.PAR_REC_CLK_PR]
+                if sum(this.param_class == p) > 0 && ...
+                        sum(this.param_class == this.PAR_SAT_EB) > 0
                     idx_par = find(this.class_par == p & this.rec_par == 1);
                     if not(isempty(idx_par))
                         idx_rm = [idx_rm; idx_par(1)];
                     end
                 end
             end
-            
+
             % ---- (multi receiver) for each epoch remove one coordinate --------
-            if (sum(this.param_class == this.PAR_REC_X) > 0 || sum(this.param_class == this.PAR_REC_Y) > 0  ||  sum(this.param_class == this.PAR_REC_Z) > 0 || sum(this.param_class == this.PAR_TROPO) > 0  || sum(this.param_class == this.PAR_TROPO_E) > 0  || sum(this.param_class == this.PAR_TROPO_N) > 0) && (sum(this.param_class == this.PAR_SAT_CLK) > 0 || sum(this.param_class == this.PAR_SAT_CLK_PH) > 0 || sum(this.param_class == this.PAR_SAT_CLK_PR) > 0)
+            if (sum(this.param_class == this.PAR_REC_X) > 0 || ...
+                    sum(this.param_class == this.PAR_REC_Y) > 0  ||  ...
+                    sum(this.param_class == this.PAR_REC_Z) > 0 || ...
+                    sum(this.param_class == this.PAR_TROPO) > 0  || ...
+                    sum(this.param_class == this.PAR_TROPO_E) > 0  || ...
+                    sum(this.param_class == this.PAR_TROPO_N & ~this.out_par) > 0) && ...
+                    (sum(this.param_class == this.PAR_SAT_CLK) > 0 || ...
+                    sum(this.param_class == this.PAR_SAT_CLK_PH) > 0 || ...
+                    sum(this.param_class == this.PAR_SAT_CLK_PR) > 0)
                 idx_time_x = find(this.class_par == this.PAR_REC_X & ~this.out_par);
                 prm_tmp = this.ls_parametrization.getParametrization(this.PAR_REC_X); is_x_ep_wise= prm_tmp(1) == LS_Parametrization.EP_WISE;
                 time_tmp_x = this.time_par(idx_time_x,:);
@@ -1793,6 +1947,8 @@ classdef Engine_U2 < handle
             if ~fix
                 this.fix_ratio = 0;
             end
+            log = Core.getLogger;
+
             % ------ mark short arc as outlier
             this.markShortArcs(1);
             % ------ mark single receiver or satellite epoch as outlier
@@ -1821,14 +1977,28 @@ classdef Engine_U2 < handle
                 clearvars columns rows values
                 this.A_full = A'; % save it for use in other methods
                 n_out = sum(this.outlier_obs);
-                A_out = A(:, this.outlier_obs > 0)'; % <- this is 1000 time slower with not trasposed A
-                A(:, this.outlier_obs > 0) = [];
-                A = A'; % Re-traspose A since it have been created as trasposed
-                A(:, [this.idx_rd; find(this.out_par)]) = [];
+                A_out = A(:, logical(this.outlier_obs))'; % <- this is 1000 time slower with not trasposed A
+                A(:, this.outlier_obs) = [];
+                A = A'; % Re-traspose A since it has been created as trasposed
                 
+                % Remove not estimable parameters
+                % Somehow there could be additional not estimable parameters
+                % let's add empty A columns 
+                this.idx_rd = union(this.idx_rd, find(full(sum(abs(A)) < 1e-8)));
+                this.idx_rd = setdiff(this.idx_rd, find(this.out_par));
+                id_par_out = unique([this.idx_rd; find(this.out_par)]);
+                A(:, id_par_out) = [];
                 class_par = this.class_par;
-                class_par([this.idx_rd; find(this.out_par)]) = [];
-                
+                class_par(id_par_out) = [];
+
+                log.addMonoMessage(sprintf('      Building design matrix:'));
+                log.addMonoMessage(log.indent(sprintf('- %d parameters',n_par)));
+                log.addMonoMessage(log.indent(sprintf('- %d receivers',n_rec)));
+                log.addMonoMessage(log.indent(sprintf('- %d outlier excluded',sum(this.outlier_obs))));
+                log.addMonoMessage(log.indent(sprintf('- %d parameters not estimable', numel(id_par_out))));
+                log.addMonoMessage(log.indent(sprintf('-   %d parameters removed due to rank deficiency', numel(this.idx_rd))));
+                log.addMonoMessage(log.indent(sprintf('-   %d parameters only observed by outliers', sum(this.out_par))));
+
                 zero_pars = sum(A~=0) == 0;
                 if isempty(A) % Design matrix should not be empty
                     Core.getLogger.addError('Network solution failed, something bad happened :-(');
@@ -1853,7 +2023,9 @@ classdef Engine_U2 < handle
                     time_par([this.idx_rd; find(this.out_par)],:) = [];
                     time_par(zero_pars,:) = [];
                     
-                    valid_pars = find(~Core_Utils.ordinal2logical([this.idx_rd; find(this.out_par)],n_par)); % sometimes with splines spme parameter have a zero entry
+                    % sometimes with splines spme parameter have a zero entry,
+                    % now a check on A is performed before
+                    valid_pars = find(~Core_Utils.ordinal2logical([this.idx_rd; find(this.out_par)],n_par)); 
                     this.idx_rd = [this.idx_rd; valid_pars(zero_pars)];
                     if isempty(this.reweight_obs)
                         this.reweight_obs = ones(size(this.variance_obs));
@@ -1919,35 +2091,32 @@ classdef Engine_U2 < handle
                             idx_red_cycle = idx_reduce;
                             idx_red_cycle(idx_red_cycle) = idx_time_par_red;
                             
-                            cp_cycle = class_par(idx_red_cycle);
-                            rp_cycle = rec_par(idx_red_cycle);
+                            class_par_cycle = class_par(idx_red_cycle);
                             
-                            idx_reduce_cycle_sat_clk = cp_cycle == this.PAR_SAT_CLK | cp_cycle == this.PAR_SAT_CLK_PH | cp_cycle == this.PAR_SAT_CLK_PR;
+                            idx_reduce_cycle_sat_clk = class_par_cycle == this.PAR_SAT_CLK | class_par_cycle == this.PAR_SAT_CLK_PH | class_par_cycle == this.PAR_SAT_CLK_PR;
                             prm = this.ls_parametrization.getParametrization(this.PAR_SAT_EB);
                             
                             if prm(1) == LS_Parametrization.EP_WISE
-                                idx_reduce_cycle_sat_clk = idx_reduce_cycle_sat_clk | cp_cycle == this.PAR_SAT_EB;
+                                idx_reduce_cycle_sat_clk = idx_reduce_cycle_sat_clk | class_par_cycle == this.PAR_SAT_EB;
                             end
                             prm = this.ls_parametrization.getParametrization(this.PAR_SAT_EBFR);
                             if prm(1) == LS_Parametrization.EP_WISE
-                                idx_reduce_cycle_sat_clk = idx_reduce_cycle_sat_clk | cp_cycle == this.PAR_SAT_EBFR;
+                                idx_reduce_cycle_sat_clk = idx_reduce_cycle_sat_clk | class_par_cycle == this.PAR_SAT_EBFR;
                             end
-                            idx_reduce_cycle_rec_clk = cp_cycle == this.PAR_REC_CLK | cp_cycle == this.PAR_REC_CLK_PH | cp_cycle == this.PAR_REC_CLK_PR;
+                            idx_reduce_cycle_rec_clk = class_par_cycle == this.PAR_REC_CLK | class_par_cycle == this.PAR_REC_CLK_PH | class_par_cycle == this.PAR_REC_CLK_PR;
                             prm = this.ls_parametrization.getParametrization(this.PAR_REC_EB);
                             if prm(1) == LS_Parametrization.EP_WISE
-                                idx_reduce_cycle_rec_clk = idx_reduce_cycle_rec_clk | cp_cycle == this.PAR_REC_EB;
+                                idx_reduce_cycle_rec_clk = idx_reduce_cycle_rec_clk | class_par_cycle == this.PAR_REC_EB;
                                 qr_flag = true;
                             end
                             prm = this.ls_parametrization.getParametrization(this.PAR_REC_EBFR);
                             if prm(1) == LS_Parametrization.EP_WISE
-                                idx_reduce_cycle_rec_clk = idx_reduce_cycle_rec_clk | cp_cycle == this.PAR_REC_EBFR;
+                                idx_reduce_cycle_rec_clk = idx_reduce_cycle_rec_clk | class_par_cycle == this.PAR_REC_EBFR;
                                 qr_flag = true;
                                 
                             end
                             
-                            idx_reduce_cycle_iono = cp_cycle == this.PAR_IONO;
-                            
-                            
+                            idx_reduce_cycle_iono = class_par_cycle == this.PAR_IONO;
                             
                             
                             Awr_t = Aw( idx_red_cycle, idx_time_obs);
@@ -1986,10 +2155,10 @@ classdef Engine_U2 < handle
                             if sat_clk
                                 i_sat_clk_tmp = idx_reduce_cycle_sat_clk(~idx_reduce_cycle_iono);
                                 n_sat_clk = sum(i_sat_clk_tmp);
-                                cp = cp_cycle( ~idx_reduce_cycle_iono);
-                                idx_1 = cp(i_sat_clk_tmp) == this.PAR_SAT_CLK | cp(i_sat_clk_tmp) == this.PAR_SAT_CLK_PR;
-                                idx_2 = cp(i_sat_clk_tmp) == this.PAR_SAT_CLK_PH;
-                                if true; %sum(idx_2) > 0 & iono
+                                class_par1 = class_par_cycle( ~idx_reduce_cycle_iono);
+                                idx_1 = class_par1(i_sat_clk_tmp) == this.PAR_SAT_CLK | class_par1(i_sat_clk_tmp) == this.PAR_SAT_CLK_PR;
+                                idx_2 = class_par1(i_sat_clk_tmp) == this.PAR_SAT_CLK_PH;
+                                if true %sum(idx_2) > 0 & iono
                                     iSatClk = spinv(Nr_t(i_sat_clk_tmp,i_sat_clk_tmp),[],'qr');%Core_Utils.inverseByPartsDiag(Nr_t(i_sat_clk_tmp,i_sat_clk_tmp),idx_1, idx_2);%inv(N(i_sat_clk_tmp,i_sat_clk_tmp))  ;%;%spdiags(1./diag(N(i_sat_clk_tmp,i_sat_clk_tmp)),0,n_clk_sat,n_clk_sat);
                                 else
                                     diagonal = 1./diag(Nr_t(i_sat_clk_tmp, i_sat_clk_tmp));
@@ -2013,7 +2182,6 @@ classdef Engine_U2 < handle
                                 Br_t = Br_t(~i_sat_clk_tmp) - Nt_cycle * B_satclk;
                                 
                                 cross_terms_t{2} = {iSatClk B_satclk [Nx_satclk Nx_satclk_cyle'] idx_reduce_cycle_sat_clk};
-                                
                             end
                             
                             % Reduce the matrix for receivers clocks
@@ -2047,7 +2215,7 @@ classdef Engine_U2 < handle
                     clearvars Awr_t  Ar_t Ae_t y_t Nr_t Br_t Ner_t
                     
                     % ------- fix the ambiguities
-                    c_p = class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono);
+                    class_par2 = class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono);
                     idx_amb = class_par(~idx_reduce_sat_clk & ~idx_reduce_rec_clk & ~idx_reduce_iono) == this.PAR_AMB;
                     % if there are too many coordinates to estimate SVD is too slow 
                     % => better use LD even if is less stable
@@ -2078,8 +2246,8 @@ classdef Engine_U2 < handle
                             % svd startegy
                             % reduce all other parameters, than ambiguities
                             
-                            idx_bias = c_p ==  this.PAR_REC_EB | c_p == this.PAR_REC_EB_LIN | c_p == this.PAR_REC_EBFR | c_p == this.PAR_REC_PPB  | c_p == this.PAR_SAT_PPB | c_p == this.PAR_SAT_EB | c_p == this.PAR_SAT_EBFR | c_p == this.PAR_REC_EBFR;
-                            c_p2 = c_p(~idx_bias);
+                            idx_bias = class_par2 ==  this.PAR_REC_EB | class_par2 == this.PAR_REC_EB_LIN | class_par2 == this.PAR_REC_EBFR | class_par2 == this.PAR_REC_PPB  | class_par2 == this.PAR_SAT_PPB | class_par2 == this.PAR_SAT_EB | class_par2 == this.PAR_SAT_EBFR | class_par2 == this.PAR_REC_EBFR;
+                            class_par3 = class_par2(~idx_bias);
                             flag_idx = false;
                             if any(idx_bias)
                                 [U,D,V] = svds(N(idx_bias, idx_bias),sum(idx_bias));
@@ -2111,7 +2279,7 @@ classdef Engine_U2 < handle
                                 N_ap_ap = N;
                                 B_ap_ap = B;
                             end
-                            idx_amb = c_p2 == this.PAR_AMB;
+                            idx_amb = class_par3 == this.PAR_AMB;
                             if any(~idx_amb)
                                 [U,D,V] = svds(N_ap_ap(~idx_amb, ~idx_amb),sum(~idx_amb));
                                 d = diag(D);
@@ -2139,9 +2307,15 @@ classdef Engine_U2 < handle
                             oid_amb = oid_par(class_par == this.PAR_AMB);
                             [ambs, this.fix_ratio] = Engine_U2.fixAmb(N_amb_amb, B_amb_amb,sat_amb,rec_amb,oid_amb);
                             
-                            if (this.fix_ratio < 20) && false
+                            % B_amb_amb = B_amb_amb - N_amb_amb*ambs
+                            % [L, D, P] = ldl(full(N_amb_amb(:, :))); % Compute the LDL decomposition of N            
+                            % iL_Pt = L \ P';
+                            % Caa_full = iL_Pt' * diag(1 ./diag(D)) * iL_Pt;
+                            % a_full = Caa_full * B_amb_amb;
+
+                            if (this.fix_ratio(1) < 15) && false
                                 log = Core.getLogger;
-                                log.addError(sprintf('Fixing ratio is below 20%% (%.1f%%) not using the fixed ambiguities', this.fix_ratio));
+                                log.addError(sprintf('Fixing ratio is below 15%% (%.1f%%) not using the fixed ambiguities', this.fix_ratio));
                                 flag_fix = false;
                             else
                                 B_ap_ap(~idx_amb) = B_ap_ap(~idx_amb) - N_ap_ap(~idx_amb,idx_amb)*ambs;
@@ -2151,9 +2325,9 @@ classdef Engine_U2 < handle
                                 if any(~idx_amb)
                                     phys_par_amb(~idx_amb) = C_bb*B_ap_ap(~idx_amb);
                                     % extract vcv matrix for coordinates
-                                    idx_x = find(c_p2(~idx_amb)  == this.PAR_REC_X);
-                                    idx_y = find(c_p2(~idx_amb)  == this.PAR_REC_Y);
-                                    idx_z = find(c_p2(~idx_amb)  == this.PAR_REC_Z);
+                                    idx_x = find(class_par3(~idx_amb)  == this.PAR_REC_X);
+                                    idx_y = find(class_par3(~idx_amb)  == this.PAR_REC_Y);
+                                    idx_z = find(class_par3(~idx_amb)  == this.PAR_REC_Z);
                                     this.coo_vcv(id_out_cov(:),id_out_cov(:)) = C_bb([idx_x; idx_y; idx_z] ,[idx_x; idx_y; idx_z]);
                                 else
                                     % Baaad
@@ -2167,7 +2341,7 @@ classdef Engine_U2 < handle
                                 end
                             end
                         else
-                            idx_bias = c_p ~= this.PAR_AMB; %| c_p == this.PAR_SAT_EBFR
+                            idx_bias = class_par2 ~= this.PAR_AMB; %| c_p == this.PAR_SAT_EBFR
                             disp('factorize')
                             F = factorization_lu_sparse(N(idx_bias, idx_bias),false);
                             disp('solving')
@@ -2185,9 +2359,9 @@ classdef Engine_U2 < handle
                             B(idx_bias) = B(idx_bias) - N(idx_bias,~idx_bias)*ambs;
                             x_reduced(idx_bias) = F \ B(idx_bias);
                             % here coo vcv
-                            idx_x = find(c_p(idx_bias)  == this.PAR_REC_X);
-                            idx_y = find(c_p(idx_bias)  == this.PAR_REC_Y);
-                            idx_z = find(c_p(idx_bias)  == this.PAR_REC_Z);
+                            idx_x = find(class_par2(idx_bias)  == this.PAR_REC_X);
+                            idx_y = find(class_par2(idx_bias)  == this.PAR_REC_Y);
+                            idx_z = find(class_par2(idx_bias)  == this.PAR_REC_Z);
                             if any(idx_x)
                                 coo_vcv_B = sparse(zeros(sum(idx_bias),length(idx_x)*3));
                                 for c = 1 : length(idx_x)
@@ -3302,18 +3476,23 @@ classdef Engine_U2 < handle
             
             [L, D, P] = ldl(full(N(:, :))); % Compute the LDL decomposition of N
             if nargin < 3 || isempty(tol)
-                tol = max(size(N)) * sqrt(eps(norm(diag(D),inf))) * 1e4; % Set default tolerance
+                % Set default tolerance
+                tol = max(size(N)) * sqrt(eps(norm(diag(D),inf))) * 1e4;
+                %tol = sqrt(eps(norm(diag(D),inf))) * 1e4;
+                %ds = sort(diag(D),'descend');
+                %tol = ds(rank(N));
             end
-            keep_id = diag(D) > tol; % Identify estimable ambiguities based on tolerance
+            keep_id = diag(D) >= tol; % Identify estimable ambiguities based on tolerance
 
             % Reduce matrices based on estimable ambiguities
             L_red = L(keep_id, keep_id);
-            iL_red = inv(L_red);
+            
             D_red = D(keep_id, keep_id);
             id_est_amb = (P * keep_id) > 0;
             P_red = P(id_est_amb, keep_id);
             N_red = P_red * L_red * D_red * (L_red') * (P_red');
-            Caa = P_red * iL_red' * diag(1 ./ diag(D_red)) * (iL_red) * P_red'; % Compute the variance-covariance matrix of estimable ambiguities
+            iL_Pt_red = L_red \ P_red';
+            Caa = iL_Pt_red' * diag(1 ./ diag(D_red)) * iL_Pt_red; % Compute the variance-covariance matrix of estimable ambiguities
             B_red = B(id_est_amb);
             a_hat = Caa * B_red; % Estimate the ambiguities
 
@@ -3450,7 +3629,7 @@ classdef Engine_U2 < handle
                 id_amb_est = find(id_amb_est);
                 ambs(id_amb_est(:)) = amb_fixed(:,1);
             end
-            fix_ratio = (sum(l_fixed(:,1)) / size(l_fixed, 1)) * (length(id_amb_est) / size(B_amb_amb, 1)) * 100;
+            fix_ratio = sum(l_fixed) / length(l_fixed) * 100;
             clearvars N_amb_amb B_amb_amb
         end
         
