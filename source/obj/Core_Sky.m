@@ -952,14 +952,14 @@ classdef Core_Sky < handle
                             this.clock = zeros(n_epochs, this.cc.getNumSat());
                         end
                     else
-                        idx_first = (sp3_first_ep - this.time_ref_coord) / this.coord_rate;
-                        idx_last = (sp3_last_ep - this.time_ref_coord) / this.coord_rate;
+                        idx_first = round((sp3_first_ep - this.time_ref_coord) / this.coord_rate); % use round to eliminate numerical error
+                        idx_last = round((sp3_last_ep - this.time_ref_coord) / this.coord_rate); % use round to eliminate numerical error
                         memb_idx = ismembertol([idx_first idx_last], -1 : (size(this.coord,1)+1) ); % check whether the extend of sp3 file intersect with the current data
                         c_n_sat = size(this.coord,2);
                         if memb_idx(1) == true && memb_idx(2) == false
                             n_new_epochs = idx_last - size(this.coord, 1);
                             if n_new_epochs > 0
-                                this.coord = cat(1, this.coord, zeros(n_new_epochs, c_n_sat,3));
+                                this.coord = cat(1, this.coord, zeros(n_new_epochs, c_n_sat, 3));
                                 if clock_flag
                                     this.clock = cat(1, this.clock, zeros(n_new_epochs,c_n_sat));
                                 end
@@ -1788,8 +1788,8 @@ classdef Core_Sky < handle
                 c2_idx = strfind(head_line,'OBS2') -1 ;
                 val_idx = strfind(head_line,'__ESTIMATED_VALUE____') - 1;
                 std_idx = strfind(head_line,'_STD_DEV___') - 1;
-                time_start_idx = strfind(head_line,'BIAS_START____') - 1;
-                time_end_idx = strfind(head_line,'BIAS_END______') - 1;
+                time_start_idx = strfind(head_line,'BIAS_START_') - 1;
+                time_end_idx = strfind(head_line,'BIAS_END_') - 1;
                 % removing header lines from lim
                 lim(1:eoh, :) = [];
                 
@@ -1804,23 +1804,46 @@ classdef Core_Sky < handle
                 % find dcb names presents
                 fl = lim(:,1);
                 
-                tmp = [txt(fl+svn_idx)' txt(fl+svn_idx+1)' txt(fl+svn_idx+2)' txt(fl+c1_idx)' txt(fl+c1_idx+1)' txt(fl+c1_idx+2)' txt(fl+c2_idx)' txt(fl+c2_idx+1)' txt(fl+c2_idx+2)'];
-                idx = repmat(fl+val_idx,1,20) + repmat([0:19],length(fl),1);
+                tmp = [txt(fl+svn_idx + (0:2)) txt(fl+c1_idx + (0:2)) txt(fl+c2_idx + (0:2))];
+                idx = repmat(fl+val_idx,1,21) + repmat([0:20],length(fl),1);
                 dcb = sscanf(txt(idx)','%f');
                 idx = repmat(fl+std_idx,1,11) + repmat([0:10],length(fl),1);
                 dcb_std = sscanf(txt(idx)','%f');
                 [tt] = Core.getState.getSessionLimits;
                 central_time = tt.getEpoch(1);
                 central_time.addSeconds((tt.getEpoch(2) - tt.getEpoch(1))/2);
-                year = sscanf([txt(fl+time_start_idx)' txt(fl+time_start_idx+1)' txt(fl+time_start_idx+2)' txt(fl+time_start_idx+3)' repmat(' ',length(fl),1)]','%f ');
-                doy = sscanf([txt(fl+time_start_idx+5)' txt(fl+time_start_idx+6)' txt(fl+time_start_idx+7)'  repmat(' ',length(fl),1)]','%f ');
-                sod = sscanf([txt(fl+time_start_idx+9)' txt(fl+time_start_idx+10)' txt(fl+time_start_idx+11)' txt(fl+time_start_idx+12)' txt(fl+time_start_idx+13)' repmat(' ',length(fl),1)]','%f ');
+                if (txt(fl(1)+time_start_idx + 2) == ':')
+                    year_ch_len = 2;
+                else
+                    year_ch_len = 4;
+                end
+                year_str = [txt(fl+time_start_idx + (1:year_ch_len) -1) repmat(' ',length(fl),1)];
+                year = sscanf(year_str','%f ');
+                if year_ch_len == 2
+                    if year > 80
+                        year = 1900 + year;
+                    else
+                        year = 2000 + year;
+                    end
+                end
+                doy = sscanf([txt(fl+time_start_idx+(1:3)+year_ch_len) repmat(' ',length(fl),1)]','%f ');
+                sod = sscanf([txt(fl+time_start_idx+(5:9)+year_ch_len) repmat(' ',length(fl),1)]','%f ');
                 date_start = GPS_Time.fromDoySod(year,doy,sod);
-                year = sscanf([txt(fl+time_end_idx)' txt(fl+time_end_idx+1)' txt(fl+time_end_idx+2)' txt(fl+time_end_idx+3)' repmat(' ',length(fl),1)]','%f ');
+                
+                year_str = [txt(fl+time_end_idx + (1:year_ch_len) -1) repmat(' ',length(fl),1)];
+                year = sscanf(year_str','%f ');
                 year(year< 1) = 2099;
-                doy = sscanf([txt(fl+time_end_idx+5)' txt(fl+time_end_idx+6)' txt(fl+time_end_idx+7)'  repmat(' ',length(fl),1)]','%f ');
-                sod = sscanf([txt(fl+time_end_idx+9)' txt(fl+time_end_idx+10)' txt(fl+time_end_idx+11)' txt(fl+time_end_idx+12)' txt(fl+time_end_idx+13)' repmat(' ',length(fl),1)]','%f ');
-                date_stop= GPS_Time.fromDoySod(year,doy,sod);
+                if year_ch_len == 2
+                    if year > 80
+                        year = 1900 + year;
+                    else
+                        year = 2000 + year;
+                    end
+                end
+                doy = sscanf([txt(fl+time_end_idx+(1:3)+year_ch_len) repmat(' ',length(fl),1)]','%f ');
+                sod = sscanf([txt(fl+time_end_idx+(5:9)+year_ch_len) repmat(' ',length(fl),1)]','%f ');
+                date_stop = GPS_Time.fromDoySod(year,doy,sod);
+
                 idx_keep = (date_start - central_time) < 1 &  (date_stop - central_time) > 1;
                 
                 tmp = tmp(idx_keep,:);

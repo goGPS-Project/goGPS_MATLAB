@@ -180,6 +180,18 @@ classdef Parallel_Manager < Com_Interface
             pm.setComDir(Core.getState.getComDir);
             pm.log.addMessage(pm.log.indent(sprintf('Checking for slaves into "%s"', pm.getComDir)));
             n_living_slaves = pm.checkLivingSlaves();
+            
+            % Get system processes running in the same COM folder
+            processes = getProcesses(pm.getComDir());
+            % get the ids of the real processes (not the sh scripts used to execut the commands)
+            lid_processes = ~strcmp({processes.name}, 'sh');
+
+            if ~isempty(lid_processes) && sum(lid_processes) ~= n_living_slaves
+                % there are some zombies or possible still running processes, to avoid concurrent access
+                % I need to kill them all
+                n_living_slaves = 0;
+                killProcesses(pm.getComDir()); 
+            end
             if n_living_slaves < n_slaves
                 par_ok = pm.createSlaves(n_slaves - n_living_slaves, pm.getComDir());
             else
@@ -492,6 +504,7 @@ classdef Parallel_Manager < Com_Interface
             worker2jobstart = zeros(size(worker_stack),'uint64');
             missing_job = list;
             completed_job = [];
+            old_completed_job = 0;
             active_jobs = 0;
             imported_jobs = 0;
             this.is_imported = false;
@@ -548,7 +561,10 @@ classdef Parallel_Manager < Com_Interface
                 end
                 % check for complete jobs
                 [active_jobs, completed_job, missing_job, worker_stack] = this.waitCompletedJob(active_jobs, completed_job, missing_job, worker_stack, worker2job, worker2jobstart, par_type, ref_id);
-                this.log.addMarkedMessage(sprintf('%d of %d jobs completed @ %s', numel(completed_job), numel(list), GPS_Time.now.toString('yyyy-mm-dd HH:MM:SS')));
+                if numel(completed_job) ~= old_completed_job
+                    this.log.addMarkedMessage(sprintf('%d of %d jobs completed @ %s', numel(completed_job), numel(list), GPS_Time.now.toString('yyyy-mm-dd HH:MM:SS')));
+                end
+                old_completed_job = numel(completed_job);
             end
             if isempty(worker_stack)
                 Core.getLogger.addError('All workers has been lost. Stopping parallel execution');
@@ -1260,6 +1276,16 @@ classdef Parallel_Manager < Com_Interface
             this.deleteMsg(Go_Slave.MSG_BORN, true);
             this.deleteMsg('*');
             delete(fullfile(this.getComDir, '*.mat'));
+            % If something is still running in there kill it forcibly
+            processes = getProcesses(this.getComDir());
+            % get the ids of the real processes (not the sh scripts used to execut the commands)
+            lid_processes = ~strcmp({processes.name}, 'sh');
+
+            if ~isempty(lid_processes)
+                % there are some zombies or possible still running processes, to avoid concurrent access
+                % I need to kill them all
+                killProcesses(this.getComDir()); 
+            end
         end
         
         function resurgit(this, n_workers, verbosity)

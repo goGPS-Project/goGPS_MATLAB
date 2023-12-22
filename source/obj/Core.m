@@ -1722,6 +1722,7 @@ classdef Core < handle
             if nargin < 4 || isempty(flag_cur_session)
                 flag_cur_session = false;
             end
+            fh_list = [];
             file_list = dir(fullfile(base_dir, '*_coo.mat'));
             all_coo = Coordinates; all_coo(1) = [];
             for f = 1:numel(file_list)
@@ -1738,7 +1739,7 @@ classdef Core < handle
                 end
                 if any(id_ko)
                     coo(id_ko) = [];
-                    keyboard
+                    fprintf('ERROR coordinate\n');
                     save((fullfile(file_list(f).folder, file_list(f).name)), 'coo');
                 end
             end
@@ -1760,7 +1761,7 @@ classdef Core < handle
             end
             if ~isempty(all_coo)
                 fh_list = all_coo.showErrCodes(n_obs, false);
-                for fh = fh_list(:)0
+                for fh = fh_list(:)
                     setAxis(fh);
                     setTimeTicks(28);
                 end

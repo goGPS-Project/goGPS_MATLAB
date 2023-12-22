@@ -78,17 +78,21 @@ function resetTimeTicks(h, num, format)
                     round_val = 5 / 86400;
                 end
 
+                step = round(step/(round_val))*(round_val);
+
                 % Find the center of the axis
-                center = (ax(1) + ax(2)) / 2;
+                is_odd = mod(num,2) == 1;                
+                center = round(( (ax(1) + ax(2)) / 2) /(round_val))*(round_val); % center but rounded according to round_val/2
 
                 % Calculate the tick positions symmetrically about the center
-                num_ticks_each_side = floor(num / 2);
-                tick_pos = center + (-num_ticks_each_side:num_ticks_each_side) * step;
-
-                % Round the tick positions
-                tick_pos = round(tick_pos ./ round_val) .* round_val;
+                num_ticks_each_side = ceil(diff(ax(1:2)) / step / 2) + 1;
+                tick_pos = iif(is_odd, step/2, 0) + center + (-num_ticks_each_side:num_ticks_each_side) * step;
 
                 % Remove tick positions outside the axis limits
+                % how many are fitting?
+                num_fitting = sum(((tick_pos < ax(1)) | (tick_pos > ax(2))) == 0);
+                fitting_is_odd = mod(num_fitting,2) == 1;
+                tick_pos = -iif(fitting_is_odd, step/2, 0) + iif(is_odd, step/2, 0) + center + (-num_ticks_each_side:num_ticks_each_side) * step;
                 tick_pos((tick_pos < ax(1)) | (tick_pos > ax(2))) = [];
 
                 % Determine the granularity of the tick labels
@@ -99,18 +103,11 @@ function resetTimeTicks(h, num, format)
                     c_out = 9;
                 end
 
-                if all(diff(tick_pos) >= 1)
-                    c_out = 9;
-                    tick_pos = floor(tick_pos);
-                end
-
                 if all(mod(tick_pos, 1) == 0)
                     round_val = 1;
                 end
 
                 % Set the tick positions for the axis
-                offset = floor((((ax(2)- tick_pos(end)) - (tick_pos(1) - ax(1)))/2/round_val))*round_val;
-                tick_pos = unique(tick_pos + offset);
                 set(h(i), 'XTick', tick_pos);
                 if strcmp(format, 'auto') || strcmp(format, 'doy')
                     last_date = [0 0 0 0 0 0];

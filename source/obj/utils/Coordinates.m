@@ -66,7 +66,7 @@ classdef Coordinates < Exportable & handle
         % 1.4 => adding master_name (name of the master station used as reference, one per epoch)
         % 1.5 => adding rate in header
         % 1.6 => new marker v3
-        % 1.7 => adding reflectometry support (BREVA only)
+        % 1.7 => adding reflectometry support
         % 1.8 => adding mean_snr
         % 2.0 => adding more reflectometry data (incompatible with version 1 - BREVA only)
         REF_TYPE = categorical({'ECEF','ENU','ENU_ROT'})
@@ -3445,7 +3445,7 @@ classdef Coordinates < Exportable & handle
                 if any(pos_diff_model)
                     pos_diff_model = bsxfun(@minus, pos_diff_model, median(pos_diff,1,'omitnan'));
                 end
-                %pos_diff = bsxfun(@minus, pos_diff, robAdj(pos_diff')');
+                pos_diff = bsxfun(@minus, pos_diff, robAdj(pos_diff')');
             end
 
             if any(pos_std)
@@ -4363,7 +4363,7 @@ classdef Coordinates < Exportable & handle
                 
                 flag_tooltip = true;
                 flag_label = true;
-                flag_label_bg = true;
+                flag_label_bg = false;
                 flag_fix_label = true;
                 label_color = [0.1 0.1 0.1];
                 label_size = 12;
@@ -4581,7 +4581,8 @@ classdef Coordinates < Exportable & handle
                     if flag_no_prj
                          hold on;
                     else
-                        if new_fig
+                        ax = setAxis(fh);
+                        if new_fig || isempty(ax.Children)
                             switch proj_type
                                 case 'mercator'
                                     m_proj('mercator', 'lon', dlon_ext, 'lat', dlat_ext);   % Projection
@@ -5277,7 +5278,7 @@ classdef Coordinates < Exportable & handle
             end
 
             % Get interpolated reflector height data on a regular grid
-            [rh_value, time_data, err] = coo.getReflectorHeightInterp(86400/4, 900);
+            [rh_value, time_data, err] = coo.getReflectorHeightInterp(86400/12, 900);
             coo_name = coo.getNameV3;
 
             % Get original reflectometry time and value
@@ -7916,7 +7917,8 @@ classdef Coordinates < Exportable & handle
                             % Set the orbit type e.g. GFZ final
                             %state.setPreferredOrbit(5, 'code_predicted5')
                             %state.setPreferredOrbit(1, 'gfz'); % broadcast
-                            state.setPreferredOrbit(1, 'code_mgex_aiub_rnx3'); % broadcast
+                            %state.setPreferredOrbit(1, 'code_mgex_aiub_rnx3'); % broadcast
+                            state.setPreferredOrbit(1, 'mgex_broadcast'); % broadcast
                             core.sky.clearOrbit();
                             state.updateNavFileName();
                             % Download the orbits if needed
