@@ -186,7 +186,7 @@ classdef Core_UI < Logos
                 fprintf('\n--------------------------------------------------------------------------\n');
             end
             % log.addWarning('This is goGPS nightly build\nSome parts (or all of it) could not work properly\nUse at your own risk!');
-            log.addWarning('This is a goGPS beta build, use it at your own risk!\nSome parts of it could not work properly\nPlease open a new issue on github if you found any bug');
+            log.addWarning('Please open a new issue on github if you found any bug');
             log.simpleSeparator();
             fprintf('\n');
         end
