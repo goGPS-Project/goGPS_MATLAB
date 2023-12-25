@@ -1812,6 +1812,14 @@ classdef Coordinates < Exportable & handle
             for p = 1 : numel(coo_list)
                 coo = coo_list(p);
                 tmp = coo.rate;
+                if ~isempty(tmp) && tmp == 1
+                    try
+                        % better to try to get the rate from time, it might be wrong
+                        tmp = coo.time.getRate;
+                        coo.rate = tmp;
+                    catch
+                    end
+                end
                 if isempty(tmp)
                     tmp = 1;
                 end
@@ -2309,9 +2317,9 @@ classdef Coordinates < Exportable & handle
                                 end
                                 if any(id_fix)
                                     if id_fix > numel(data_line)
-                                        coo.info.fixing_ratio(l + 1) = nan;
+                                        coo.info.fixing_ratio(l + 1,1) = nan;
                                     else
-                                        coo.info.fixing_ratio(l + 1) = single(str2double(data_line{id_fix}));
+                                        coo.info.fixing_ratio(l + 1,1) = single(str2double(data_line{id_fix}));
                                     end
                                 end
                                 if any(id_rate)
