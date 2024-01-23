@@ -4199,10 +4199,10 @@ classdef Core_Utils < handle
                 if any(strfind(remote_location, 'cddis'))
                     % cddis download data even if the compression estension is not specified, but with the wrong extension name!
                     % I need to force the extension
-                    if contains(remote_location, 'igs20')
-                            filename = [filename '.gz'];
+                    if contains(remote_location, 'igs20') || length(filename) > 20
+                        filename = [filename '.gz'];
                     else
-                            filename = [filename '.Z'];
+                        filename = [filename '.Z'];
                     end
                     compressed_name = filename;
                 end
@@ -4289,12 +4289,11 @@ classdef Core_Utils < handle
                     end
                 else
                     try
-                        [breva_path] = Core.getInstallDir();
-                        [breva_dir] = fileparts(breva_path);
+                        [breva_dir] = Core.getInstallDir();
                         [ok_status, result] = system(['"' breva_dir '\utility\thirdParty\7z1602-extra\7za.exe" -y x "' full_file_path '" -o"'  out_dir '"']); %#ok<ASGLU>
                         if (ok_status == 0)
                             ok_status = true;
-                            delete([fpath{1}]);
+                            delete(full_file_path);
                         end
                     catch
                         this.log.addError(sprintf('Please decompress the %s file before trying to use it in Breva!!!', full_file_path));

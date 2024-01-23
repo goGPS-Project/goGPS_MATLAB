@@ -172,7 +172,12 @@ classdef FTP_Downloader < handle
             ext = '';
             if not_in_cache
                 try
-                    files = dir(this.ftp_server, fullfile(folder, '*.*'));
+                    if ispc
+                        cd(this.ftp_server, folder);
+                        files = dir(this.ftp_server, '*.*');
+                    else
+                        files = dir(this.ftp_server, fullfile(folder, '*.*'));
+                    end
                     this.f_name_pool{end+1} = {folder , files};
                     idx = length(this.f_name_pool);
                 catch ex
