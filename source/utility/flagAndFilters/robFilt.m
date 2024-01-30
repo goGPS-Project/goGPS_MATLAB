@@ -212,6 +212,10 @@ function initial_value = initPad(data, pad_size)
     dt_prev = data(1);
     dt = robAdj(data(1:num_points)');
     num_points = num_points + 1;
+    if num_points == 1
+        initial_value = data;
+        return;
+    end
     norm_factor = std(data);
     thr = min(pad_size,32);
     while abs(dt - dt_prev)/norm_factor < 1 && num_points < thr
