@@ -9062,12 +9062,16 @@ classdef Receiver_Work_Space < Receiver_Commons
             sat = 1: cc.getMaxNumSat();
             
             [x, y, z] = Core.getCoreSky.getSatFixFrame(s_time);
+            [XS_loc] = this.getXSLoc();
+            
             ph_wind_up = zeros(this.time.length,length(sat));
             for s = sat
                 av_idx = logical(this.sat.avail_index(:,s));
                 i_s = reshape(x(:,s,:),[],3);
                 j_s = reshape(y(:,s,:),[],3);
-                k_s = reshape(z(:,s,:),[],3);
+                % k_s = reshape(z(:,s,:),[],3); % <- qua prima era sbagliato!!
+                k_s = rowNormalize(reshape(XS_loc(:,s,:), [], 3)); 
+
 
                 %receiver and satellites effective dipole vectors
                 Dr = s_a - k_s.*repmat(sum(k_s.*s_a,2),1,3) + cross(k_s,s_b);
@@ -10229,7 +10233,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             last_ep_coarse = min(100, this.time.length);
             ep_coarse = 1 : last_ep_coarse;
             % alternative keep the epochs with more satellites
-            [~, id_best] = sort(sum(logical(obs_set.obs),2), 'descend');
+            [~, id_best] = sort(sum(logical(nan2zero(obs_set.obs)),2), 'descend');
             ep_coarse = sort(id_best(ep_coarse));
             while(not( sum(sum(obs_set.obs(ep_coarse,:) ~= 0, 2) > 2) > min_ep_thrs) && sum(ep_coarse == this.time.length)  == 0) % checking if the selected epochs contains at least some usabele obseravables
                 ep_coarse = [ep_coarse(:)' ep_coarse(end)+1];
