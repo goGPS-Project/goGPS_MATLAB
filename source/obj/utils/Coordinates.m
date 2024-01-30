@@ -426,7 +426,7 @@ classdef Coordinates < Exportable & handle
                         this.info.flag = mergeNumericData(id_sync, nan2zero(this.info.flag), nan2zero(pos.info.flag));
 
                         % Fixing ratio
-                        this.info.fixing_ratio = mergeNumericData(id_sync, this.info.fixing_ratio, pos.info.fixing_ratio);
+                        this.info.fixing_ratio = mergeNumericData(id_sync, this.info.fixing_ratio(:), pos.info.fixing_ratio(:));
 
                         % Encyclopedia
                         this.info.obs_used = mergeNumericData(id_sync, this.info.obs_used, pos.info.obs_used);
@@ -5286,7 +5286,7 @@ classdef Coordinates < Exportable & handle
             end
 
             % Get interpolated reflector height data on a regular grid
-            [rh_value, time_data, err] = coo.getReflectorHeightInterp(86400/12, 900);
+            [rh_value, time_data, err] = coo.getReflectorHeightInterp(86400/4, 900);
             coo_name = coo.getNameV3;
 
             % Get original reflectometry time and value

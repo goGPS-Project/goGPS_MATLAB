@@ -422,6 +422,7 @@ classdef Network < handle
                         epoch = state.getSessionCentralTime;
                         rf = Core.getReferenceFrame();
                         [xyz, is_valid, areg_std_pup, flag] = rf.getCoo(this.rec_list(r).getMarkerName4Ch, epoch);
+                        areg_std_pup(areg_std_pup == 0) = 1e-5;
 
                         % If the absolute regularization is active,
                         % override the one in receiver info

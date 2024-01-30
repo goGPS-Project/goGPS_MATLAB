@@ -979,16 +979,46 @@ classdef Core_Utils < handle
         function [data_map, n_map, az_grid_out, el_grid_out] = hemiGridder(az, el, data, step_deg, step_deg_out, flag_congurent_cells, n_min)
             % Grid points on a regularly gridded semi sphere
             %
-            % INPUT 
-            %   az      azimuth
-            %   el      elevation
+            % hemiGridder grids points on a regularly gridded semi-sphere.
+            % This function is used for spatially gridding data points defined by azimuth
+            % and elevation onto a semi-spherical surface. It supports both uniform and
+            % non-uniform gridding, and can handle sparse data distributions.
             %
-            % SYNTAX
-            %   [data_map, n_map, az_grid, el_grid] = Core_Utils.hemiGridder(az, el, data, step_deg, step_deg_out, flag_congurent_cells)
-            
-            % Define grid
-            % az -180 : 180
-            % el 0 : 90
+            % INPUTS:
+            %   az                      - Azimuth values [degrees]. Range: -180 to 180.
+            %   el                      - Elevation values [degrees]. Range: 0 to 90.
+            %   data                    - Data values corresponding to each az, el pair.
+            %   step_deg                - Gridding step size in degrees for uniform gridding.
+            %   step_deg_out            - Output step size in degrees for re-gridding.
+            %   flag_congurent_cells    - Boolean flag to enable non-uniform gridding based on
+            %                             congruent cells (true) or use uniform gridding (false).
+            %   n_min                   - Minimum number of data points required in a cell.
+            %                             Cells with fewer points will be set to zero.
+            %
+            % OUTPUTS:
+            %   data_map                - 2D grid of data values on the semi-sphere.
+            %   n_map                   - 2D grid representing the count of data points in each cell.
+            %   az_grid_out             - Grid azimuth values post re-gridding.
+            %   el_grid_out             - Grid elevation values post re-gridding.
+            %
+            % SYNTAX:
+            %   [data_map, n_map, az_grid_out, el_grid_out] =
+            %       hemiGridder(az, el, data, step_deg, step_deg_out, flag_congurent_cells, n_min)
+            %
+            % DETAILS:
+            %   The function first defines the grid based on the input parameters, then
+            %   maps the data onto this grid. If the flag_congurent_cells is set, the azimuth
+            %   gridding varies with elevation to maintain roughly equal area cells across the
+            %   semi-sphere. The function also supports re-gridding the data to a different
+            %   resolution specified by step_deg_out. Post-processing options include filtering
+            %   out cells with insufficient data points.
+            %
+            % EXAMPLE:
+            %   [data_map, n_map, az_grid, el_grid] =
+            %       hemiGridder(az, el, data, 5, 2, true, 3);
+            %   This will grid the data on a semi-sphere with 5-degree gridding, re-grid with 2-degree
+            %   resolution, use non-uniform gridding, and filter out cells with fewer than 3 data points.
+            %
             el_grid = flipud(((step_deg(end) / 2) : step_deg(end) : 90 - (step_deg(end) / 2))' .* (pi/180));
             flag_congurent_cells = nargin >= 6 && ~isempty(flag_congurent_cells) && flag_congurent_cells;
             if nargin < 7
@@ -3073,109 +3103,150 @@ else
         end
 
         function coords = selectPolygon(lat, lon)
-            % This function selects a polygon from an image using the mouse.
+            % selectPolygon - Selects a polygon from a map using mouse clicks.
+            %
+            % This function allows users to select a polygon on a map. Users can
+            % add vertices to the polygon by right-clicking and can drag existing
+            % vertices by left-clicking. A vertex changes color when it is near the cursor
+            % and can be dragged. Instructions and keyboard shortcuts are provided for ease of use.
             %
             % INPUTS:
-            % - img: the image to select the polygon from
+            % - lat, lon: Latitude and longitude to center the map (optional).
             %
             % OUTPUTS:
-            % - poly: a matrix containing the coordinates of the selected polygon
-            %
-            % SYNTAX:
-            % poly = selectPolygon(lat, lon)
-            % poly = selectPolygon(coo)
+            % - coords: A matrix containing the coordinates of the selected polygon.
 
-            % Show map with lat/lon as center
+            % Check the number of arguments to set the center of the map
             if nargin == 1 
                 [lat, lon] = lat.getMedianPos.getGeodetic();
                 lat = lat * 180 / pi;
                 lon = lon * 180 / pi;                
             end
+
+            % Create figure and set map limits
             fh = figure;
             xlim([lon-0.002, lon+0.002]);
             ylim([lat-0.002, lat+0.002]);
+            Core_UI.beautifyFig(fh);
             gm = addMap('alpha', 0.95, 'provider', 'satellite');
             plot(lon, lat, '^', 'color', Core_UI.ORANGE, 'markersize', 10, 'linewidth', 5); hold on;
-            title(sprintf('Design a polygon, create a new point by right clicking'))
-            % Initialize variables
+            instructions = sprintf('Right-Click to add points.\nLeft-Click near point to drag');
+            title(sprintf('Design a polygon\n\\fontsize{10} %s\\fontsize{5} \n',instructions));
+
+            % Instructions
+            
+            % Initialize variables for polygon and UI
             coords = [];
             h_line = line(nan, nan, 'Color', 'b', 'LineWidth', 2, 'LineStyle', '-.', 'Marker', '.', 'MarkerSize', 30, 'MarkerEdgeColor', 'b', 'MarkerFaceColor', 'b', 'Parent', gca);
             h_patch = patch(nan, nan, 'b', 'MarkerEdgeColor', 'none', 'MarkerFaceColor', 'b', 'FaceAlpha', 0.3, 'Parent', gca);
-            set(h_line, 'XData', [], 'YData', []);
-            button_down = false;
-            
+            h_dragged_point = plot(nan, nan, 'o', 'color', 'red', 'MarkerFaceColor', 'red', 'MarkerEdgeColor', 'w', 'MarkerSize', 12, 'LineWidth', 2); % Dragged point
+            uistack(h_dragged_point, 'top'); % Bring the dragged point to the front
             txt = uicontrol('Style', 'edit', 'Position', [60 5 400 20]);
             fig_width = fh.Position(3);
             txt.Position(3) = fig_width - txt.Position(1) - 10;
-
             drawnow;
-            % Set up the listener for mouse clicks
+
+            % Set up listeners for mouse interactions and window resize
             set(gm, 'ButtonDownFcn', @mouseClickFcn);
             set(h_patch, 'ButtonDownFcn', @mouseClickFcn);
+            set(fh, 'WindowButtonUpFcn', @mouseReleaseFcn);
+            set(fh, 'KeyPressFcn', @keyPressFcn);
+            set(fh, 'SizeChangedFcn', @resizeUI);
 
-            % Add button to remove last point
+            % Initialize dragging-related variables
+            is_dragging = false;
+            dragged_vertex_index = [];
+
+            % Add UI controls for undo functionality
             undu = uicontrol('Style', 'pushbutton', 'String', 'Undo', 'Position', [20, 5, 40, 20], 'Callback', @undoCallback);
 
+            % Mouse click function to handle adding and dragging points
+            function mouseClickFcn(~, event)
+                pt = get(gca, 'CurrentPoint');
+                pt = [pt(1,1), pt(1,2)];
 
-            menu_action = uimenu(fh, 'Label', 'Actions');
-            mitem = uimenu(menu_action, 'Label', 'Enable Mouse grab');
-            mitem.Callback = @enableMouseGrab;
-            mitem = uimenu(menu_action, 'Label', 'Undu');
-            mitem.Callback = @undoCallback;
-
-            function enableMouseGrab(~, ~)
-                % Set up the listener for mouse clicks
-                img = findall(gca, 'Type', 'Image');
-                for i = 1:numel(img)
-                    set(img(i), 'ButtonDownFcn', @mouseClickFcn);
-                end
-                h_patch = findall(gca, 'Type', 'Patch');
-                set(h_patch, 'ButtonDownFcn', @mouseClickFcn);
-            end
-
-            function undoCallback(~, ~)
-                if ~isempty(coords)
-                    coords(end,:) = [];
-                    if isempty(coords)
-                        coords = [nan, nan];
-                    end
+                [is_near, index] = isNearVertex(pt, coords);
+                if event.Button == 1 && is_near % Left button for dragging
+                    is_dragging = true;
+                    dragged_vertex_index = index;
+                    set(h_dragged_point, 'XData', coords(index,1), 'YData', coords(index,2), 'color', 'r');
+                    set(gcf, 'WindowButtonMotionFcn', @mouseDragFcn);
+                elseif event.Button == 3 % Right button to add new vertex
+                    coords(end+1,:) = pt;
                     updateLine();
                 end
             end
 
-            function mouseClickFcn(~, event)
-                % Get coordinates of clicked point
-                pt = get(gca,'CurrentPoint');
-                pt = [pt(1,1), pt(1,2)];
-
-                % Check which button was pressed
-                switch event.Button
-                    case 3 % Right button
-                        % Add clicked point to list of polygon vertices
-                        coords(end+1,:) = pt;
-                        coords(isnan(coords(:,1)),:) = [];
-                        updateLine();
-
-                    otherwise % Ignore other buttons
-                        return;
-                end
-
-                if button_down % End dragging operation
-                    set(gcf, 'WindowButtonMotionFcn', '');
-                    button_down = false;
+            % Function to check if a point is near any vertex of the polygon
+            function [is_near, index] = isNearVertex(point, vertices)
+                if isempty(vertices)
+                    is_near = false;
+                    index = 0;
+                else
+                    tolerance = 0.001; % Define a tolerance for proximity
+                    distances = sqrt(sum((vertices - point).^2, 2));
+                    [min_distance, index] = min(distances);
+                    is_near = min_distance < tolerance;
                 end
             end
 
-            function updateLine()
-                % Update line with new vertices
-                set(h_line, 'XData', coords([1:end,1],1), 'YData', coords([1:end,1],2));
+            % Function to handle dragging of a vertex
+            function mouseDragFcn(~, ~)
+                if is_dragging
+                    pt = get(gca, 'CurrentPoint');
+                    pt = [pt(1,1), pt(1,2)];
+                    coords(dragged_vertex_index, :) = pt;
+                    set(h_dragged_point, 'XData', pt(1), 'YData', pt(2));
+                    updateVisuals();
+                end
+            end
+
+            % Function to handle release of mouse button after dragging
+            function mouseReleaseFcn(~, ~)
+                if is_dragging
+                    is_dragging = false;
+                    set(gcf, 'WindowButtonMotionFcn', '');
+                    set(h_dragged_point, 'XData', nan, 'YData', nan, 'color', 'green'); % Reset the dragged point
+                    updateLine();
+                end
+            end
+
+            % Function to update the visuals of the line and patch
+            function updateVisuals()
+                                set(h_line, 'XData', coords([1:end,1],1), 'YData', coords([1:end,1],2));
                 set(h_patch, 'XData', coords([1:end,1],1), 'YData', coords([1:end,1],2));
-                % Update the text field with the coordinates
+                end
+
+            % Function to update the line, patch, and text field
+            function updateLine()
+                updateVisuals();
                 set(txt, 'String', sprintf('poly_mask = %s', mat2str(coords, 9)));
             end
 
+            % Undo callback to remove last point
+            function undoCallback(~, ~)
+                if ~isempty(coords)
+                    coords(end,:) = [];
+                    updateLine();
+                end
+            end
+
+            % Function to handle keyboard shortcuts
+            function keyPressFcn(~, event)
+                if strcmp(event.Key, 'z') && any(strcmp(event.Modifier, 'control'))
+                    undoCallback();
+                end
+            end
+
+            % Function to resize UI elements
+            function resizeUI(~, ~)
+                % Adjust positions and sizes of UI elements based on the figure size
+                new_width = fh.Position(3);
+                txt.Position(3) = new_width - txt.Position(1) - 10;
+            end
+
             % Wait for user to press enter or close the figure
-            uiwait(gcf);
+            uiwait(fh);
         end
         
         function in_poly_lid = inPolygon(poly_xy, x, y)
@@ -5089,7 +5160,7 @@ else
             amb_idx = Core_Utils.remEmptyAmbIdx(amb_idx);
         end
         
-        function createEmptyProject(prj_dir, prj_name, prj_type)
+        function createEmptyProject(prj_dir, prj_name, prj_type, prj_site)
             % create empty config file
             %
             % SYNTAX
@@ -5107,6 +5178,10 @@ else
             if nargin == 1
                 prj_name = prj_dir;
                 prj_dir = fnp.getFullDirPath([state.getHomeDir filesep '..']);
+            end
+
+            if nargin < 4
+                prj_site = prj_name;
             end
             
             if iscell(prj_dir)
@@ -5127,7 +5202,7 @@ else
             [status, msg, msgID] = mkdir(fnp.checkPath([prj_dir filesep 'station/MET']));
             [status, msg, msgID] = mkdir(fnp.checkPath([prj_dir filesep 'antenna']));
             [status, msg, msgID] = mkdir(fnp.checkPath([prj_dir filesep 'antenna/custom']));
-            state.setPrjHome(fnp.checkPath([prj_dir]));
+            state.setPrjHome(fnp.checkPath(prj_dir));
             state.prj_name = prj_name;
             state.setOutDir('./out');
             state.setObsDir('./RINEX');

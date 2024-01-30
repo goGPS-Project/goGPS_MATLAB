@@ -3418,7 +3418,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
     end
     
     % =========================================================================
-    %%  TEST PARAMETERS VALIDITY
+    %%  DEFAULT PROJECT SETTERS
     % =========================================================================
 
     methods (Access = 'public')
@@ -3580,11 +3580,16 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             this.cut_off = 7;
             this.abs_snr_thr = 22;
             this.scaled_snr_thr = 0;
-            this.min_arc = 330;
+            this.min_arc = 180;
             this.pp_max_code_err_thr = 50;
             this.max_code_err_thr = 50;
             this.max_phase_err_thr = 0.03;
             this.remove_eclipsing_satellites = true;
+
+            % Session
+            this.sss_file_based = false;
+            this.flag_smooth_tropo_out = false;
+            this.flag_separate_coo_at_boundary = true;
            
             % Processing
             this.w_mode = 1; % same weight for all the observations
@@ -3609,7 +3614,6 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             this.flag_atm_load = 0;
             this.flag_hoi = 0;
             this.flag_rec_pcv = 1;
-            this.flag_rec_mp = 1;
             this.flag_apr_iono = 1;
             
             % Coordinates
@@ -3628,8 +3632,9 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             
             this.flag_free_net_tropo = 0;
             
-            this.zd_model = this.ZDM_SAAST;                      % Use Saastamoinen for a-priori
-            this.mapping_function = this.MF_GMF;                 % Use GMF grids
+            this.zd_model = this.ZDM_VMF;                      % Use Saastamoinen for a-priori
+            this.mapping_function = this.MF_VMF3_1;                 % Use GMF grids
+            this.setPreferredVMFSource(1); % Use operational
             this.mapping_function_gradient = this.MFG_CHEN;      % Use chen and herrign
             this.meteo_data = 2;            % Use GPT
             
@@ -3680,7 +3685,13 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
 
             this.cmd_list = {'FOR S*', 'FOR T*', 'LOAD T$ @30s', 'PREPRO T$', 'ENDFOR', 'NET T* R1 -IONO', 'PUSHOUT T*', 'ENDFOR', 'SHOW T* ENUBSL'};            
         end
+    end
         
+    % =========================================================================
+    %%  TEST PARAMETERS VALIDITY
+    % =========================================================================
+
+    methods (Access = 'public')
         function check(this)
             % Check the validity of the fields
             %
@@ -5062,6 +5073,9 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                     date_start = date_start.getCopy;
                     date_stop = date_stop.getCopy;
                 end
+                state = Core.getState();
+                [buf_lft, ~] = state.getBuffer();
+                date_start.addIntSeconds(buf_lft + state.getSessionDuration / 2);
                 bias_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
             end
         end
@@ -5715,6 +5729,14 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %  this.setOceanDir(out_dir)
             this.ocean_dir = ocean_dir;
+        end
+
+        function setOceanFile(this, ocean_filename)
+            % Set ocean loading dir
+            %
+            % SYNTAX
+            %  this.setOceanFile(ocean_filename)
+            this.ocean_name = ocean_filename;
         end
         
         function setIniPath(this, file_path)

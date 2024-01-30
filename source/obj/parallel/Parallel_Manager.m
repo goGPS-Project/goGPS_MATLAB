@@ -1284,6 +1284,7 @@ classdef Parallel_Manager < Com_Interface
             if ~isempty(lid_processes)
                 % there are some zombies or possible still running processes, to avoid concurrent access
                 % I need to kill them all
+                pause(2);
                 killProcesses(this.getComDir()); 
             end
         end
