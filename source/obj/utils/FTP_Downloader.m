@@ -132,9 +132,9 @@ classdef FTP_Downloader < handle
             %   this.reconnect();
             try
                 if isempty(this.user)
-                    this.ftp_server = ftp(strcat(this.addr, ':', this.port), 'anonymous', 'info@gogps-project.org');
+                    this.ftp_server = ftp(strcat(this.addr, ':', this.port), 'anonymous', 'info@ogps-project.org');
                 else
-                    this.ftp_server = ftp(strcat(this.addr, ':', this.port), this.user, this.passwd);
+                    this.ftp_server = Core_Utils.ftpTimeout(strcat(this.addr, ':', this.port), 5, this.user, this.passwd);
                 end
                 cd(this.ftp_server);
                 try
@@ -147,7 +147,7 @@ classdef FTP_Downloader < handle
                 catch ex
                     % nothing to do here
                 end
-            catch
+            catch ex
                 this.ftp_server = [];
                 this.log.addWarning(['Could not connect to: ' this.addr]);
             end

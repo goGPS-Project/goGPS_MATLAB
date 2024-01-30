@@ -838,14 +838,17 @@ classdef File_Wizard < handle
             
             %connect to the CRX server
             try
-                ftp_server = ftp(aiub_ip);
+                tic; ftp_server = Core_Utils.ftpTimeout(aiub_ip,3); toc
+                if isempty(ftp_server)
+                    log.addMessage(log.indent(sprintf(['FTP connection to the AIUB server (ftp://' aiub_ip '). Timeout...'])));
+                    return
+                end
             catch
                 log.addMessage(log.indent(sprintf(['FTP connection to the AIUB server (ftp://' aiub_ip '). Please wait...'])));
                 log.addError('Connection failed.');
                 return
             end
-            
-            
+                        
             for y = 1 : length(year)
                 
                 %target directory

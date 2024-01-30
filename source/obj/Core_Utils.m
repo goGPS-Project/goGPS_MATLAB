@@ -3479,6 +3479,42 @@ classdef Core_Utils < handle
         %% OTHER FUNCTIONS
         %--------------------------------------------------------------------------
 
+        function ftp_server = ftpTimeout(ip, time_out_seconds, user_name, passwd)
+            % Call FTP with timeout
+            %
+            % INPUT
+            %   ip                  ip address
+            %   time_out_seconds    time out [in seconds]
+            %   user_name           (optional username)
+            %   passwd              (optional password)
+            %
+            % SYNTAX
+            %   ftp_server = ftpTimeout(ip, time_out_seconds, <user_name>, <passwd>)
+            %
+
+            import org.apache.commons.net.ftp.FTPClient;
+            import java.net.SocketTimeoutException;
+
+            time_out_seconds = time_out_seconds * 1000;
+            % Attempt to connect to the FTP server using java
+            try
+                ftp_client = FTPClient();
+                ftp_client.setConnectTimeout(time_out_seconds);
+                ftp_client.connect(strrep(ip,':21', ''));
+                ftp_client.logout();
+                ftp_client.disconnect();
+                
+                if nargin == 4
+                    ftp_server = ftp(ip, user_name, passwd);
+                else
+                    ftp_server = ftp(ip);
+                end
+                % Use ftp_server for your operations here
+            catch e
+                ftp_server = [];
+            end
+        end
+
         function str = exportNominatimCache(file_path)
             % Export in text file the nominatim cache
             % Load cache from file
@@ -5104,8 +5140,9 @@ classdef Core_Utils < handle
                 end
             end
             
-            state.setOceanDir('station/ocean');
-            ocean_file = fullfile(state.getHomeDir, state.getOceanFile);
+            state.setOceanDir(fullfile(state.getHomeDir, 'station/ocean'));
+            state.setOceanFile([prj_site '.blq']);
+            ocean_file = state.getOceanFile();
             if ~exist(ocean_file, 'file')
                 try
                     % try to create an empty ocean loading file
@@ -5115,9 +5152,21 @@ classdef Core_Utils < handle
                 catch ex
                 end
             end
+
+            % Set resources dir:
+            data_dir = fnp.getFullDirPath(fullfile(prj_dir, '..', '..'));
+            state.eph_dir = fullfile(data_dir, 'satellite', 'EPH', '${WWWW}');
+            state.clk_dir = fullfile(data_dir, 'satellite', 'CLK', '${WWWW}');
+            state.erp_dir = fullfile(data_dir, 'reference', 'ERP', '${YYYY}');
+            state.bias_dir = fullfile(data_dir, 'satellite', 'BIAS');
+            state.iono_dir = fullfile(data_dir, 'reference', 'IONO', '${YYYY}');
+            state.vmf_dir = fullfile(data_dir, 'reference', 'VMF', '${VMFR}', '${VMFS}', '${YYYY}');            
+            state.atm_load_dir = fullfile(data_dir, 'reference', 'ATM_LOAD', '${YYYY}');            
             
             config_path = fnp.checkPath([prj_dir filesep 'config' filesep 'config.ini']);
-            if nargin == 3
+            state.setSessionDuration(86400);
+            state.setBuffer(7200, 7200);
+            if nargin >= 3
                 switch prj_type
                     case 1 % PPP for tropo
                         state.setToTropoPPP();
