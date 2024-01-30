@@ -2878,8 +2878,13 @@ classdef Core_Utils < handle
                     end
                     lim = [[1; nl(1 : end - 1) + 1] (nl - 1 - double(has_cr))];
                     lim = [lim lim(:,2) - lim(:,1) + 1];
-                    while lim(end,3) < min_line_len
-                        lim(end,:) = [];
+                    l = 1;
+                    while l <= size(lim,1)
+                        if lim(l,3) < min_line_len
+                        lim(l,:) = [];
+else
+                            l = l + 1;
+                        end
                     end
                     
                     % removing empty lines at end of file
