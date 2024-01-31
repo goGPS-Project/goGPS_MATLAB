@@ -220,6 +220,7 @@ classdef Command_Interpreter < handle
         PAR_E_TROPO_MAT % Tropo export Parameter mat format
         PAR_E_TROPO_CSV % Tropo export Parameter csv format
         PAR_E_TROPO_HN  % Tropo export Parameter hn format
+        PAR_E_DT_BIPM   % Time export BIPM like
 
         PAR_E_RFL_MAT   % Reflector height within a coordinate (mat format)
         PAR_E_COO_MAT   % Coordinates in goGPS mat format
@@ -349,6 +350,13 @@ classdef Command_Interpreter < handle
             this.PAR_OTYPE.class = 'char';
             this.PAR_OTYPE.limits = [];
             this.PAR_OTYPE.accepted_values = [];
+
+            this.PAR_OBSCODESYS.name = 'System and Observation Code';
+            this.PAR_OBSCODESYS.descr = '-soc=<sysch_obscode_list> System (e.g. -soc=GL1C,GC2W)';
+            this.PAR_OBSCODESYS.par = '(\-soc\=)|(\-\-sysch_obs_code\=)'; % (regexp) parameter prefix: -soc --sysch_obs_code
+            this.PAR_OBSCODESYS.class = 'string';
+            this.PAR_OBSCODESYS.limits = [];
+            this.PAR_OBSCODESYS.accepted_values = [];
             
             this.PAR_CTYPE.name = 'coordinates type';
             this.PAR_CTYPE.descr = '-c=<type>          Modifier: change coordinate type (-1 external coo file, 0 coordinates of the sessions, 1 first additional coordinates, 2 second additional coordinates, 3 third additional coordinates)';
@@ -442,6 +450,13 @@ classdef Command_Interpreter < handle
             this.PAR_M_UNCOMBINED.class = '';
             this.PAR_M_UNCOMBINED.limits = [];
             this.PAR_M_UNCOMBINED.accepted_values = [];
+
+            this.PAR_M_TIMING.name = 'Use the timing tailored solution';
+            this.PAR_M_TIMING.descr = '-t                 (flag) use the uncombined engine';
+            this.PAR_M_TIMING.par = '(-T)|(-T)|(--timing)|(--TIMING)';
+            this.PAR_M_TIMING.class = '';
+            this.PAR_M_TIMING.limits = [];
+            this.PAR_M_TIMING.accepted_values = []
 
             this.PAR_M_FREE_NET.name = 'Free network';
             this.PAR_M_FREE_NET.descr = '--free             (flag) let the network free';
@@ -942,6 +957,13 @@ classdef Command_Interpreter < handle
             this.PAR_E_TROPO_HN.class = '';
             this.PAR_E_TROPO_HN.limits = [];
             this.PAR_E_TROPO_HN.accepted_values = {};
+
+            this.PAR_E_DT_BIPM.name = 'Time BIPM like format';
+            this.PAR_E_DT_BIPM.descr = 'DT_BIPM             Time parameters as a BIPM like format';
+            this.PAR_E_DT_BIPM.par = '(dt_bipm)|(DT_BIPM)';
+            this.PAR_E_DT_BIPM.class = '';
+            this.PAR_E_DT_BIPM.limits = [];
+            this.PAR_E_DT_BIPM.accepted_values = {};
             
             this.PAR_E_TROPO_CSV.name = 'TROPO CSV format';
             this.PAR_E_TROPO_CSV.descr = 'TRP_CSV            Tropo parameters as .csv file';
@@ -1082,7 +1104,7 @@ classdef Command_Interpreter < handle
             this.CMD_PPP.name = {'PPP', 'precise_point_positioning'};
             this.CMD_PPP.descr = 'Precise Point Positioning using carrier phase observations';
             this.CMD_PPP.rec = 'T';
-            this.CMD_PPP.par = [this.PAR_SS this.PAR_M_UNCOMBINED];
+            this.CMD_PPP.par = [this.PAR_SS this.PAR_M_UNCOMBINED this.PAR_M_TIMING];
             
             this.CMD_NET.name = {'NET', 'network'};
             this.CMD_NET.descr = 'Network solution using undifferenced carrier phase observations';
@@ -2305,13 +2327,18 @@ classdef Command_Interpreter < handle
                 [sys_list, sys_found] = this.getConstellation(tok);
                 
                 flag_uncombined = false;
+                flag_timing = false;
                 for t = 1 : numel(tok)
                     if ~isempty(regexp(tok{t}, ['^(' this.PAR_M_UNCOMBINED.par ')*$'], 'once'))
                         % use the original plane based interpolation
                         flag_uncombined = true;
                     end
-                end
+                    if ~isempty(regexp(tok{t}, ['^(' this.PAR_M_TIMING.par ')*$'], 'once'))
+                        % use the original plane based interpolation
+                        flag_timing = true;
+                    end
                 
+                end
                 for r = id_trg
                     if rec(r).work.loaded_session ~=  Core.getCurrentCore.getCurSession()
                         log.addError(sprintf('Receiver %d: %s seems to be empty, PPP is not possible.', r, rec(r).getMarkerName()));
@@ -2327,7 +2354,14 @@ classdef Command_Interpreter < handle
                                 log.addWarning('PPP for single frequency receiver must be enabled\nin advanced settings:\nSet "flag_ppp_force_single_freq = 1" to enable it');
                             else
                                 try
-                                    if flag_uncombined
+                                    if flag_timing
+                                        log.addWarning('Timing solution enabled');
+                                        if sys_found
+                                            rec(r).work.staticPPP_Timing(sys_list);
+                                        else
+                                            rec(r).work.staticPPP_Timing();
+                                        end
+                                    elseif flag_uncombined
                                         log.addWarning('Uncombined engine enabled');
                                         if sys_found
                                             rec(r).work.staticPPP_U2(sys_list);
@@ -2671,6 +2705,7 @@ classdef Command_Interpreter < handle
                     flag_free_network = false;
                     coo_rate = [];
                     fr_id = 1;
+                    obs_code = '???';
                     [rate, found] = this.getNumericPar(tok, this.PAR_RATE.par);
                     
                     if found
@@ -2687,11 +2722,16 @@ classdef Command_Interpreter < handle
                             fr_id  = regexp(tok{t}, ['^(' this.PAR_BAND.par ')*$'], 'once');
                             fr_id = str2num(tok{t}(fr_id+1));
                         end
+                        if ~isempty(regexp(tok{t}, ['^(' this.PAR_OBSCODESYS.par ')*'], 'once'))
+                            [~,p]  = regexp(tok{t}, ['^(' this.PAR_OBSCODESYS.par ')*'], 'once');
+                            obs_code = tok{t}(p+1:end);
+
+                        end
                     end
                     try
                         %if flag_uncombined
                         log.addMarkedMessage('Uncombined engine enabled');
-                        net.adjust(id_ref, coo_rate, flag_free_network);
+                        net.adjust(id_ref, coo_rate, flag_free_network,obs_code);
                     catch ex
                         log.addError(['Command_Interpreter - Network solution failed:' ex.message]);
                         Core_Utils.printEx(ex);
@@ -3717,6 +3757,8 @@ classdef Command_Interpreter < handle
                                         not_exported = false;
                                     elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_TROPO_HN.par ')*$'], 'once'))
                                         out_file_list = rec(r).exportHydroNET();
+                                    elseif ~isempty(regexp(tok{t}, ['^(' this.PAR_E_DT_BIPM.par ')*$'], 'once'))
+                                        rec(r).work.exportTimeBIPMFormat();
                                         not_exported = false;
                                     end
                                 end
