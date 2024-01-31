@@ -122,6 +122,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         % FLAGS ------------------------------
         
         ph_idx             % idx of outlier and cycle slip in obs,
+        pr_idx             % 
         % corresponding index in .obs of the columns of outlier and cs in .sat
         
         if_amb;            % temporary varibale to test PPP ambiguity fixing
@@ -303,6 +304,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.obs        = [];         % huge observation matrix with all the observables for all the systems / frequencies / ecc ...
             
             this.ph_idx = [];
+            this.pr_idx = [];
             this.if_amb = [];
             this.synt_ph = [];
             this.sat_cache = [];
@@ -375,6 +377,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.flag_rid = 0;            % clock offset of the receiver
             
             this.ph_idx = [];
+            this.pr_idx = [];
             this.if_amb = [];
             this.synt_ph = [];
             this.sat_cache = [];
@@ -707,12 +710,15 @@ classdef Receiver_Work_Space < Receiver_Commons
                 go_out = setdiff(go_out, unique(this.go_id(this.obs_code(:,1) == 'L')));
 
                 id_out = [];
-                if isempty(this.ph_idx)
-                    this.ph_idx = find(this.obs_code(:,1) == 'L');
-                end
-                for i = 1 : numel(id_obs)
-                    id_out = [id_out, find(this.ph_idx == id_obs(i))]; %#ok<AGROW>
-                end
+            if isempty(this.ph_idx)
+                this.ph_idx = find(this.obs_code(:,1) == 'L');
+            end
+            if isempty(this.pr_idx)
+                this.pr_idx = find(this.obs_code(:,1) == 'C');
+            end
+            for i = 1 : numel(id_obs)
+                id_out = [id_out, find(this.ph_idx == id_obs(i))]; %#ok<AGROW>
+            end
                 if ~isempty(this.ph_idx)
                     if isempty(this.obs_code)
                         this.ph_idx = [];
@@ -2010,26 +2016,308 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
 
-        function detectOutlierMarkCycleSlip(this, flag_rem_dt)
+        function detectOutlierMarkCycleSlipMWB(this)
+            % detect outlier and mark cycle slips based on MWB (case very
+            % low sampling rate)
+            %
+            % SYNTAX
+            %   this.detectOutlierMarkCycleSlipMWB()
+            group_delay_applied = this.group_delay_status;       
+            this.remGroupDelay(); % This might cause cycle slips at the day boundary
+            win_avg = 5; % windows used for averaging
 
+            this.sat.outliers_ph_by_ph = [];
+            [ph, wl, lid_ph] = this.getPhases;
+            [pr, lid_pr] = this.getPseudoRanges;
+            this.sat.outliers_ph_by_ph = false(size(ph));
+            this.sat.outliers_pr_by_pr = false(size(pr));
+
+             % inititalize cycle slips with the beginning of the arcs
+            min_ep_cs = max(5,round(300/this.getRate));
+            cs_temp = [~isnan(ph(1,:)); diff(~isnan(ph)) > 0];
+            for s = 1 : size(cs_temp,2)
+                cs = find(cs_temp(:,s))';
+                cs_len = diff(find(~isnan(ph(:,s))));
+                cs_len = cs_len(cs_len > 1);
+                cs_remove = [false; cs_len < min_ep_cs];
+                cs_temp(cs(cs_remove),s) = false;
+            end
+            this.sat.cycle_slip_ph_by_ph = cs_temp;
+
+            u_syschs = unique(this.system);
+            for sys_ch = u_syschs
+                ss = Core.getConstellationCollector.getSys(sys_ch);
+                found_freq = [];
+                for i = 1:length(ss.CODE_RIN3_2BAND)
+                    if sum(this.system' == sys_ch & this.obs_code(:,2) == ss.CODE_RIN3_2BAND(i)) >0
+                        found_freq = [found_freq ss.CODE_RIN3_2BAND(i)];
+                    end
+                end
+                [obs_setl] = this.getWideLane(['L' found_freq(1)],['L' found_freq(2)], sys_ch); %widelane phase
+                [obs_setc] = this.getNarrowLane(['C' found_freq(1)],['C' found_freq(2)], sys_ch); %narrowlane code
+                fun1 = @(wl1,wl2) 1;
+                fun2 = @(wl1,wl2) -1;
+                [obs_set] =  this.getTwoFreqComb(obs_setl, obs_setc, fun1, fun2);
+                geom_free = this.getGeometryFree(['L' found_freq(1)],['L' found_freq(2)], sys_ch); % strqnge case were phase slip by the same amount of cycle, this prevents the most obvious cases....
+                d_geomfree = diff(zero2nan(geom_free.obs));
+                [idx_c1,idx_c2,idx_l1,idx_l2] = deal(zeros(size(obs_set.go_id)));
+                for i = 1 : length(obs_set.go_id)
+                    o_c1 = obs_setc.obs_code(obs_setc.go_id == obs_set.go_id(i),2:4);
+                    idx_c1(i) = find(this.system' == sys_ch & strLineMatch(this.obs_code,o_c1) & this.go_id == obs_set.go_id(i));
+                    o_c2 = obs_setc.obs_code(obs_setc.go_id == obs_set.go_id(i),5:7);
+                    idx_c2(i) = find(this.system' == sys_ch & strLineMatch(this.obs_code,o_c2) & this.go_id == obs_set.go_id(i));
+                    o_l1 = obs_setl.obs_code(obs_setl.go_id == obs_set.go_id(i),2:4);
+                    idx_l1(i) = find(this.system' == sys_ch & strLineMatch(this.obs_code,o_l1) & this.go_id == obs_set.go_id(i));
+                    o_l2 = obs_setl.obs_code(obs_setl.go_id == obs_set.go_id(i),5:7);
+                    idx_l2(i) = find(this.system' == sys_ch & strLineMatch(this.obs_code,o_l2) & this.go_id == obs_set.go_id(i));
+                end
+                l = obs_set.time.length;
+                [~,timeobs2timerec] = ismember(round(obs_set.time.getRefTime(this.time.getEpoch(1).getMatlabTime)),round(this.time.getRefTime(this.time.getEpoch(1).getMatlabTime)));
+                for i = 1 : length(obs_set.go_id)
+                    for j = 2 : l
+                        if obs_set.obs(j,i) ~=0
+                            avg_bf = mean(noZero(obs_set.obs(max(1,j-1-win_avg):(j-1),i)));
+                            avg_aft = mean(noZero(obs_set.obs(j:min(j+win_avg,l),i)));
+                            if isnan(avg_bf)
+                                this.sat.cycle_slip_ph_by_ph(timeobs2timerec(j),find(lid_ph) ==idx_l1(i)) = true;
+                                this.sat.cycle_slip_ph_by_ph(timeobs2timerec(j),find(lid_ph) ==idx_l2(i)) = true;
+                            else
+                                if abs(avg_aft - avg_bf) > 0.5 * obs_set.wl(i) | abs(d_geomfree(j-1,i)) > 1
+                                    this.sat.cycle_slip_ph_by_ph(timeobs2timerec(j),find(lid_ph) == idx_l1(i)) = true;
+                                    this.sat.cycle_slip_ph_by_ph(timeobs2timerec(j),find(lid_ph) == idx_l2(i)) = true;
+                                else
+                                    if abs(diff(obs_set.obs((j-1):j))) > 3 * obs_set.wl(i) && (j == l || abs(diff(obs_set.obs(j:(j+1)))) > 3 * obs_set.wl(i))
+                                        this.sat.outliers_ph_by_ph(timeobs2timerec(j),find(lid_ph) == idx_l1(i)) = true;
+                                        this.sat.outliers_ph_by_ph(timeobs2timerec(j),find(lid_ph) == idx_l2(i)) = true;
+                                        this.sat.outliers_pr_by_pr(timeobs2timerec(j),find(lid_pr) == idx_c1(i)) = true;
+                                        this.sat.outliers_pr_by_pr(timeobs2timerec(j),find(lid_pr) == idx_c2(i)) = true;
+                                    end
+
+                                end
+                            end
+                        end
+
+
+                    end
+                end
+                % if there are codes not considered by the mwb
+
+
+                % if there are other freqs
+                u_goid = unique(this.go_id(this.system == sys_ch));
+                for g = u_goid'
+                    prn = Core.getConstellationCollector.prn(g);
+                    i = obs_set.go_id == g;
+                    if sum(i) == 0
+                        this.sat.outliers_ph_by_ph(:,this.go_id(lid_ph) == g) = true;
+                        this.sat.cycle_slip_ph_by_ph(:,this.go_id(lid_ph) == g) = true;
+                        this.sat.outliers_pr_by_pr(:,this.go_id(lid_pr) == g) = true;
+                    else
+                    idx_other = setdiff(find(this.system' == sys_ch & this.go_id == obs_set.go_id(i) & (this.obs_code(:,1) == 'C' | this.obs_code(:,1) == 'L')),[idx_c1(i),idx_c2(i),idx_l1(i),idx_l2(i)]);
+                    for io = idx_other'
+                        oc_ot = this.obs_code(io,:);
+                        id_ot = this.findObservableByFlag(oc_ot , sys_ch, prn);
+                        if this.obs_code(io,2) == found_freq(1) || this.obs_code(io,2) == found_freq(2)
+                            if this.obs_code(io,2) == found_freq(1)
+                                if oc_ot(1) == 'L'
+                                    oc_ref = obs_setl.obs_code(obs_setl.go_id == g,2:4);
+                                elseif oc_ot(1) == 'C'
+                                    oc_ref = obs_setc.obs_code(obs_setc.go_id == g,2:4);
+                                end
+                            elseif this.obs_code(io,2) == found_freq(2)
+                                if oc_ot(1) == 'L'
+                                    oc_ref = obs_setl.obs_code(obs_setl.go_id == g,5:7);
+                                elseif oc_ot(1) == 'C'
+                                    oc_ref = obs_setc.obs_code(obs_setc.go_id == g,5:7);
+                                end
+                            end
+                            id_ref = this.findObservableByFlag(oc_ref , sys_ch, prn);
+                            if oc_ot(1) == 'C'
+                            o_diff = zero2nan(this.obs(id_ot,:)') - zero2nan(this.obs(id_ref,:)');
+                            else
+                                o_diff = zero2nan(this.obs(id_ot,:)'*this.wl(id_ot)) - zero2nan(this.obs(id_ref,:)'*this.wl(id_ref));
+                            end
+                            rec_set = Receiver_Settings();
+                            sigmathr = sqrt(rec_set.getStd(this.system(id_ref),this.obs_code(id_ref,:))^2+rec_set.getStd(this.system(id_ot),this.obs_code(id_ot,:))^2);
+                            if oc_ot(1) == 'C'
+                                this.sat.outliers_pr_by_pr(:,find(lid_pr) == id_ot) = abs(o_diff) > 3*sigmathr | (this.obs(id_ref,:)'==0 & this.obs(id_ot,:)' ~= 0);
+                            elseif oc_ot(1) == 'L'
+                                do_diff = diff(o_diff);
+                                idx_cs = abs([nan;do_diff]) > 0.5*this.wl(id_ot) | (isnan([nan;do_diff]) & (this.obs(id_ot,:)'~=0)) & ~(abs([nan; do_diff(2:end); nan]) > 0.5*this.wl(id_ot));
+                                idx_out = abs([nan;do_diff]) > 0.5*this.wl(id_ot) & ~idx_cs;
+                                this.sat.outliers_ph_by_ph(:,find(lid_ph) == id_ot) = this.sat.outliers_ph_by_ph(:,find(lid_ph) == id_ot) | idx_out;
+                                this.sat.cycle_slip_ph_by_ph(:,find(lid_ph) == id_ot) = this.sat.cycle_slip_ph_by_ph(:,find(lid_ph) == id_ot) | idx_cs;
+
+                            end
+                        else
+                            % case extra freq use geometry free
+                            if oc_ot(1) == 'L'
+                                oc_ref1 = obs_setl.obs_code(obs_setl.go_id == g,2:4);
+                                oc_ref2 = obs_setl.obs_code(obs_setl.go_id == g,5:7);
+                            elseif oc_ot(1) == 'C'
+                                oc_ref1 = obs_setc.obs_code(obs_setc.go_id == g,2:4);
+                                oc_ref2 = obs_setc.obs_code(obs_setc.go_id == g,5:7);
+                            end
+                            id_ref1 = this.findObservableByFlag(oc_ref1 , sys_ch, prn);
+                            id_ref2 = this.findObservableByFlag(oc_ref2 , sys_ch, prn);
+                            % geom free 1 - geom free2 corrected by a iono
+                            % sclaing factor
+                            k1 = 1/(this.wl(id_ref1)^2 - this.wl(id_ref2)^2);
+                            k2 = 1/(this.wl(id_ref1)^2 - this.wl(id_ot)^2);
+                            if oc_ot(1) == 'C'
+                                gf1 = (zero2nan(this.obs(id_ref1,:)') - zero2nan(this.obs(id_ref2,:)'))*k1;
+                                gf2 = (zero2nan(this.obs(id_ref1,:)') - zero2nan(this.obs(id_ot,:)'))*k2;
+                            else
+                                gf1 = (zero2nan(this.obs(id_ref1,:)'*this.wl(id_ref1)) - zero2nan(this.obs(id_ref2,:)'*this.wl(id_ref2)))*k1;
+                                gf2 = (zero2nan(this.obs(id_ref1,:)'*this.wl(id_ref1)) - zero2nan(this.obs(id_ot,:)'*this.wl(id_ot)))*k2;
+                            end
+                            o_diff = gf1 - gf2;
+                            rec_set = Receiver_Settings();
+                            s1 = rec_set.getStd(this.system(id_ref1),this.obs_code(id_ref1,:));
+                            s2 = rec_set.getStd(this.system(id_ref2),this.obs_code(id_ref2,:));
+                            s3 = rec_set.getStd(this.system(id_ot),this.obs_code(id_ot,:));
+                            sigmathr = sqrt(((k1-k2)*s1)^2+ (k1*s2)^2 + (k2*s3)^2);
+                            if oc_ot(1) == 'C'
+                                this.sat.outliers_pr_by_pr(:,find(lid_pr) == id_ot) = abs(o_diff) < 3*sigmathr | ((this.obs(id_ref1,:)'==0 | this.obs(id_ref2,:)'==0 )& this.obs(id_ot,:)' ~= 0);
+                            elseif oc_ot(1) == 'L'
+                                do_diff = diff(o_diff);
+                                idx_cs = abs([nan;do_diff]) > 0.5*this.wl(id_ot)| (isnan([nan;do_diff]) & (this.obs(id_ot,:)'~=0)) & ~(abs([nan; do_diff(2:end); nan]) > 0.5*this.wl(id_ot));
+                                idx_out = abs([nan;do_diff]) > 0.5*this.wl(id_ot) & ~idx_cs;
+                                this.sat.outliers_ph_by_ph(:,find(lid_ph) == id_ot) = this.sat.outliers_ph_by_ph(:,find(lid_ph) == id_ot) & idx_out;
+                                this.sat.cycle_slip_ph_by_ph(:,find(lid_ph) == id_ot) = this.sat.cycle_slip_ph_by_ph(:,find(lid_ph) == id_ot) & this.sat.cycle_slip_ph_by_ph(:,find(lid_ph) == id_ref1) & idx_cs;
+
+                            end
+
+
+                        end
+                    end
+                    end
+
+
+
+                end
+
+
+            end
+
+            if group_delay_applied
+                this.applyGroupDelay(); % Restore original situation
+            end
+            
+
+
+        end
+        function applyClockJumpCycleSlip(this)
+            %%%%%%%%%%%  day boundary forced cs   %%%%%%%%%%
+            [~, ~, lid_ph] = this.getPhases;
+            cs = Core.getCoreSky;
+            goids = unique(this.go_id);
+            for s = goids'
+                id_ph_s = this.go_id(lid_ph) == s;
+                css = cs.getClockJmp(this.time,s);
+                this.sat.cycle_slip_ph_by_ph(:,id_ph_s) = this.sat.cycle_slip_ph_by_ph(:,id_ph_s) | repmat(css,1,sum(id_ph_s));
+            end
+            %%%% move cs to the enxt valid obs
+            this.addOutliers(sparse(false(size(this.sat.outliers_ph_by_ph))));
+        end
+
+        function repairEphCycleSlip(this)
+            %%% use data to repair day bouldaries "clock cycle slips" in
+            %%% the epehemerids
+
+            cs = Core.getCoreSky();
+            cc = Core.getConstellationCollector();
+
+            roundnext = @(x) round(x)+sign(x - round(x));
+            eph_clock_time = cs.getClockTime;
+
+
+            for sys_ch = unique(this.system)
+                ss = cc.getSys(sys_ch);      
+                [iono_pref,iono_pref_card] = this.getAvailIonoPref(sys_ch);
+                iof = this.getIonoFree(['L' iono_pref(1,1)],['L' iono_pref(1,2)],sys_ch);
+                synt_obs = this.getSyntTwin(iof);
+                iof.obs = zero2nan(iof.obs) - synt_obs;
+                scs = cs.getClockJmp(iof.time,iof.go_id);
+                scs_r = scs & ~isnan(iof.obs);
+
+                wl1 = ss.L_VEC(ss.CODE_RIN3_2BAND == iono_pref(1,1));
+                wl2 = ss.L_VEC(ss.CODE_RIN3_2BAND == iono_pref(1,2));
+
+                nl_wl =  (wl1 *wl2) /(wl1  + wl2);
+
+                stat_stp = [];
+
+                for s = 1 : size(scs_r,2)
+                    for c = find(scs_r(:,s))'
+                        if c > 1
+                            os = find(~isnan(iof.obs(c,:)));
+                            os = os(os ~= s & ~scs(c,os));
+                            bf = nan(size(os));
+                            af = nan(size(os));
+                            bfc = c - find(flipud(isnan(iof.obs(1:(c-1),s)) | iof.cycle_slip(1:(c-1),s) ),1,'first') + 1;
+                            afc = c + find(isnan(iof.obs((c+1):end,s)) | iof.cycle_slip((c+1):end,s) ,1,'first') - 1;
+                            for k = 1 : length(os)
+                                bf(k) = c - find(flipud(isnan(iof.obs(1:(c-1),os(k))) | iof.cycle_slip(1:(c-1),os(k)) ),1,'first') + 1;
+                                af(k) = c + find(isnan(iof.obs((c+1):end,os(k))) | iof.cycle_slip((c+1):end,os(k)) ,1,'first') - 1;
+                            end
+                            min_a = min([-bf+c; af-c]);
+                            [~,idx] = max(min_a);
+                            sd = iof.obs(max(bfc,bf(idx)):min(afc,af(idx)),s) - iof.obs(max(bfc,bf(idx)):min(afc,af(idx)),os(idx));
+                            cd = -max(bfc,bf(idx)) + c;
+                            if cd > 0
+                                st_fl = -(mean(sd(1:cd-1))-mean(sd(cd:end)))/nl_wl;
+                                stp = round(st_fl);
+                                stp_n = roundnext(st_fl);
+                                sd(cd:end) = sd(cd:end) - stp*nl_wl;
+                                res = std(sd);
+                                sd(cd:end) = sd(cd:end) + (stp - stp_n)*nl_wl;
+                                res_n = std(sd);
+                                if res_n > 3 *res & fracFNI(st_fl) < 0.15
+                                    %%% REPAIR
+                                    [~,idx] = min(abs(eph_clock_time - iof.time.getEpoch(c))); 
+                                    
+                                    if stp ~= 0
+                                        cs.clock(idx:end,iof.go_id(s)) = cs.clock(idx:end,iof.go_id(s)) - stp*nl_wl/Core_Utils.V_LIGHT;
+                                       
+                                    end
+
+                                     cs.clock_jmp(idx, iof.go_id(s)) = false;
+
+                                    
+
+
+                                    stat_stp= [ stat_stp; stp];
+
+                                end
+
+                            else
+                        end
+                        end
+                    end
+
+                end
+            end
+        end
+
+
+        
+        function detectOutlierMarkCycleSlip(this, flag_rem_dt)
+            
             if nargin < 2 || isempty(flag_rem_dt)
                 flag_rem_dt = true;
             end
-
+            
             log = Core.getLogger;
-            if ~any(this.obs(:))
-                log.addError('No more data found in the receiver');
-            else
-                state =  Core.getState();
-                cc = Core.getState.getConstellationCollector;
-
-                log.addMarkedMessage('Cleaning observations');
-                %% PARAMETRS
-                ol_thr = 0.5; % outlier threshold
-                cs_thr = 0.65 * state.getCycleSlipThr(); % CYCLE SLIP THR
-
-                %----------------------------
-                % Outlier Detection
+            cc = Core.getState.getConstellationCollector;
+            
+            log.addMarkedMessage('Cleaning observations');
+            %% PARAMETRS
+            ol_thr = 0.5; % outlier threshold
+            cs_thr = 0.7 * this.state.getCycleSlipThr(); % CYCLE SLIP THR
+            
+            %----------------------------
+            % Outlier Detection
                 %----------------------------
 
                 % mark all as outlier and interpolate
@@ -2537,8 +2825,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                 end
 
                 log.addMessage(log.indent(sprintf(' - %d phase observations marked as outlier', n_out)));
-            end
         end
+
 
         function thrCleanByConstellation(this)
             % filter constellation with less than threshold epochs
@@ -2616,7 +2904,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.setPseudoRanges(pr, id_pr);
         end
                                 
-        function pivot_sat = detectOutlierMarkCycleSlipNew(this)
+        function pivot_sat = detectOutlierMarkCycleSlipNew(this, use_iono_free) 
             % detectOutlierMarkCycleSlip
             %
             % SYNTAX
@@ -2630,7 +2918,20 @@ classdef Receiver_Work_Space < Receiver_Commons
             %% PARAMETRS
             cj_thr = 0.1; % candidate jumper std
             ol_thr = 0.10; % 10cm
-            cs_thr = 0.7 * state.getCycleSlipThr(); % CYCLE SLIP THR
+            if nargin < 2
+                use_iono_free = false;
+            end
+            if ~use_iono_free
+                cs_thr = 0.25 * this.state.getCycleSlipThr(); % CYCLE SLIP THR
+                min_sat_thr = 2.01;
+            else
+                cs_thr = 0.4 * this.state.getCycleSlipThr(); % CYCLE SLIP THR
+                min_sat_thr = 1.01;
+            end
+
+            if nargin < 2
+                use_iono_free = false;
+            end
             
             %----------------------------
             % Outlier Detection
@@ -2640,80 +2941,259 @@ classdef Receiver_Work_Space < Receiver_Commons
             % get observed values
                         
             this.sat.outliers_ph_by_ph = [];
+            
             [ph, wl, lid_ph] = this.getPhases;
             wl = wl';
             phs = this.getSyntPhases;
-            
-            % remove jumps (>0.5m) from discontinuities of the clock products
-            go_id = this.go_id(lid_ph);            
-            dts_range = zero2nan(this.getDtS(go_id)) * Core_Utils.V_LIGHT; % get satellites clocks
-            ddts = Core_Utils.diffAndPred(dts_range, 1);                   % get time derivate
-            ddts = (ddts - movmedian(ddts,3, 'omitnan'));                  % movmedian filter detect jumps
-            ddts(abs(ddts) < 0.5) = 0;                                     % Keep only jumps grater than 0.5 meters
-            phs = zero2nan(phs) + cumsum(nan2zero(ddts));                  % Adjust synthesised phases accordingly
-            
+            go_id_ph = this.go_id(lid_ph);
+            sys_ch_ph = this.system(lid_ph);
+
             % initilize outlier and cycle splips
             this.sat.outliers_ph_by_ph = false(size(ph));
             this.sat.cycle_slip_ph_by_ph = false(size(ph));
+            if ~use_iono_free
+                phr = zero2nan(ph) - zero2nan(phs);
+
+                el = this.sat.el(:, this.go_id(lid_ph));
+                
+            else
+                ph_unc = ph;
+                wl_unc = wl';
+
+                ph = nan(this.time.length,max(this.go_id)); 
+                phs = nan(this.time.length,max(this.go_id)); 
+                time_ref = this.time.first.getMatlabTime();
+                p_ep = round(this.time.getRefTime(time_ref));
+                wl = nan(1,max(this.go_id));
+                el = nan(this.time.length,max(this.go_id));
+                sys_ch_ph = nan(1,max(this.go_id));
+                
+                for sys_ch = unique(this.system)
+                    sys_ss = cc.getSys(sys_ch);
+                    obs_set = this.getPrefIonoFree('L', sys_ch);
+                    p_ep_s = round(obs_set.time.getRefTime(time_ref));
+                    [~,id_ep] = ismember(p_ep_s,p_ep);
+                    synt_obs = this.getSyntTwin(obs_set); 
+                    ph(id_ep,obs_set.go_id)  = obs_set.obs;
+                    el(id_ep,obs_set.go_id)  = obs_set.el;
+                    phs(id_ep,obs_set.go_id) = synt_obs;
+                    nl_wl = Core_Utils.V_LIGHT/(sys_ss.F_VEC(sys_ss.CODE_RIN3_2BAND ==  obs_set.obs_code(1,3)) + sys_ss.F_VEC(sys_ss.CODE_RIN3_2BAND == obs_set.obs_code(1,6)));
+                    
+                    
+                    wl(obs_set.go_id) = nl_wl;
+                    sys_ch_ph(obs_set.go_id) = sys_ch;
+                    
+                end
+                phr = zero2nan(ph) - zero2nan(phs);
+                for s = 1 : max(this.go_id)
+                    sidx = go_id_ph == s;
+                    ph_unc(isnan(phr(:,s)),sidx) = nan;
+                end
+                this.setPhases(ph_unc, wl_unc, lid_ph);
+            end
             
-            phr = zero2nan(ph) - zero2nan(phs);
             n_epoch = size(phr,1);
             n_strm = size(phr,2);
-            el = this.sat.el(:, this.go_id(lid_ph));
             
+            pivot_sat = zeros(n_epoch, 1, 'uint8');
+            ep_dayst_time_st = round(rem(this.time.first.getMJD,1)*86400/this.time.getRate);
+            ep_in_day = round(86400/this.time.getRate);
+
+                    
+
             for e = 2 : (n_epoch - 2)
                 phr_t = phr((e-1) : (e+1), :);
+                n_pres_strm = sum(~isnan(phr_t(2,:)));
+                n_pres_sat = length(unique(go_id_ph(~isnan(phr_t(2,:)))));
                 complete_triple = find(all(not(isnan(phr_t))));
                 if ~isempty(complete_triple)
                     tmp_diff = Core_Utils.diffAndPred(phr_t(:,complete_triple));
-                    tmp_dt = robAdj(tmp_diff);
-                    phr_t = bsxfun(@minus, tmp_diff, tmp_dt);
-                    wl_t = wl(complete_triple);
-                    [o_idx, cs_idx] = Receiver_Work_Space.outlierCyscleSlipDetect(phr_t, wl_t, ol_thr, cs_thr);
-                    this.sat.outliers_ph_by_ph(e,o_idx) = true;
-                    this.sat.outliers_ph_by_ph(e,cs_idx) = false;
-                    this.sat.cycle_slip_ph_by_ph(e,cs_idx) = true;
+                    tmp_dt = cumsum(median(tmp_diff, 2));
+                    phr_t = bsxfun(@minus, phr_t, tmp_dt);
+                    
+                    %max el choose pivot
+                    % [~,max_el_id] = min(abs(mean(diff(phr_t(:,complete_triple)))));
+                    % 
+                    % sd_phr = phr_t - repmat(phr_t(:,complete_triple(max_el_id)),1,n_strm);
+                    % wl_t = min(wl,wl(complete_triple(max_el_id)));
+                    % td_phr = diff(sd_phr);
+                    % [o_idx, cs_idx] = Receiver_Work_Space.outlierCyscleSlipDetect(td_phr, wl_t, ol_thr, cs_thr);
+                    % n_slip_sat = length(unique(go_id_ph(cs_idx | o_idx)));
+                    % if median(abs(noNaN(td_phr(:)))) > 0.05 || n_slip_sat > n_pres_sat-1.9 % pivot might be the outlier or cycle slip choose a new one
+                    %     [~,idx_el] = sort(el(e,complete_triple),'descend');
+                    %     for i = 1 : length(idx_el)
+                    %         max_el_id = idx_el(i);
+                    %         sd_phr = phr_t - repmat(phr_t(:,complete_triple(max_el_id)),1,n_strm);
+                    %         wl_t = min(wl,wl(complete_triple(max_el_id)));
+                    %         td_phr = diff(sd_phr);
+                    %         [o_idx, cs_idx] = Receiver_Work_Space.outlierCyscleSlipDetect(td_phr, wl_t, ol_thr, cs_thr);
+                    %         n_slip_sat = length(unique(go_id_ph(cs_idx | o_idx)));
+                    %         if n_slip_sat  < n_pres_sat-1.9 || median(abs(noNaN(td_phr(:)))) > 0.05 % we found a good pivot
+                    %             break
+                    %         end
+                    %     end
+                    % end
+                    if abs(rem((e - ep_dayst_time_st),ep_in_day)-1)< 1e-6 % you need to do per system
+                        cs_idx = false(size(phr_t(2,:)));
+                        o_idx = false(size(phr_t(2,:)));
+                        for sys_ch = unique(noNaN(sys_ch_ph))
+                            idx_ph_sys = sys_ch_ph == sys_ch;
+                            sys_of_compl_triple = sys_ch_ph(complete_triple);
+                            complete_triple_sys = complete_triple(sys_of_compl_triple == sys_ch);
+                            res = diff(phr_t(:,complete_triple_sys));
+                            res(1,:) = res(1,:)- huberMean(res(1,:),1);
+                            res(2,:) = res(2,:)- huberMean(res(2,:),1);
+
+                            [~,max_el_id] = min(sum(abs(res)));
+                            sd_phr = phr_t(:,idx_ph_sys) - repmat(phr_t(:,complete_triple_sys(max_el_id)),1,sum(idx_ph_sys));
+                            wl_t = min(wl(idx_ph_sys),wl(complete_triple_sys(max_el_id)));
+                            td_phr = diff(sd_phr);
+                            [o_idx_t, cs_idx_t] = Receiver_Work_Space.outlierCyscleSlipDetect(td_phr, wl_t, ol_thr, cs_thr);
+
+
+                            if sum(cs_idx_t) > (sum(~isnan(sum(td_phr)))-min_sat_thr)
+                                cs_idx_t = ~isnan(phr_t(2,idx_ph_sys));
+                            end
+                            cs_idx(idx_ph_sys) = cs_idx_t;
+                            o_idx(idx_ph_sys) = cs_idx_t;
+                            n_slip_sat = length(unique(go_id_ph(cs_idx | o_idx)));
+
+
+
+
+                        end
+
+                    else
+                        res = diff(phr_t(:,complete_triple));
+                        res(1,:) = res(1,:)- huberMean(res(1,:),1);
+                        res(2,:) = res(2,:)- huberMean(res(2,:),1);
+
+                        [~,max_el_id] = min(sum(abs(res)));
+                        sd_phr = phr_t - repmat(phr_t(:,complete_triple(max_el_id)),1,n_strm);
+                        wl_t = min(wl,wl(complete_triple(max_el_id)));
+                        td_phr = diff(sd_phr);
+                        [o_idx, cs_idx] = Receiver_Work_Space.outlierCyscleSlipDetect(td_phr, wl_t, ol_thr, cs_thr);
+                        n_slip_sat = length(unique(go_id_ph(cs_idx | o_idx)));
+
+
+                        if sum(cs_idx) > (sum(~isnan(sum(td_phr)))-2.0001)
+                            cs_idx = ~isnan(phr_t(2,:));
+                        end
+                    end
+                    if ~use_iono_free
+                        this.sat.outliers_ph_by_ph(e,o_idx) = true;
+                        this.sat.outliers_ph_by_ph(e,cs_idx) = false;
+                        this.sat.cycle_slip_ph_by_ph(e,cs_idx) = true;
+                    else
+                        for i = 1:length(o_idx)
+                            sidx = go_id_ph  == i;
+                            this.sat.outliers_ph_by_ph(e,sidx) = o_idx(i);
+                            if cs_idx(i)
+                                this.sat.outliers_ph_by_ph(e,sidx) = false;
+                            end
+                            this.sat.cycle_slip_ph_by_ph(e,sidx) = cs_idx(i);
+                        end
+                        phr(e,o_idx & cs_idx) = nan;
+                    end
+                    pivot_sat(e) = complete_triple(max_el_id);
                 end
             end
-            phr(this.sat.outliers_ph_by_ph) = nan;
+            if ~use_iono_free
+                phr(this.sat.outliers_ph_by_ph) = nan;
+            end
             
             % check first epoch
             phr_t = phr(1:2, :);
             n_pres_strm = sum(~isnan(phr_t(1,:)));
             complete_triple = find(sum(isnan(phr_t)) == 0);
             if ~isempty(complete_triple)
-                tmp_diff = Core_Utils.diffAndPred(phr_t(:,complete_triple));
-                tmp_dt = robAdj(tmp_diff);
-                phr_t = bsxfun(@minus, tmp_diff, tmp_dt);
-                wl_t = wl(complete_triple);
-                [o_idx, cs_idx] = Receiver_Work_Space.outlierCyscleSlipDetect(phr_t, wl_t, ol_thr, cs_thr);
-                this.sat.outliers_ph_by_ph(e,o_idx) = true;
-                this.sat.outliers_ph_by_ph(e,cs_idx) = false;
-                this.sat.cycle_slip_ph_by_ph(e,cs_idx) = true;
+                [~,max_el_id] = max(el(1,complete_triple));
+                sd_phr = phr_t - repmat(phr_t(:,complete_triple(max_el_id)),1,n_strm);
+                td_phr = diff(sd_phr);
+                o_idx = abs(td_phr) > ol_thr | (~isnan(sd_phr(1,:)) & isnan(sd_phr(2,:)));
+                if sum(o_idx) == n_pres_strm
+                    [~,idx_el] = sort(el(1, complete_triple),'descend');
+                    for i = 2 : lenght(idx_el)
+                        max_el_id = idx_el(i);
+                        sd_phr = phr_t - repmat(phr_t(:,complete_triple(max_el_id)),1,n_strm);
+                        td_phr = diff(sd_phr);
+                        o_idx = abs(td_phr) > ol_thr | (~isnan(sd_phr(1,:)) & isnan(sd_phr(2,:)));
+                        if ~(sum(o_idx) == n_pres_strm)
+                            break
+                        end
+                    end
+                end
+                if ~use_iono_free
+                    this.sat.outliers_ph_by_ph(1,o_idx) = true;
+                else
+                    for i = 1:length(o_idx)
+                            sidx = go_id_ph  == i;
+                            this.sat.outliers_ph_by_ph(1,sidx) = o_idx(i);
+
+                        end
+                end
+                phr(1,o_idx) = nan;
+                pivot_sat(1) = complete_triple(max_el_id);
             end
             
             % check last epoch
             phr_t = phr((end-1):end, :);
             complete_triple = find(sum(isnan(phr_t)) == 0);
             if ~isempty(complete_triple)
-                tmp_diff = Core_Utils.diffAndPred(phr_t(:,complete_triple));
-                tmp_dt = robAdj(tmp_diff);
-                phr_t = bsxfun(@minus, tmp_diff, tmp_dt);
-                wl_t = wl(complete_triple);
-                [o_idx, cs_idx] = Receiver_Work_Space.outlierCyscleSlipDetect(phr_t, wl_t, ol_thr, cs_thr);
-                this.sat.outliers_ph_by_ph(e,o_idx) = true;
-                this.sat.outliers_ph_by_ph(e,cs_idx) = false;
-                this.sat.cycle_slip_ph_by_ph(e,cs_idx) = true;
+                [~,max_el_id] = max(el(end,complete_triple));
+                n_pres_strm = sum(~isnan(phr_t(2,:)));
+                sd_phr = phr_t - repmat(phr_t(:,complete_triple(max_el_id)),1,n_strm);
+                td_phr = diff(sd_phr);
+                o_idx = abs(td_phr) > ol_thr | (isnan(sd_phr(1,:)) & ~isnan(sd_phr(2,:)));
+                if sum(o_idx) == n_pres_strm
+                    [~,idx_el] = sort(el(end, complete_triple),'descend');
+                    for i = 2 : lenght(idx_el)
+                        max_el_id = idx_el(i);
+                        sd_phr = phr_t - repmat(phr_t(:,complete_triple(max_el_id)),1,n_strm);
+                        td_phr = diff(sd_phr);
+                        o_idx = abs(td_phr) > ol_thr | (isnan(sd_phr(1,:)) & ~isnan(sd_phr(2,:)));
+                        if ~(sum(o_idx) == n_pres_strm)
+                            break
+                        end
+                    end
+                end
+                if ~use_iono_free
+                    this.sat.outliers_ph_by_ph(end,o_idx) = true;
+                else
+                    for i = 1:length(o_idx)
+                        if o_idx(i)
+                            sidx = go_id_ph  == i;
+
+                            this.sat.outliers_ph_by_ph(end,sidx) = o_idx(i);
+                        end
+
+                        end
+                end
+                pivot_sat(end) = complete_triple(max_el_id);
             end
             
             % check start of arc if there is a cycle slip
-            this.sat.cycle_slip_ph_by_ph(1,~isnan(phr(1,:))) = true; % first epoch if there is am observation put cs
+            if ~use_iono_free
+                this.sat.cycle_slip_ph_by_ph(1,~isnan(phr(1,:))) = true; % first epoch if there is am observation put cs
+            else
+                for i = 1:length(o_idx)
+                    sidx = go_id_ph  == i;
+                    this.sat.cycle_slip_ph_by_ph(1,sidx) = ~isnan(phr(1,i));
+
+                end
+            end
             max_hole_chk = 121; % if hole bigger than 2 min -> put cycle slip without check
             max_ep_chk = round(max_hole_chk / this.getRate);
             for s = 1 : n_strm
                 arc_start = 1 + find(diff(isnan(phr(:,s))) == -1);
                 if ~isempty(arc_start)
-                    this.sat.cycle_slip_ph_by_ph(arc_start(1),s) = true;
+                    if ~use_iono_free
+                        this.sat.cycle_slip_ph_by_ph(arc_start(1),s) = true;
+                    else
+                            sidx = go_id_ph  == s;
+                            this.sat.cycle_slip_ph_by_ph(arc_start(1),sidx) = true;
+
+                    end
                     for a = 2 : length(arc_start)
                         as = arc_start(a);
                         chk_obs = phr(max(1,as - max_ep_chk):(as-1),s);
@@ -2725,20 +3205,43 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 pv = pivot_candidate(max_el_id);
                                 sens = diff(phr([last_valid_ep as],s) - phr([last_valid_ep as],pv));
                                 if abs(sens) > cs_thr * min(wl(s),wl(pv))
-                                    this.sat.cycle_slip_ph_by_ph(as,s) = true;
+                                    if ~use_iono_free
+                                        this.sat.cycle_slip_ph_by_ph(as,s) = true;
+                                    else
+                                        sidx = go_id_ph  == s;
+                                        this.sat.cycle_slip_ph_by_ph(as,sidx) = true;
+                                    end
                                 end
                             else
-                                this.sat.cycle_slip_ph_by_ph(as,s) = true;
+                                if ~use_iono_free
+                                    this.sat.cycle_slip_ph_by_ph(as,s) = true;
+                                else
+                                    sidx = go_id_ph  == s;
+                                        this.sat.cycle_slip_ph_by_ph(as,sidx) = true;
+                                end
                             end
-                            
+
                         else
-                            this.sat.cycle_slip_ph_by_ph(as,s) = true;
+                            if ~use_iono_free
+                                this.sat.cycle_slip_ph_by_ph(as,s) = true;
+                            else
+                                sidx = go_id_ph  == s;
+                                        this.sat.cycle_slip_ph_by_ph(as,sidx) = true;
+                            end
                         end
                     end
                 end
             end
+
+
+            %%% gross ourtiler pr detection
+            pr = this.getPseudoRanges;
+            sensor = pr - this.getSyntPrObs;
+            sensor = sensor - repmat(this.dt*Core_Utils.V_LIGHT,1,size(sensor,2))  ;
+            this.sat.outliers_pr_by_pr = ~isnan(pr) & abs(sensor) > 100;   
+
             
-            if this.isMultiFreq % if the receiver is multifrequency there is the opportunity to check again the cycle slip using geometry free and Melbourne-Wubbena combinations
+            if false && this.isMultiFreq % if the receiver is multifrequency there is the opportunity to check again the cycle slip using geometry free and Melbourne-Wubbena combinations
                 % NOTE: with multi-frequency and multi-tracking data
                 % numerous combinations are possible, this code try to find the
                 % "best" combination on the base of the wavelength of the
@@ -2839,7 +3342,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                             % and use the one with the betst code
                                             ids_pr1 = find(pr_sat_code(:,2) == ph_sat_code(cs,2));
                                             ids_pr2 = find(pr_sat_code(:,2) == ph_sat_code(id_pv,2));
-                                            if ~isempty(ids_pr1) && ~isempty(ids_pr2) %  code must be available for such an observable
+                                            if ~isempty(ids_pr1) && ~isempty(ids_pr2) % might be code is unavailable for such an observable
                                                 
                                                 bnd_1_prf = cc.getSys(cc.getSysPrn(g)).CODE_RIN3_ATTRIB(cc.getSys(cc.getSysPrn(g)).CODE_RIN3_2BAND == ph_sat_code(cs,2));
                                                 bnd_2_prf = cc.getSys(cc.getSysPrn(g)).CODE_RIN3_ATTRIB(cc.getSys(cc.getSysPrn(g)).CODE_RIN3_2BAND == ph_sat_code(id_pv,2));
@@ -2854,6 +3357,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                                                 id_pr1 = id_sat_pr(id_pr1);
                                                 id_pr2 = id_sat_pr(id_pr2);
                                                 mwb = (wl_n_jmp*ph(cs_bf:cs_aft,id_1) - wl_jmp*ph(cs_bf:cs_aft,id_2))/(wl_n_jmp - wl_jmp) - (wl_n_jmp*pr(cs_bf:cs_aft,id_pr1) + wl_jmp*pr(cs_bf:cs_aft,id_pr2))/(wl_n_jmp + wl_jmp);
+                                                
                                             else
                                                 mwb = zeros(size(gf));
                                             end
@@ -2881,7 +3385,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                 if (n_ko - n_out) > 0
                     log.addMessage(log.indent(sprintf('Adding other %d phase outliers due to missing valid pseudo-ranges', n_ko - n_out)));
                 end
-                this.sat.outliers_ph_by_ph(id_ko, :) = ~isnan(ph(id_ko, :));
+                ph = this.getPhases();
+                this.sat.outliers_ph_by_ph(id_ko, :) = this.sat.outliers_ph_by_ph(id_ko, :)  |  ~isnan(ph(id_ko, :));
             end
             
             
@@ -3532,7 +4037,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                 l = l + 1;
                 if strcmp(strtrim(txt((lim(l,1) + 60) : lim(l,2))), h_std{1})
                     type_found = true;
-                    dataset = textscan(txt(lim(l,1):lim(l,2)), '%f%c%18c%c');
+                    dataset = textscan(txt(lim(l,1):(lim(l,2)-20)), '%f%c%18c%c');
+                    if isempty(dataset{4})
+                        dataset{4} = 'G';
+                    end
                 end
             end
             this.rin_type = dataset{1};
@@ -5328,7 +5836,6 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             ph = bsxfun(@times, zero2nan(ph), wl)';
             end
-        end
         
         function [obs_set, has_smap] = getObsSet(this, flag, sys_c, prn)
             % get observation set corrspondiung to the requested
@@ -6151,6 +6658,36 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
+        function [sys_chs, obs_codes] = getUniqueObsCodes(this, just_phase)
+            % get unique observation codes in the receiver
+            % 
+            % SYNTAX
+            %   [sys_chs, obs_codes] = this.getUniqueObsCodes(<just_phase>)
+            if nargin < 2
+                just_phase = false;
+            end
+            oo = [this.system' this.obs_code];
+            if just_phase
+                oo(oo(:,2)~='L',:) = []; 
+            end
+            ou = Core_Utils.num2Code4Char(unique(Core_Utils.code4Char2Num(oo)));
+            sys_chs = ou(:,1);
+            obs_codes = ou(:,2:end);
+        end
+
+        function renameObsCode(this, old_sych, old_obscode, new_sysch, new_obscode)
+            % renale and observation code
+            %
+            % SYNATX
+            %     this.renameObsCode( old_sych, old_obscode, new_sysch, new_obscode)
+            idx = strLineMatch([this.system' this.obs_code],[old_sych, old_obscode]);
+            this.system(idx) = new_sysch;
+            this.obs_code(idx,:) = repmat(new_obscode,sum(idx),1);
+
+
+
+        end
+
         function [obs, obs_id, snr, cs] = getObs(this, flag, sys_c, prn)
             % get observation and index corresponfing to the flag
             % 
@@ -6163,7 +6700,15 @@ classdef Receiver_Work_Space < Receiver_Commons
             else
                 obs_id = this.findObservableByFlag(flag);
             end
+            
             obs = zero2nan(this.obs(obs_id,:));
+            if isempty(this.ph_idx)
+                this.ph_idx = find(this.obs_code(:,1) == 'L');
+            end
+            if isempty(this.pr_idx)
+                this.pr_idx = find(this.obs_code(:,1) == 'C');
+            end
+
             if nargout > 2
                 if nargin > 3
                     idx_snr = this.findObservableByFlag(['S' flag(2:end)], sys_c, prn);
@@ -6187,6 +6732,21 @@ classdef Receiver_Work_Space < Receiver_Commons
                     cs = this.sat.cycle_slip_ph_by_ph(:,idx_cs)';
                 else
                     cs = [];
+                end
+            end
+            if flag(1) == 'L'
+                if ~isempty(this.sat.outliers_ph_by_ph)
+                    [~,idx_o,idx_cs] = intersect(obs_id,this.ph_idx);
+                    obs(this.sat.outliers_ph_by_ph(:,idx_cs)') = nan;
+                    snr(this.sat.outliers_ph_by_ph(:,idx_cs)') = nan;
+                    if nargout > 2
+                    end
+                end
+            elseif flag(1) == 'C'
+                if ~isempty(this.sat.outliers_pr_by_pr)
+                    [~,idx_o,idx_cs] = intersect(obs_id,this.pr_idx);
+                    obs(this.sat.outliers_pr_by_pr(:,idx_cs)') = nan;
+                    snr(this.sat.outliers_pr_by_pr(:,idx_cs)') = nan;
                 end
             end
         end
@@ -6280,6 +6840,13 @@ classdef Receiver_Work_Space < Receiver_Commons
             idx = [];
             snr = [];
             cycle_slips = [];
+
+            if isempty(this.ph_idx)
+                this.ph_idx = find(this.obs_code(:,1) == 'L');
+            end
+            if isempty(this.pr_idx)
+                this.pr_idx = find(this.obs_code(:,1) == 'C');
+            end
             if length(flag) == 3
                 idx = sum(this.obs_code == repmat(flag,size(this.obs_code,1),1),2) == 3;
                 idx = idx & (this.system == system)';
@@ -6384,6 +6951,13 @@ classdef Receiver_Work_Space < Receiver_Commons
                                     if any(this.sat.cycle_slip_ph_by_ph(:,ph_idx)')
                                     cycle_slips((s-1)*n_opt+i,this.sat.cycle_slip_ph_by_ph(:,ph_idx)' > 0) = true;
                                     end
+                                end
+                            end
+                            if ~isempty(this.sat.outliers_pr_by_pr) && flag(1) == 'C' % take off outlier
+                                pr_idx = this.pr_idx == find(c_idx);
+                                if sum(pr_idx) > 0
+                                    obs((s-1)*n_opt+i,this.sat.outliers_pr_by_pr(:,pr_idx)) = 0;
+                                    snr((s-1)*n_opt+i,this.sat.outliers_pr_by_pr(:,pr_idx)) = 0;
                                 end
                             end
                             flags((s-1)*n_opt+i,:) = this.obs_code(c_idx,:);
@@ -6661,6 +7235,265 @@ classdef Receiver_Work_Space < Receiver_Commons
                 obs_set = this.getIonoFree([obs_type iono_pref(1,1)], [obs_type iono_pref(1,2)], system);
             end
         end
+
+        function [iono_pref,iono_pref_card] = getAvailIonoPref(this,system)
+            % get ionopref that is available in the receiver
+            %
+            % SYNTAX
+            %    [iono_pref] = this.getAvailIonoPref(system)
+            cc = Core.getConstellationCollector();
+            iono_pref = cc.getSys(system).IONO_FREE_PREF;
+            
+            is_present = zeros(size(iono_pref,1),1) < 1;
+            for i = size(iono_pref,1)
+                % check if there are observation for the selected channel
+                if sum(iono_pref(i,1) == this.obs_code(:,2) & iono_pref(i,1) == this.obs_code(:,1)) > 0 && sum(iono_pref(i,2) == this.obs_code(:,2) & iono_pref(i,1) == this.obs_code(:,1)) > 0
+                    is_present(i) = true;
+                end
+            end
+            iono_pref = iono_pref(is_present,:);
+            iono_pref_card = zeros(size(iono_pref(1,:)));
+            for i = 1 : size(iono_pref,2)
+                iono_pref_card(i) = find( cc.getSys(system).CODE_RIN3_2BAND == iono_pref(1,i));
+            end
+
+        end
+
+        function [obs_set, amb_mat,is_fixed ] = getWLfixPhaseIonoFree(this,system)
+            % gte preferred ionofree with correction given the fixed
+            % ambiguity
+            %
+            % SYNTAX
+            %   [obs_set] = this.getWLfixPhaseIonoFree(system)
+            cc = Core.getState.getConstellationCollector;
+            
+            [iono_pref,iono_pref_card] = this.getAvailIonoPref(system);
+
+            fun1 = @(wl1,wl2) 1;
+            fun2 = @(wl1,wl2) -1;
+            [wl] = this.getWideLane(['L' iono_pref(1,1)],['L' iono_pref(1,2)], system); %widelane phase
+            [nlp] = this.getNarrowLane(['L' iono_pref(1,1)],['L' iono_pref(1,2)], system); %widelane phase
+            [nlc] = this.getNarrowLane(['C' iono_pref(1,1)],['C' iono_pref(1,2)], system); %narrowlane code
+            [mwb] =  this.getTwoFreqComb(wl, nlc, fun1, fun2);
+            mwb.obs = zero2nan(mwb.obs);
+            mwb.remShortArc(ceil(Core.getCurrentSettings.min_arc/mwb.time.getRate));
+
+
+            % first coarse estimation -> mught be uselesss but should keep
+            % separated batch not too far
+            amb_idx = mwb.getAmbIdx();
+            amb_mat = nan(size(amb_idx));
+            n_amb = max(max(amb_idx));
+            obs_cy_o = mwb.getObsCy();
+            obs_cy = mwb.getObsCy();
+            for i = 1 : n_amb
+                idx = amb_idx == i;
+                est_amb_float = mean(obs_cy(idx));
+                est_amb_fix = round(est_amb_float);
+                obs_cy(idx) = obs_cy(idx) - est_amb_fix;
+                amb_mat(idx) = est_amb_fix;
+                if mean(obs_cy(idx)) < 0
+                    obs_cy(idx) = obs_cy(idx) + 1;
+                    amb_mat(idx) = amb_mat(idx) - 1;
+                end 
+            end
+            mode_val = mode(noZero(round(obs_cy*20)/20));
+            for i = 1 : n_amb
+                idx = amb_idx == i;
+                est_amb_float = mean(obs_cy(idx));
+                if abs(est_amb_float - mode_val) > 0.5
+                    obs_cy(idx) = obs_cy(idx) - sign(est_amb_float - mode_val);
+                    amb_mat(idx) = amb_mat(idx) + sign(est_amb_float - mode_val);
+                end 
+            end
+            mwb.obs = mwb.obs - amb_mat.*mwb.wl(1);
+            %mwb.obs(mwb.cycle_slip > 1e-5)  = nan;
+
+
+            % final estimation
+            num_obs = sum(~isnan(mwb.obs(:)));
+
+            A = zeros(num_obs,2);
+            A_idx = zeros(num_obs,2);
+            y = zeros(num_obs,1);
+            sat_y = zeros(num_obs,1);
+            time_y = zeros(num_obs,1);
+
+
+            std = zeros(num_obs,1);
+
+            obs_count = 0;
+            clock_count = 0;
+            jmp_count = 0;
+
+            amb_idx = mwb.getAmbIdx();
+
+            sat_jmp = [];
+            n_ep = size(wl.obs,1);
+
+            ep_id = 1:n_ep;
+
+            max_amb = max(unique(noZero(amb_idx)));
+
+            sys_amb = zeros(max_amb,1);
+            sat_amb = zeros(max_amb,1);
+            time_amb = zeros(max_amb,2);
+
+            ref_time = mwb.time.getRefTime(); 
+
+            for s = 1 : size(mwb.obs,2)
+                obs_pres = ~isnan(mwb.obs(:,s));
+                n_obs_s = sum(obs_pres);
+                if n_obs_s > 0
+                    A(obs_count+(1:n_obs_s),1) = 1;
+                    A_idx(obs_count+(1:n_obs_s),1) = ep_id(obs_pres);
+                    A(obs_count+(1:n_obs_s),2) = mwb.wl(s);
+                    A_idx(obs_count+(1:n_obs_s),2) = amb_idx(obs_pres,s);
+                       
+                    y(obs_count+(1:n_obs_s)) = mwb.obs(obs_pres,s);
+                    sat_y(obs_count+(1:n_obs_s)) = s;
+                    time_y(obs_count+(1:n_obs_s)) = ref_time(obs_pres);
+                    std(obs_count+(1:n_obs_s)) = 0.1 + 0.07./sind(mwb.el(obs_pres,s));% a bit empirical
+
+                    uas = unique(noZero(amb_idx(obs_pres,s)));
+
+                    sys_amb(uas) = cc.system(mwb.go_id(s));
+                    sat_amb(uas) = s;
+                    for ua = uas'
+                        ida = find(amb_idx(:,s) == ua);
+                        starta = min(ida);
+                        enda = max(ida);
+                        time_amb(ua,:) = [starta enda];
+                    end         
+                end
+                obs_count = obs_count + n_obs_s;
+            end
+            A_idx(:,2) = A_idx(:,2) + max(A_idx(:,1));
+            idx_amb = unique(noZero(A_idx(:,2)));
+
+            
+            rows = repmat((1:obs_count)',1,4);
+            npar = max(A_idx(:,2));
+
+            A = sparse(rows(A_idx ~=0),A_idx(A_idx ~=0),A(A_idx ~=0),obs_count,npar);
+
+            A_idx_pseudo = [(1:(n_ep-1))' (2:n_ep)'];
+            A_pseudo = [ones(n_ep-1,1) -ones(n_ep-1,1)];
+            
+            pobs_count = size(A_idx_pseudo,1);
+            rows = repmat((1:pobs_count)',1,2);
+
+            A_pseudo = sparse(rows(A_idx_pseudo ~=0),A_idx_pseudo(A_idx_pseudo ~=0),A_pseudo(A_idx_pseudo ~=0),pobs_count,npar);
+            std_pseudo = 1e-3*ones(n_ep-1,1);
+            W_pseudo = spdiags((1./std_pseudo).^2,0,length(std_pseudo),length(std_pseudo));
+            w = ones(size(std));
+            G = zeros(1,size(A,2));
+            G(unique(A_idx(:,1))) = 1;
+%             for i = 1 : 10
+%                 N = A'*spdiags((1./std).^2.*w,0,obs_count,obs_count)*A + A_pseudo'*W_pseudo*A_pseudo;
+%                 B = A'*spdiags((1./std).^2.*w,0,obs_count,obs_count)*y;
+%                 x = N \ B;
+%                 res = y - A*x;
+%                 res_n = abs(res)./std;
+%                 w(:) = 1;
+%                 w(res_n > 2.5) = 2.5/res_n(res_n > 2.5);
+%             end
+
+            idx_reduce = (1:max(A_idx(:,1)));
+            x = zeros(npar,1);
+
+            for i = 1 : 10
+                N = A'*spdiags((1./std).^2.*w,0,obs_count,obs_count)*A  + A_pseudo'*W_pseudo*A_pseudo;
+                N(sub2ind(size(N),idx_amb,idx_amb)) = N(sub2ind(size(N),idx_amb,idx_amb)) + 1;
+                B = A'*spdiags((1./std).^2.*w,0,obs_count,obs_count)*y;
+                [L,D,P] = ldl(N(idx_reduce,idx_reduce));
+
+                red = N(idx_amb,idx_reduce)*Core_Utils.solveLDL(L,D,[N(idx_reduce,idx_amb) B(idx_reduce)],P);%(N(idx_reduce,idx_reduce)\([N(idx_reduce,idx_jmp) B(idx_reduce)]));
+                Nj = N(idx_amb,idx_amb) - red(:,1:end-1);
+                Bj = B(idx_amb) - red(:,end);
+                if i > 5
+
+
+                    %[Caa, a_hat, id_est_amb] = Engine_U2.getEstimableAmb(Nj,Bj);
+                    [Df,master_ambs] = Fixer.singleDiffAmb(Nj,sys_amb,sat_amb,time_amb, 1);
+                    dNj = Df*Nj*Df';
+                    dBj = Df*Bj;
+                    Caa = inv(dNj);
+                    a_hat = Caa*dBj;
+                    %[amb_fixed ,l_fixed, VCV_not_fixed, cond_frac] = Fixer.mp_bootstrap(a_hat,Caa,0.2);
+                    [~,idxsort] = sort(diag(Caa),'descend');
+                    [~,rvidxsort] = ismember((1:length(idxsort))',idxsort);
+                    Caa = Caa(idxsort,idxsort);
+                    a_hat = a_hat(idxsort);
+
+                    [Ls,Ds] = ldldecom_m(Caa);
+                    [~,sqnorm,Qzpar,Zpar,Ps,nfixed,amb_fixed]=parsearch(a_hat,Caa,eye(size(Caa)),Ls,Ds,0.995,2);
+                    amb_fixed = amb_fixed(rvidxsort);
+
+                    amb_cond = [[Nj Df' ones(size(Nj,1),1)]; [[Df;ones(size(Nj,1),1)'] zeros(size(Df,1)+1) ]] \ [Bj; amb_fixed; 0]; % lazy there is probably a more intelligent way to do this
+                    x(:) = 0;
+                    x(idx_amb) = amb_cond(1:length(idx_amb));
+                else
+                    amb_cond = [[Nj ones(size(Nj,1),1)]; [ones(size(Nj,1),1)' 0 ]] \ [Bj;  0]; 
+                    x(:) = 0;
+                    x(idx_amb) = amb_cond(1:length(idx_amb));
+                end
+
+                Br = B(idx_reduce) - N(idx_reduce,idx_amb)*x(idx_amb);
+                x(idx_reduce) = Core_Utils.solveLDL(L,D,Br,P);
+
+
+
+
+                res = y - A*x;
+                res_n = abs(res)./std;
+                w(:) = 1;
+                w(res_n > 2.5) = 2.5/res_n(res_n > 2.5);
+            end
+
+            amb_zer = zeros(size(Bj));
+            amb_zer(find(sum(Df,1) > 0)) = amb_fixed;
+
+            is_fixed = zeros(size(amb_idx));
+            is_fixed(amb_idx == 0) = nan;
+            for i = 1:length(amb_zer)
+                amb_mat(amb_idx == i) =  amb_mat(amb_idx == i) + round(amb_zer(i));
+                is_fixed(amb_idx == i) =  abs(fracFNI(amb_zer(i))) < 1e-3;
+            end
+
+
+
+
+
+    
+            obs_set = this.getIonoFree(['L' iono_pref(1,1)],['L' iono_pref(1,2)], system);
+            obs_set.obs = zero2nan(obs_set.obs);
+
+            obs_set.remShortArc(ceil(Core.getCurrentSettings.min_arc/mwb.time.getRate));
+            obs_set.obs = nan2zero(obs_set.obs);
+
+            amb_fct = cc.getSys(system).L_VEC(iono_pref_card(2))/(cc.getSys(system).F_VEC(iono_pref_card(1))^2/cc.getSys(system).F_VEC(iono_pref_card(2))^2 -1);
+            idx_rm = obs_set.obs ~= 0 & isnan(amb_mat);
+            obs_set.remObs(idx_rm,false);          
+            obs_set.obs = zero2nan(obs_set.obs) - amb_fct*amb_mat;
+            obs_set.sanitizeEmpty();     
+             obs_set.wl(:) = nlp.wl(1);
+
+%             fun1 = @(wl1,wl2) 1/2;
+%             fun2 = @(wl1,wl2) 1/2;
+% 
+%             
+%             obs_set = this.getTwoFreqComb(wl, nlp, fun1, fun2);
+%             obs_set.wl(:) = nlp.wl(1)/2;
+            obs_set.obs_code(:,2) = 'L';
+            obs_set.obs_code(:,3) = iono_pref(1,1); 
+            obs_set.obs_code(:,4) = iono_pref(1,2); 
+            obs_set.obs_code(:,5:end) = []; 
+            if sum(strLineMatch([this.system' this.obs_code],'GC1P')) > 0 & system == 'G'
+                is_fixed(:) = false;
+
+            end
+        end
         
         function [obs_set]  = getSmoothIonoFreeAvg(this, obs_type, sys_c)
             % get Preferred Iono free combination for the two selected measurements
@@ -6695,7 +7528,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             %
             % SYNTAX
             % [obs_set, widelane_amb] = this.getIonoFreeWidelaneFixed()
-            [widelane_amb_mat, widelane_amb_fixed] = getWidelaneAmbEst(this)
+            [widelane_amb_mat, widelane_amb_fixed] = getWidelaneAmbEst(this);
             wl =  this.getWideLane('L1','L2','G');
             wl.obs = wl.obs  + mwb.wl(1)*widelane_amb_mat(:,wl.go_id);
             % 2) get the narrowlane
@@ -6742,6 +7575,159 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
             this.applyGroupDelay();
         end
+
+        function  plotMWbias(this)
+            % 1) get widelane and fix the ambiguity
+            cc = Core.getConstellationCollector;
+
+            % estaimet WL
+            for sys_ch = unique(this.system)
+                mwb = this.getPrefMelWub(sys_ch);
+                amb_idx = mwb.getAmbIdx();
+                n_amb = max(max(amb_idx));
+                obs_cy = mwb.getObsCy();
+                for i = 1 : n_amb
+                    idx = amb_idx == i;
+                    est_amb_float = mean(obs_cy(idx));
+                    est_amb_fix = round(est_amb_float);
+                    obs_cy(idx) = obs_cy(idx) - est_amb_fix;
+                    if mean(obs_cy(idx)) < 0
+                        obs_cy(idx) = obs_cy(idx) + 1;
+                    end
+
+                end
+                mode_val = mode(noZero(round(obs_cy*20)/20));
+                for i = 1 : n_amb
+                    idx = amb_idx == i;
+                    est_amb_float = mean(obs_cy(idx));
+                    if abs(est_amb_float - mode_val) > 0.5
+                        obs_cy(idx) = obs_cy(idx) - sign(est_amb_float - mode_val);
+                    end
+                end
+                figure; plot(mwb.time.getMatlabTime,zero2nan(obs_cy)); title(sys_ch)
+                legend(cc.getAntennaId(mwb.go_id));
+                setTimeTicks
+
+                obs_b_rem = zero2nan(obs_cy);
+                obs_b_rem = obs_b_rem  - huberMean(noNaN(obs_b_rem));
+                figure; plot(mwb.time.getMatlabTime,obs_b_rem,'.','Color','k'); title(sys_ch)
+                setTimeTicks
+                ylabel('Widelane cycles')
+
+
+            end
+        end
+
+        function  plotIofNlbias(this)
+            % 1) get widelane and fix the ambiguity
+             cc = Core.getConstellationCollector;
+
+
+            % estaimet WL
+            %
+            for sys_ch = unique(this.system)
+                iof = this.getWLfixPhaseIonoFree(sys_ch);
+                synth = this.getSyntTwin(iof);
+                iof.obs = nan2zero(zero2nan(iof.obs - synth));
+
+                iof.obs = nan2zero(zero2nan(iof.obs) - repmat(this.dt*Core_Utils.V_LIGHT,1,size(iof.obs,2)));
+%                 %do = median(diff(zero2nan(iof.obs)),2,'omitnan');
+%                 do = robAdjDt(diff(zero2nan(iof.obs)));
+%                 %do = movmean(do,5);
+%                 dt = cumsum([0;do]);
+%                 iof.obs = nan2zero(zero2nan(iof.obs) - repmat(dt,1,size(iof.obs,2)));
+
+
+
+
+                amb_idx = iof.getAmbIdx();
+                n_amb = max(max(amb_idx));
+                obs_cy = iof.getObsCy();
+                for i = 1 : n_amb
+                    idx = amb_idx == i;
+                    est_amb_float = mean(obs_cy(idx));
+                    est_amb_fix = round(est_amb_float);
+                    obs_cy(idx) = obs_cy(idx) - est_amb_fix;
+                    if mean(obs_cy(idx)) < 0
+                        obs_cy(idx) = obs_cy(idx) + 1;
+                    end
+
+                end
+                n_obs = sum(sum(obs_cy ~= 0));
+%                 n_ep = size(obs_cy,1);
+%                 A = ones(n_obs+n_ep-1,2);
+%                 A_idx = zeros(n_obs+n_ep-1,2);
+%                 y = zeros(n_obs+n_ep-1,1);
+%                 ocount = 0;
+%                 y_var = ones(n_obs+n_ep-1,1);
+%                 for j = 1 : size(obs_cy,2)
+%                     idx_o = obs_cy(:,j) ~= 0;
+%                     n_os = sum(idx_o);
+%                     y((ocount+1):(ocount + n_os)) =  obs_cy(idx_o,j)*iof.wl(1);
+%                     A_idx((ocount+1):(ocount + n_os),1) =  find(idx_o);
+%                     A_idx((ocount+1):(ocount + n_os),2) =  n_ep + amb_idx(idx_o,j);
+%                     y_var((ocount+1):(ocount + n_os)) = (0.003./sin(iof.el(idx_o,j)/180*pi)).^2;
+%                     ocount = ocount + n_os;
+%                 end
+%                 rowsn = repmat([1:(n_obs+n_ep-1)]',1,2);
+%                 A_idx(ocount+1:end,:) = [[1:(n_ep-1)]' [2:n_ep]']; 
+%                 A(ocount+1:end,1) = -1;
+%                 n_row = size(rowsn,1);
+%                 n_amb = max(A_idx(:,2)) - n_ep;
+%                 n_col = n_ep + n_amb;
+%                 A = sparse(rowsn(:),A_idx(:),A(:),n_row,n_col);
+%                 A = [A; sparse([zeros(1,n_ep-1)  1 zeros(1,n_amb)])];
+%                 y_var = [y_var; 1];
+%                 y = [y; 0];
+%                 wi = sqrt(1./y_var);
+%                 w = ones(size(wi));
+%                 n_row = n_row+1;
+%                 for i = 1 : 10
+%                     Cy = spdiags(w.*wi,0,n_row,n_row);
+%                     Aw = (Cy*A);
+%                     yw = (y.*w.*wi);
+%                     %x =  Aw\yw; 
+%                     N = Aw'*Aw;
+%                     B = Aw'*yw;
+%                     N = N + spdiags([zeros(n_ep,1); ones(n_amb,1)],0,n_col,n_col)*100;
+%                     x =  N\B; 
+%                     res = y - A*x;
+%                     sigma = median(abs(res(1:n_obs)))*1.5;
+%                     res_n = abs(res./(sqrt(y_var)/mean(sqrt(y_var(1:n_obs)))*sigma));
+%                     w(:) = 1;
+%                     w(res_n>2.5) =  2.5./(res_n(res_n>2.5));
+%                     w((n_obs+1):end) = 1;
+%                 end
+%                 dt = x(1:n_ep)/iof.wl(1);
+%                 obs_cy = nan2zero(zero2nan(obs_cy) - repmat(dt,1,size(iof.obs,2)));
+%                 keyboard
+
+
+
+
+                mode_val = mode(noZero(round(obs_cy*20)/20));
+                for i = 1 : n_amb
+                    idx = amb_idx == i;
+                    est_amb_float = mean(obs_cy(idx));
+                    if abs(est_amb_float - mode_val) > 0.5
+                        obs_cy(idx) = obs_cy(idx) - sign(est_amb_float - mode_val);
+                    end
+                end
+%                 dt_mode = zeros(size(amb_idx,1),1);
+%                 for i = 1 : size(amb_idx,1)
+%                     dt_mode(i) = median(noZero(obs_cy(max(i-5,1):min(i+5,size(amb_idx,1)),:)));
+%                 end
+%                 obs_cy = nan2zero(zero2nan(obs_cy) - repmat(dt_mode,1,size(obs_cy,2)));
+                
+
+
+                figure; plot(iof.time.getMatlabTime,zero2nan(obs_cy)); title(sys_ch)
+                  legend(cc.getAntennaId(iof.go_id));
+                setTimeTicks
+            end
+        end
+
+
         
         function [obs_set]  = getSmoothIonoFree(this, obs_type, sys_c)
             % get Preferred Iono free combination for the two selected measurements
@@ -7004,6 +7990,23 @@ classdef Receiver_Work_Space < Receiver_Commons
             else
                 synt_pr_obs = [];
             end
+        end
+
+        function phase_reset = getPhaseReset(this)
+            % get epoch for wich the continuity of phase observation is
+            % broken
+            %
+            % SYNTAX:
+            %    phase_reset = this.getPhaseReset();
+            obs_set = this.getObsSet('L??');
+            amb_idx = obs_set.getAmbIdx();
+            is_zero = sum(amb_idx,2) < 1e-3;
+            nz2fidx = 1:length(is_zero);
+            nz2fidx(is_zero) = [];
+            amb_idx = amb_idx(~is_zero,:);
+            phase_reseti = nz2fidx(find([false; sum(diff(int32(amb_idx)) < 0, 2) == sum((amb_idx(1 : end - 1, :)) > 0, 2) | sum(diff(int32(amb_idx)) > 0, 2) == sum((amb_idx(2 : end, :)) > 0,2)]));
+            phase_reset = false(length(is_zero),1);
+            phase_reset(phase_reseti) = true;
         end
         
         function sat_cache = getSatCache(this, go_id, force_update)
@@ -7668,7 +8671,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             %   this.remDtPPP
             
             this.dt_ip = this.dt_ip + this.dt;
-            this.smoothAndApplyDt();
+            if Core.getCurrentSettings.isApplyClock()
+                this.smoothAndApplyDt();
+            end
         end
         
         function smoothAndApplyDt(this, smoothing_win, are_pr_jumping, are_ph_jumping, mode)
@@ -8037,22 +9042,39 @@ classdef Receiver_Work_Space < Receiver_Commons
             % (Navigational file  or DCB file)
             cs = Core.getCoreSky;
             cc = Core.getState.getConstellationCollector;
+            if ~isempty(cs.time_ref_bias)
+
+%             time_bias = cs.getBiasTime();
+%             time_bias.addSeconds(43200);
+%             time_bias = time_bias.getMJD();
+%             time_rec = this.time.getMJD();
+%             time_rec = time_rec - min(time_bias);
+%             time_bias = time_bias - min(time_bias);
+
             for i = 1 : size(cs.group_delays, 2)
-                sys  = cs.GROUP_DELAYS_FLAGS(i,1);
-                code = cs.GROUP_DELAYS_FLAGS(i,2:4);
+                sys  = cs.group_delays_flags(i,1);
+                code = cs.group_delays_flags(i,2:4);
                 f_num = str2double(code(2));
                 idx = this.findObservableByFlag(code, sys);
-                if sum(cs.group_delays(:,i) ~= 0) > 0
+                if sum(cs.group_delays(:,i)) ~= 0
                     if ~isempty(idx)
                         for s = 1 : size(cs.group_delays,1)
-                            sat_idx = idx((this.prn(idx) == s));
+                            sat_idx = idx((this.go_id(idx) == s));
                             full_ep_idx = not(abs(this.obs(sat_idx,:)) < 0.1);
-                            if cs.group_delays(s,i) ~= 0
-                                this.obs(sat_idx,full_ep_idx) = this.obs(sat_idx,full_ep_idx) + sign(sgn) * cs.group_delays(s,i);
-                            elseif ~cc.isRefFrequency(sys, f_num)
-                                this.active_ids(idx) = false;
-                                idx = this.findObservableByFlag(['C' code(2:end)], sys);
-                                this.active_ids(sat_idx) = sgn < 0;
+                            for k = 1 : size(cs.group_delays(s,i,:),3)
+                                t_start = cs.time_ref_clock.getCopy().addSeconds((k-1)*cs.bias_rate);
+                                t_stop  = cs.time_ref_clock.getCopy().addSeconds((k)*cs.bias_rate);
+                                idx_time = this.time >= t_start & this.time < t_stop;
+                                if cs.group_delays(s,i,k) ~= 0
+                                    %group_delay = interp1([time_bias(2) time_bias(2)+1],squeeze([cs.group_delays(s,i,2) cs.group_delays(s,i,2)]),time_rec(full_ep_idx),'linear','extrap');
+                                    %group_delay = interp1(time_bias,squeeze(cs.group_delays(s,i,:)),time_rec(full_ep_idx),'linear','extrap');
+                                    group_delay = cs.group_delays(s,i,k);
+                                    this.obs(sat_idx,full_ep_idx & idx_time') = this.obs(sat_idx,full_ep_idx & idx_time') - sign(sgn) * group_delay';
+                                elseif ~cc.isRefFrequency(sys, f_num)
+                                    this.active_ids(idx) = false;
+                                    idx = this.findObservableByFlag(['C' code(2:end)], sys);
+                                    this.active_ids(sat_idx) = sgn < 0;
+                                end
                             end
                         end
                     end
@@ -8064,23 +9086,33 @@ classdef Receiver_Work_Space < Receiver_Commons
                     end
                 end
             end
+            
             for i = 1 : size(cs.phase_delays, 2)
-                sys  = cs.GROUP_DELAYS_FLAGS(i,1);
-                code = ['L' cs.GROUP_DELAYS_FLAGS(i,3:4)];
+                sys  = cs.group_delays_flags(i,1);
+                code = ['L' cs.group_delays_flags(i,3:4)];
                 f_num = str2double(code(2));
                 idx = this.findObservableByFlag(code, sys);
-                if sum(cs.phase_delays(:,i) ~= 0) > 0
+                if sum(cs.phase_delays(:,i)) ~= 0
                     if ~isempty(idx)
                         for s = 1 : size(cs.phase_delays,1)
-                            sat_idx = idx((this.prn(idx) == s));
+                            sat_idx = idx((this.go_id(idx) == s));
                             full_ep_idx = not(abs(this.obs(sat_idx,:)) < 0.1);
-                            if cs.phase_delays(s,i) ~= 0
-                                this.obs(sat_idx,full_ep_idx) = this.obs(sat_idx,full_ep_idx) + sign(sgn) * cs.phase_delays(s,i);
+                            for k = 1 : size(cs.phase_delays(s,i,:),3)
+                                t_start = cs.time_ref_clock.getCopy().addSeconds((k-1)*cs.bias_rate);
+                                t_stop  = cs.time_ref_clock.getCopy().addSeconds((k)*cs.bias_rate);
+                                idx_time = this.time >= t_start & this.time < t_stop;
+                                if cs.phase_delays(s,i,k) ~= 0
+                                    %group_delay = interp1([time_bias(2) time_bias(2)+1],squeeze([cs.phase_delays(s,i,2) cs.phase_delays(s,i,2)]),time_rec(full_ep_idx),'linear','extrap');
+                                    %group_delay = interp1(time_bias,squeeze(cs.phase_delays(s,i,:)),time_rec(full_ep_idx),'linear','extrap');
+                                    phase_delay = cs.phase_delays(s,i,k);
+                                    this.obs(sat_idx,full_ep_idx & idx_time') = this.obs(sat_idx,full_ep_idx & idx_time') - sign(sgn) * phase_delay' ./ this.wl(sat_idx);
+                                end
                             end
                         end
                     end
                 end
             end
+            
             
             id_ko = find(~this.active_ids);
             if ~isempty(id_ko)
@@ -8099,6 +9131,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 % remove empty observables
                 %this.remObs(id_ko);
                 this.active_ids(id_ko) = true;
+            end
             end
         end
         
@@ -8375,6 +9408,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             this.zwd(:) = 0;
             this.ztd(:) = 0;
+            this.tgn(:) = 0;
+            this.tge(:) = 0;
             this.updateErrTropo();
         end
         
@@ -8387,6 +9422,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             this.ztd(:) = 0;
             this.apr_zhd(:) = 0;
             this.apr_zwd(:) = 0;
+            this.tgn(:) = 0;
+            this.tge(:) = 0;
             this.sat.err_tropo(:) = 0;
         end
         
@@ -8632,11 +9669,15 @@ classdef Receiver_Work_Space < Receiver_Commons
             r_sun3  = (GS.*R^5)./(GE.*X_sun_n.^4) .*(H3*XR_u.*(2.5.*Vsun.^3  - 1.5.*Vsun)  +   L3*(7.5*Vsun.^2  - 1.5).*(X_sun_u  - Vsun .*XR_u));
             r_moon3 = (GM.*R^5)./(GE.*X_moon_n.^4).*(H3*XR_u.*(2.5.*Vmoon.^3 - 1.5.*Vmoon) +   L3*(7.5*Vmoon.^2 - 1.5).*(X_moon_u - Vmoon.*XR_u));
             r = r + r_sun3 + r_moon3;
-            
+
+            % low precision correction
+            GMST = JD2GMST(this.time.getMJD + 2400000.5)/180*pi;  	
+            r = r + repmat((-0.025 * sin(phiC) * cos(phiC) * sin(GMST + lam) ),1,3) .* XR_u;
+            end
             % from "conventional tide free" to "mean tide"
-            %radial = (-0.1206 + 0.0001*p)*p;
-            %north  = (-0.0252 + 0.0001*p)*sin(2*phiC);
-            %r = r + repmat([radial*c + north*b]',time.length,1);
+            % radial = (-0.1206 + 0.0001*p)*p;
+            % north  = (-0.0252 + 0.0001*p)*sin(2*phiC);
+            % r = r + repmat([radial*c + north*b]',time.length,1);
             
             % displacement along the receiver-satellite line-of-sight
             [XS] = this.getXSLoc();
@@ -9208,7 +10249,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 i_s = reshape(x(:,s,:),[],3);
                 j_s = reshape(y(:,s,:),[],3);
                 % k_s = reshape(z(:,s,:),[],3); % <- qua prima era sbagliato!!
-                k_s = rowNormalize(reshape(XS_loc(:,s,:), [], 3)); 
+                k_s = -rowNormalize(squeeze(XS_loc(:,s,:)));
 
 
                 %receiver and satellites effective dipole vectors
@@ -9535,6 +10576,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.remDtSat();
                 this.remGroupDelay();
                 this.remPCV();
+                %this.remMP();
                 this.remPoleTide();
                 this.remPhaseWindUpCorr();
                 this.remSolidEarthTide();
@@ -9548,6 +10590,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.dts_delay_status = false;
                 this.sh_delay_status = false;
                 this.pcv_delay_status = false;
+                %this.mp_delay_status = false;
                 this.ol_delay_status = false;
                 this.pt_delay_status = false;
                 this.pw_delay_status = false;
@@ -9903,12 +10946,16 @@ classdef Receiver_Work_Space < Receiver_Commons
             synt_pr = this.getSyntPrObs;
             dt = median(pr - synt_pr,2,'omitnan');
             this.dt = nan2zero(dt)/Core_Utils.V_LIGHT;
-            this.smoothAndApplyDt(0, is_pr_jumping, is_ph_jumping);
+            if Core.getCurrentSettings.isApplyClock()
+                this.smoothAndApplyDt(0, is_pr_jumping, is_ph_jumping);
+            end
             [pr] = this.getPseudoRanges();
             synt_pr = this.getSyntPrObs;
             dt = median(pr - synt_pr,2,'omitnan');
             this.dt = nan2zero(dt)/Core_Utils.V_LIGHT;
-            this.smoothAndApplyDt(0, is_pr_jumping, is_ph_jumping);
+            if Core.getCurrentSettings.isApplyClock()
+                this.smoothAndApplyDt(0, is_pr_jumping, is_ph_jumping);
+            end
         end
         
         function s0 = initPositioning(this, sys_c)
@@ -10051,7 +11098,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                         % Save init_positioning clock
                         this.dt_ip = this.dt_ip + simpleFill1D(this.dt, this.dt == 0, 'linear') + this.dt_pr; 
                         % smooth clock estimation
-                        if perc(abs(this.dt), 0.97) > 1e-7 % 30 meters : is it only useful to reallining receivers that have a large drifts from the nominal value
+                        if perc(abs(this.dt), 0.97) > 1e-7 && Core.getCurrentSettings.isApplyClock()% 30 meters : is it only useful to reallining receivers that have a large drifts from the nominal value
                             this.smoothAndApplyDt(0, false, false);
                         end
                             
@@ -10611,11 +11658,13 @@ classdef Receiver_Work_Space < Receiver_Commons
                         this.quality_info.n_epochs = ls.n_epochs;
                         this.quality_info.n_obs = size(ls.epoch, 1);
                         this.quality_info.n_out = sum(this.sat.outliers_ph_by_ph(:));
+                        this.quality_info.n_spe = length(sum(~isnan(res)));
                         this.quality_info.n_sat = length(unique(ls.sat));
                         this.quality_info.n_sat_max = max(hist(unique(ls.epoch * 1000 + ls.sat), ls.n_epochs));
                         this.quality_info.fixing_ratio = 0;
                         this.generateNumSatPerEpochU1(ls ,res, id_sync)
                     catch ex
+                        % keyboard
                         Core_Utils.printEx(ex);
                         s0 = 0;
                     end
@@ -11026,13 +12075,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                     
                     this.remUnderSnrThr(state.getAbsSnrThr());
                     % correct for raw estimate of clock error based on the phase measure
-                    % this also fill empty epochs with nan
+                    if this.hasGoodApriori &&  Core.getCurrentSettings.isApplyClock()
                     if ~this.hasRangeObs()
                         log = Core.getLogger;
                         log.addError(sprintf('PREPRO no valid observations found!'));
                         return
                     end
-                    if this.hasGoodApriori
                         % In this case I have to remove the clock to be
                         % able to perform outlier rejection
                         [is_pr_jumping, is_ph_jumping] = this.correctTimeDesync(~Receiver_Work_Space.DT_CORRECTION_TIME_DESYNC);
@@ -11072,7 +12120,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                             Core.getCoreSky.toAPC();
                         end
                         s02 = this.initPositioning(sys_list); %#ok<*PROPLC>
-                        if any(abs(diff(this.dt)) > 0.005) 
+                        if any(abs(diff(this.dt)) > 0.005)  && Core.getCurrentSettings.isApplyClock()
                             % If there is a strong clock jump start immediately to remove the receiver clock from the data
                             this.dt_ip = this.dt; % save the temporary dt of the inith positioning
                             this.applyDtRec(this.dt);
@@ -11105,16 +12153,18 @@ classdef Receiver_Work_Space < Receiver_Commons
                             end
                             this.dt_ip = this.dt_ip + simpleFill1D(this.dt, this.dt == 0, 'linear') + this.dt_pr; % save init_positioning clock
                             % smooth clock estimation
-                            if perc(abs(this.dt), 0.97) > 1e-7 % 30 meters : is it only useful to reallining receivers that have a large drifts from the nominal value
+                            if perc(abs(this.dt), 0.97) > 1e-7 && Core.getCurrentSettings.isApplyClock()% 30 meters : is it only useful to reallining receivers that have a large drifts from the nominal value
                                 this.smoothAndApplyDt(0, is_pr_jumping, is_ph_jumping);
+                                % Add a model correction for time desync -> observations are now referred to nominal time  #14
+                                this.shiftToNominal();
                             end
                             
-                            % Add a model correction for time desync -> observations are now referred to nominal time  #14
-                            this.shiftToNominal();
+                           
                             
                             this.updateAllTOT();
+                            if Core.getCurrentSettings.isApplyClock()
                             this.correctPhJump();
-                            
+                            end
                             if flag_apply_corrections
                                 % apply various corrections
                                 if enable_sat_pco
@@ -11147,17 +12197,23 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 this.applyAtmLoad();
                                 this.applyHOI();
                                 
-                                if state.isRepairOn()
+                                if this.state.isRepairOn()
                                     this.repairPhases();
                                 end
                                 
-                                this.remUnderSnrThr([], state.getScaledSnrThr());
-                                this.cleanPr(); % remove pseudo-ranges above threshold
+                                this.remUnderSnrThr([], this.state.getScaledSnrThr());
+
                                 if this.NEW_OUT_DET
-                                    this.detectOutlierMarkCycleSlipNew();
+                                    if this.rate < 31
+                                        this.detectOutlierMarkCycleSlipNew();
+                                    else
+                                        this.detectOutlierMarkCycleSlipNew(true);
+                                    end
                                 else
                                     this.detectOutlierMarkCycleSlip();
                                 end
+                                
+                                
                                 [dpos, s0] = this.codeStaticPositioning(sys_list); % <== to be substituted with U2
                                 if s0 < 3
                                     log.addStatusOk(log.indent(sprintf('End of pre-processing s0 = %.4f\nCorrecting solution by %.3f meters', s0, sqrt(sum(dpos.^2)))));
@@ -11170,8 +12226,10 @@ classdef Receiver_Work_Space < Receiver_Commons
                         
                                 this.dt_ip = this.dt_ip + this.dt; % save init_positioning clock
                                 % smooth clock estimation
-                                this.smoothAndApplyDt(0, false, false, 0); % the parameters say no smooth!
+                                if Core.getCurrentSettings.isApplyClock()
+                                    this.smoothAndApplyDt(0, false, false, 0);
                                 this.shiftToNominal;
+                                end
                                 this.getSatCache([], true);
                                
                                 if state.isCombineTrk
@@ -11179,7 +12237,11 @@ classdef Receiver_Work_Space < Receiver_Commons
                                     status = this.combinePhTrackings();
                                     if status
                                         if this.NEW_OUT_DET
+                                            if this.rate < 31
                                             this.detectOutlierMarkCycleSlipNew();
+                                        else
+                                                this.detectOutlierMarkCycleSlipNew(true);
+                                            end
                                         else
                                             this.detectOutlierMarkCycleSlip();
                                         end
@@ -11634,7 +12696,9 @@ classdef Receiver_Work_Space < Receiver_Commons
                                 end
                             end
                         end
-                        this.smoothAndApplyDt(0, false, false, 2);
+                        if Core.getCurrentSettings.isApplyClock()
+                            this.smoothAndApplyDt(0, false, false, 2);
+                        end
                         this.setPPPOk();
                         %this.pushResult();
                     end
@@ -12329,6 +13393,641 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
+        function staticPPP_Timing(this, sys_list, id_sync)
+            % compute a static PPP solution
+            %
+            % SYNTAX
+            %   this.parent.staticPPP_U1(<sys_list>, <id_sync>)
+            %
+            % EXAMPLE:
+            %   Use the full dataset to compute a PPP solution
+            %    - this.parent.staticPPP_U1();
+            %
+            %   Use just GPS + GLONASS + Galileo to compute a PPP solution
+            %   using epochs from 501 to 2380
+            %    - this.parent.staticPPP_U1('GRE', 501:2380);
+            %
+            %   Use all the available satellite system to compute a PPP solution
+            %   using epochs from 501 to 2380
+            %    - this.parent.staticPPP_U1([], 500:2380);
+            log = Core.getLogger();
+            cc = Core.getState.getConstellationCollector;
+            state = Core.getCurrentSettings();
+            if this.isEmpty()
+                log.addError('staticPPP_U1 failed The receiver object is empty');
+            elseif ~this.isPreProcessed()
+                if ~isempty(this.quality_info.s0_ip) && (this.quality_info.s0_ip < Inf)
+                    log.addError('Pre-Processing is required to compute a PPP solution');
+                else
+                    log.addError('Pre-Processing failed: skipping PPP solution');
+                end
+            elseif this.quality_info.s0_ip > 10
+                log.addError('Pre-Processing quality is too bad to proceed with PPP computation');
+            else
+                if nargin < 2 || isempty(sys_list)
+                    sys_list = this.getActiveSys();
+                end
+                if nargin >= 2
+                    if ~isempty(sys_list)
+                        this.setActiveSys(sys_list);
+                    end
+                end
+                
+                if nargin < 3
+                    id_sync = (1 : this.time.length())';
+                end
+                
+                id_sync_in = id_sync;
+                log.addMarkedMessage(['Computing PPP solution using: ' this.getActiveSys()]);
+                log.addMessage(log.indent('Preparing the system'));
+                %this.updateAllAvailIndex
+                %this.updateAllTOT
+                ls = Engine_U2();
+                parametrization = LS_Parametrization();
+                [out_lim, int_lim] = state.getSessionLimits();
+                
+                % time parametrization coordinates
+                parametrization.rec_x(1) = state.tparam_coo_ppp;
+                parametrization.rec_y(1) = state.tparam_coo_ppp;
+                parametrization.rec_z(1) = state.tparam_coo_ppp;
+                parametrization.rec_x_opt.spline_rate = state.rate_coo_net;
+                parametrization.rec_y_opt.spline_rate = state.rate_coo_net;
+                parametrization.rec_z_opt.spline_rate = state.rate_coo_net;
+                
+                % Estimate different set of coordinates for the left and write buffer
+                if state.isSepCooAtBoundaries
+                    steps = out_lim.getEpoch(1);
+                    steps.append(int_lim);
+                    parametrization.rec_x(1) = parametrization.STEP_CONST;
+                    parametrization.rec_x_opt.steps_set{1}  = steps;
+
+                    parametrization.rec_y(1) = parametrization.STEP_CONST;
+                    parametrization.rec_y_opt.steps_set{1}  = steps;
+                    
+                    parametrization.rec_z(1) = parametrization.STEP_CONST;
+                    parametrization.rec_z_opt.steps_set{1}  = steps;
+                end
+                
+                % Estimate different Antenna Phase Center for each frequency/constellation
+
+                parametrization.rec_x(4) = state.flag_coo_ppp;
+                parametrization.rec_y(4) = state.flag_coo_ppp;
+                parametrization.rec_z(4) = state.flag_coo_ppp;
+              
+                % Use spline for estimating ZTD
+                if state.tparam_ztd_ppp == 1
+                    parametrization.tropo(1) = parametrization.EP_WISE;
+                elseif state.tparam_ztd_ppp == 2
+                    parametrization.tropo(1) = parametrization.SPLINE_LIN;
+                    parametrization.tropo_opt.spline_rate = state.rate_ztd_ppp;
+                elseif state.tparam_ztd_ppp == 3
+                    parametrization.tropo(1) = parametrization.SPLINE_CUB;
+                    parametrization.tropo_opt.spline_rate = state.rate_ztd_ppp;
+                end
+                
+            
+                
+                                
+                % Use spline for estimating ZTD gradients
+                if state.tparam_grad_ppp == 1
+                    parametrization.tropo_n(1) = parametrization.EP_WISE;
+                    parametrization.tropo_e(1) = parametrization.EP_WISE;
+                elseif state.tparam_grad_ppp == 2
+                    parametrization.tropo_n(1) = parametrization.SPLINE_LIN;
+                    parametrization.tropo_n_opt.spline_rate = state.rate_grad_ppp;
+                    
+                    parametrization.tropo_e(1) = parametrization.SPLINE_LIN;
+                    parametrization.tropo_e_opt.spline_rate = state.rate_grad_ppp;
+                elseif state.tparam_grad_ppp == 3
+                    parametrization.tropo_n(1) = parametrization.SPLINE_CUB;
+                    parametrization.tropo_n_opt.spline_rate = state.rate_grad_ppp;
+                    
+                    parametrization.tropo_e(1) = parametrization.SPLINE_CUB;
+                    parametrization.tropo_e_opt.spline_rate = state.rate_grad_ppp;
+                end
+                   param_selection = [Engine_U2.PAR_AMB;];
+                if state.flag_coo_ppp
+                    param_selection = [param_selection;
+                        Engine_U2.PAR_REC_X;
+                        Engine_U2.PAR_REC_Y;
+                        Engine_U2.PAR_REC_Z;
+                        ];
+                end
+                
+                if state.flag_iono_ppp
+                     % param_selection =  [param_selection;
+                     %    Engine_U2.PAR_IONO;
+                     %    ];
+%                      param_selection =  [param_selection;
+%                         Engine_U2.PAR_IONO_PR;
+%                         Engine_U2.PAR_IONO_PH;
+%                         ];
+                end
+                if state.flag_rec_clock_ppp
+                    if state.flag_phpr_rec_clock_ppp
+                        param_selection =  [param_selection;
+                            Engine_U2.PAR_REC_CLK_PR;
+                            Engine_U2.PAR_REC_CLK_PH;
+                            ];
+                    else
+                         param_selection =  [param_selection;
+                            Engine_U2.PAR_REC_CLK;
+                           % Engine_U2.PAR_REC_PPB;
+                            ];
+                    end
+                end
+                
+                if state.flag_ztd_ppp
+                    param_selection =  [param_selection;
+                    Engine_U2.PAR_TROPO;];
+                end
+                
+                if state.flag_grad_ppp
+                    param_selection =  [param_selection;
+                    Engine_U2.PAR_TROPO_E;
+                    Engine_U2.PAR_TROPO_N;];
+                end
+                
+                if state.flag_rec_trkbias_ppp
+                    param_selection =  [param_selection;
+                    Engine_U2.PAR_REC_EB;];
+                    parametrization.setTimeParametrization(Engine_U2.PAR_REC_EB, state.tparam_rec_trkbias_ppp );
+                    if state.tparam_rec_trkbias_ppp > 1 && state.rate_rec_trkbias_ppp > 0
+                        parametrization.setRate(Engine_U2.PAR_REC_EB, state.rate_rec_trkbias_ppp );
+                    end
+
+                end
+                
+                if state.flag_rec_ifbias_ppp
+                    param_selection =  [param_selection;
+                        Engine_U2.PAR_REC_EBFR;];
+                    parametrization.setTimeParametrization(Engine_U2.PAR_REC_EBFR, state.tparam_rec_ifbias_ppp );
+                    if state.tparam_rec_ifbias_ppp > 1 && state.rate_rec_ifbias_ppp > 0
+                        parametrization.setRate(Engine_U2.PAR_REC_EB, state.rate_rec_ifbias_ppp );
+                    end
+                end
+                %%%%%%%%%%%%%%%%%%%% TIMING %%%%%%%%%%%%%%%%%%%%%
+                % param_selection =  [param_selection;
+                %     %Engine_U2.PAR_SS_PR_EB;
+                %     Engine_U2.PAR_REC_SB;
+                %     ];
+%                 parametrization.setTimeParametrization(Engine_U2.PAR_SS_PR_EB, LS_Parametrization.SPLINE_CUB );
+%                 parametrization.setRate(Engine_U2.PAR_SS_PR_EB, 43200 );
+
+                    
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                
+                % Prepare the LS object
+                %ls.setUpPPP(this, sys_list, this.getIdSync, param_selection, parametrization)
+                ls.setUpSAIF(this, this.getIdSync, param_selection, parametrization);
+                %ls.setUpIonoFreePPP(this, this.getIdSync);
+                % Set up time dependent regularizations for the tropospheric parameters
+%                 ls.absValRegularization(ls.PAR_SS_PR_EB, 0.5^2);
+%                 ls.timeRegularization(ls.PAR_SS_PR_EB,  1^2/ 3600);
+                % ls.absValRegularization(ls.PAR_REC_SB, 0.3^2);
+                % ls.timeRegularization(ls.PAR_REC_SB, (0.003)^2/ 86400);
+                
+                if state.areg_ztd_ppp > 0
+                   ls.absValRegularization(ls.PAR_TROPO, (state.areg_ztd_ppp)^2);
+                end
+                if state.areg_grad_ppp > 0
+                    ls.absValRegularization(ls.PAR_TROPO_N, (state.areg_grad_ppp)^2);
+                    ls.absValRegularization(ls.PAR_TROPO_E, (state.areg_grad_ppp)^2);
+                end
+                if state.areg_rec_clock_ppp > 0
+                    if  state.flag_phpr_rec_clock_ppp
+                        ls.absValRegularization(ls.PAR_REC_CLK_PH, (state.areg_rec_clock_ppp)^2);
+                        ls.absValRegularization(ls.PAR_REC_CLK_PR, (state.areg_rec_clock_ppp)^2);
+                    else
+                        ls.absValRegularization(ls.PAR_REC_CLK, (state.areg_rec_clock_ppp)^2);
+                    end
+                end
+                if state.areg_rec_ifbias_ppp > 0
+                    ls.absValRegularization(ls.PAR_REC_EBFR, (state.areg_rec_ifbias_ppp)^2);
+                end
+                if state.areg_rec_trkbias_ppp > 0
+                    ls.absValRegularization(ls.PAR_REC_EB, (state.areg_rec_trkbias_ppp)^2);
+                end
+                
+                if state.dreg_ztd_ppp > 0
+                    ls.timeRegularization(ls.PAR_TROPO, (state.dreg_ztd_ppp)^2/ 3600);
+                end
+                if state.dreg_grad_ppp > 0
+                    ls.timeRegularization(ls.PAR_TROPO_N, (state.dreg_grad_ppp)^2/ 3600);
+                    ls.timeRegularization(ls.PAR_TROPO_E, (state.dreg_grad_ppp)^2/ 3600);
+                end
+                
+                if state.dreg_rec_ifbias_ppp > 0
+                    ls.timeRegularization(ls.PAR_REC_EBFR, (state.dreg_rec_ifbias_ppp)^2/ 3600);
+                end
+                if state.dreg_rec_trkbias_ppp > 0
+                    ls.timeRegularization(ls.PAR_REC_EB, (state.dreg_rec_trkbias_ppp)^2/ 3600);
+                end
+                
+                %%%%%%%%%%%%%%%%%%%%%%% FOR TIMING %%%%%%%%%%%%%%
+%                 ls.regRecPrPhclock(30);
+%                 ls.timeRegularization(ls.PAR_IONO,1,900);
+%                 ls.absValRegularization(ls.PAR_IONO,200^2);
+                %ls.absValRegularization(ls.PAR_SS_PR_EB,0.3^2);
+                %this.absValRegularization(this.PAR_IONO_PR,200^2);
+                %this.absValRegularization(this.PAR_IONO_PH,200^2);
+%                 ls.timeRegularization(ls.PAR_REC_CLK_PH,100);
+%                 ls.timeRegularization(ls.PAR_REC_CLK_PR,100);
+                ls.timeRegularization(ls.PAR_REC_CLK,0.05^2/30);
+                 %  ls.absValRegularization(ls.PAR_REC_SB, 0.3^2);
+                ls.timeRegularization(ls.PAR_REC_SB, (0.003)^2/ 86400);
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+                % Solve the LS problem
+                ls.solvePPPsparse(false);
+%                 ls.snoopGatt(Core.getState.getMaxPhaseErrThr, Core.getState.getMaxCodeErrThr);
+%                 ls.solve();
+                 % REWEIGHT ON RESIDUALS
+
+                 for i = 1 : 3
+                     ls.varEstimation();   
+                     ls.reweightHuber;
+                     ls.solvePPPsparse(false);
+                 end
+                 if state.getAmbFixPPP
+                     for i = 1 : 4
+                         ls.varEstimation(); 
+                         ls.reweightHuber;
+                         ls.solvePPPsparse(true);
+                     end
+                     %ls.plotAmbFixed();
+                 end
+%                     if state.getReweightPPP > 1 && false
+%                         flag_recompute = true;
+%                         switch state.getReweightPPP()
+%                             case 2, ls.reweightHuber;
+%                             case 3, ls.reweightHubNoThr;
+%                             case 4, ls.reweightDanish;
+%                             case 5, ls.reweightDanishWM;
+%                             case 6, ls.reweightTukey;
+%                             case 7, ls.simpleSnoop();
+%                             case 8, ls.snoopGatt(state.getMaxPhaseErrThr, state.getMaxCodeErrThr);
+%                             case 9, ls.snoopGatt(state.getMaxPhaseErrThr, state.getMaxCodeErrThr,true); 
+%                         end
+%                         if flag_recompute
+%                             ls.solvePPPsparse(state.getAmbFixPPP());
+%                         end
+%                     end
+%                 
+                
+                
+                % outlier detections
+                
+                % Compute sigma0 of the estimation
+                s0 = ls.getSigma0Ph();
+
+
+               
+
+                
+                % ZWD is not present
+                if isempty(this.zwd) || all(isnan(this.zwd))
+                    this.zwd = zeros(this.time.length(), 1, 'single');
+                end
+                
+                % a-priori ZHD is not present
+                if isempty(this.apr_zhd) || all(isnan(this.apr_zhd))
+                    this.apr_zhd = zeros(this.time.length(),1, 'single');
+                end
+                
+                % ZTD is not present
+                if isempty(this.ztd) || all(isnan(this.ztd))
+                    this.ztd = zeros(this.time.length(),1, 'single');
+                end
+                                                
+                if s0 > 0.10
+                    log.addWarning(sprintf('PPP solution failed, s02: %6.4f   - no update to receiver fields',s0))
+                end
+                
+                if s0 < 0.5 % with over 50cm of error the results are not meaningfull
+                    
+                    % Push coordinates from LS object to rec
+                    idx_x = ls.class_par == ls.PAR_REC_X;
+                    if sum(idx_x) > 0
+                        [x_coo_time1, x_coo_time2] = ls.getTimePar(idx_x);
+                        idx_save = Core_Utils.timeIntersect(x_coo_time1, x_coo_time2, int_lim.first, int_lim.last);
+                        idx_x(idx_x) = idx_save;
+                        cox = ls.x(idx_x);
+                    else
+                        cox = 0;
+                    end
+                    
+                    idx_y = ls.class_par == ls.PAR_REC_Y;
+                    if sum(idx_y) > 0
+                        [y_coo_time1, y_coo_time2] = ls.getTimePar(idx_y);
+                        idx_save = Core_Utils.timeIntersect(y_coo_time1, y_coo_time2, int_lim.first, int_lim.last);
+                        idx_y(idx_y) = idx_save;
+                        coy = ls.x(idx_y);
+                    else
+                        coy = 0;
+                    end
+                    
+                    idx_z = ls.class_par == ls.PAR_REC_Z;
+                    if sum(idx_z) > 0
+                        [z_coo_time1, z_coo_time2] = ls.getTimePar(idx_z);
+                        idx_save = Core_Utils.timeIntersect(z_coo_time1, z_coo_time2, int_lim.first, int_lim.last);
+                        idx_z(idx_z) = idx_save;
+                        coz = ls.x(idx_z);
+                    else
+                        coz = 0;
+                    end
+                    idx_save = find(idx_save);
+                    coo = [cox coy coz];
+                    this.xyz = this.xyz + mean(coo,1);
+
+                    
+                    
+                    n_coo = size(coo,1);
+                    coo_vcv = zeros(3,3,n_coo);
+                    for k = 1 : size(coo,1)
+                        idx_coo = idx_save(k) + [0:2]*n_coo;
+                        %co         o_vcv(:,:,k) = ls.coo_vcv(idx_coo,idx_coo);
+                    end
+                    
+                    time_coo = ls.getTimePar(idx_x);
+                    time_dt = (ls.time_par(idx_x,2) - ls.time_par(idx_x,1))/2;
+                    time_dt(ls.time_par(idx_x,2) == 0) = 0;
+                    time_coo.addSeconds(double(time_dt));
+                    obs_id_coo_tmp = ls.obs_codes_id_par(idx_x);
+                    obs_id_coo = zeros(size(obs_id_coo_tmp));
+                    u_o_id = unique(obs_id_coo_tmp);
+                    ency = Core.getEncyclopedia();
+                    for j = 1 :length(u_o_id)
+                        if u_o_id(j)< 0
+                            id = ency.getObsGroupId(ls.unique_obs_codes{-u_o_id(j)});
+                        else
+                            id = ency.getObsGroupId(ls.unique_obs_codes{u_o_id(j)});
+                        end
+                        obs_id_coo(obs_id_coo_tmp == u_o_id(j)) = id;
+                    end
+                    
+                    
+                    coo = Coordinates.fromXYZ(coo);
+                    coo.time = time_coo.getCopy();
+                    coo.Cxx = coo_vcv;
+                    coo.info.obs_used = obs_id_coo;
+                    this.coo = coo;
+                    
+                                        
+                    % Push clock from LS object to rec
+                    idx_clk = ls.class_par == ls.PAR_REC_CLK | ls.class_par == ls.PAR_REC_CLK_PH;
+                    [~,ep_pr] = ismember(ls.getTimePar(idx_clk).getNominalTime.getRefTime(this.time.first.getMatlabTime),this.time.getNominalTime.getRefTime(this.time.first.getMatlabTime));
+                    this.dt(:) = nan;
+                    this.dt(ep_pr) =  ls.x(idx_clk)/ Core_Utils.V_LIGHT;%this.dt(ep_pr) +
+                    
+                    zernike_temp = Prj_Settings.getNumZerTropoCoef > 0;
+                    if zernike_temp
+                        idx_trpz = find(ls.class_par == ls.PAR_TROPO_Z);
+                        tropoz =  ls.x(idx_trpz);
+                        n_pol = Prj_Settings.getNumZerTropoCoef-3;
+                        tropo_dt = rem(this.time.getNominalTime - ls.getTimePar(idx_trpz).minimum, state.rate_grad_ppp)/state.rate_grad_ppp;
+                        spline_base = Core_Utils.spline(tropo_dt,3);
+                        zer_tropo = zeros(size(spline_base,1),n_pol);
+                        n_coeff_o = length(idx_trpz) / n_pol;
+                        for i = 1 : n_pol
+                            idx_tmp = (i-1)*n_coeff_o + (1 : n_coeff_o);
+                            idx_trpzt = idx_trpz(idx_tmp);
+                            tropozt = tropoz(idx_tmp);
+                            tropo_idx = floor((this.time.getNominalTime - ls.getTimePar(idx_trpzt).minimum)/state.rate_grad_ppp);
+                            [~,tropo_idx] = ismember(tropo_idx*state.rate_grad_ppp, ls.getTimePar(idx_trpzt).getNominalTime.getRefTime(ls.getTimePar(idx_trpzt).minimum.getMatlabTime));
+                            valid_ep = tropo_idx ~=0 & tropo_idx <= (length(tropo)-3);
+                            zer_tropo(valid_ep,i) = sum(spline_base .* tropozt(repmat(tropo_idx(valid_ep), 1, 3 + 1) + repmat((0 : 3), numel(tropo_idx(valid_ep)), 1)), 2);
+                        end
+                        this.tzer = zer_tropo;
+                    end
+                    
+                    % Push tropo from LS object to rec
+                    if state.flag_ztd_ppp
+                        zwd = this.getZwd();
+                        zwd_tmp = zeros(size(this.zwd));
+                        zwd_tmp(this.id_sync) = zwd;
+                        if state.tparam_ztd_ppp == 1
+                            idx_trp = ls.class_par == ls.PAR_TROPO;
+                            [~,valid_ep] = ismember(ls.getTimePar(idx_trp).getNominalTime.getRefTime(this.time.first.getMatlabTime),this.time.getNominalTime.getRefTime(this.time.first.getMatlabTime));
+                            tropo =  ls.x(idx_trp);
+                        else
+                            idx_trp = ls.class_par == ls.PAR_TROPO;
+                            tropo =  ls.x(idx_trp);
+                            time_min = ls.getTimePar(idx_trp).getNominalTime(ls.obs_rate).minimum;
+                            tropo_dt = rem(this.time.getNominalTime - time_min, state.rate_ztd_ppp)/ state.rate_ztd_ppp;
+                            
+                            tropo_idx = floor((this.time.getNominalTime - time_min)/state.rate_ztd_ppp);
+                            idx_valid_trop = tropo_dt >= 0& tropo_idx <= (length(tropo)-2);
+
+                            [~,tropo_idx] = ismember(tropo_idx*state.rate_ztd_ppp, ls.getTimePar(idx_trp).getNominalTime(ls.obs_rate).getRefTime(time_min.getMatlabTime));
+                            valid_ep = tropo_idx ~=0 & tropo_idx <= (length(tropo)-3);
+                            if state.tparam_ztd_ppp == 2
+                            spline_order = 1;
+                            elseif state.tparam_ztd_ppp == 3
+                                spline_order = 3;
+                            end
+                            spline_base = Core_Utils.spline(tropo_dt(valid_ep),spline_order );
+                            tropo =sum(spline_base .* tropo(repmat(tropo_idx(valid_ep), 1, spline_order + 1) + repmat((0 : spline_order), numel(tropo_idx(valid_ep)), 1)), 2);
+                        end
+                        if zernike_temp
+                            this.zwd(valid_ep) = zwd_tmp(valid_ep) + serialize(tropo) ; %+ zer_tropo(:,1)
+                            this.ztd(valid_ep) = this.zwd(valid_ep) + this.apr_zhd(valid_ep);
+                        else
+                            this.zwd(valid_ep) = zwd_tmp(valid_ep) + serialize(tropo);
+                            this.ztd(valid_ep) = this.zwd(valid_ep) + this.apr_zhd(valid_ep);
+                        end
+                        % Computing PWV
+                        this.pwv = nan(size(this.zwd), 'single');
+                        if isempty(this.meteo_data)
+                            log.addWarning('Computing PWV without meteorological observed data might be inaccurate');
+                        end
+                        degCtoK = 273.15;
+                        [~,Tall, H] = this.getPTH();
+                        % weighted mean temperature of the atmosphere over Alaska (Bevis et al., 1994)
+                        Tm = (Tall(valid_ep) + degCtoK)*0.72 + 70.2;
+                        
+                        % Askne and Nordius formula (from Bevis et al., 1994)
+                        Q = (4.61524e-3*((3.739e5./Tm) + 22.1));
+                        
+                        % precipitable Water Vapor
+                        this.pwv(valid_ep) = this.zwd(valid_ep) ./ Q;
+                        
+                    end
+                    
+                    % Push tropo gradients from LS object to rec
+                    if state.flag_grad_ppp
+                        if isempty(this.tgn) || all(isnan(this.tgn))
+                            this.tgn = nan(this.time.length,1);
+                        end
+                        if state.tparam_grad_ppp == 1
+                            idx_trpe = ls.class_par == ls.PAR_TROPO_E;
+                            idx_trpn = ls.class_par == ls.PAR_TROPO_N;
+                            [~,valid_ep] = ismember(ls.getTimePar(idx_trpe).getNominalTime.getRefTime(this.time.first.getMatlabTime),this.time.getNominalTime.getRefTime(this.time.first.getMatlabTime));
+                            getropo =  ls.x(idx_trpe);
+                            gntropo =  ls.x(idx_trpn);
+                            
+                        else
+                            idx_trpe = ls.class_par == ls.PAR_TROPO_E;
+                            idx_trpn = ls.class_par == ls.PAR_TROPO_N;
+                            
+                            tropoe =  ls.x(idx_trpe);
+                            tropon =  ls.x(idx_trpn);
+                            if state.tparam_grad_ppp == 2
+                                spline_order = 1;
+                            elseif state.tparam_grad_ppp == 3
+                                spline_order = 3;
+                            end
+                            time_min = ls.getTimePar(idx_trpe).getNominalTime(ls.obs_rate).minimum;
+                            
+                            tropo_dt = rem(this.time.getNominalTime - time_min, state.rate_grad_ppp)/state.rate_grad_ppp;
+                            idx_valid_trop = tropo_dt >= 0;
+                            tropo_idx = floor((this.time.getNominalTime - time_min)/state.rate_grad_ppp);
+                            [~,tropo_idx] = ismember(tropo_idx*state.rate_grad_ppp, ls.getTimePar(idx_trpe).getNominalTime(this.getRate).getRefTime(time_min.getMatlabTime));
+                            valid_ep = tropo_idx ~=0 & tropo_idx <= (length(tropon)-3);
+                            spline_base = Core_Utils.spline(tropo_dt(valid_ep),spline_order);
+                            
+                            getropo= sum(spline_base .* tropoe(repmat(tropo_idx(valid_ep), 1, spline_order + 1) + repmat((0 : spline_order), numel(tropo_idx(valid_ep)), 1)), 2);
+                            gntropo = sum(spline_base .* tropon(repmat(tropo_idx(valid_ep), 1, spline_order + 1) + repmat((0 : spline_order), numel(tropo_idx(valid_ep)), 1)), 2);
+                            
+                        end
+                        this.tge(valid_ep) = nan2zero(this.tge(valid_ep))  + getropo;
+                        this.tgn(valid_ep) = nan2zero(this.tgn(valid_ep))  + gntropo;
+                    end
+                    this.updateErrTropo();
+                    
+                    % Push quality info from LS object to rec
+                    this.quality_info.s0 = s0;
+                    this.quality_info.n_epochs = numel(unique(ls.time_par));
+                    this.quality_info.n_obs = sum(ls.outlier_obs ~= 0);
+                    this.quality_info.n_out = sum(this.sat.outliers_ph_by_ph(:));
+                    this.quality_info.n_sat = length(unique(ls.sat_par));
+                    this.quality_info.n_sat_max = uint16(max(hist(double(unique(uint32(ls.time_obs.getNominalTime().getRefTime(ls.time_obs.minimum.getMatlabTime) * 1000) + uint32(ls.satellite_obs))), uint32(this.quality_info.n_epochs))));
+                    
+%                     if state.getAmbFixPPP
+%                         this.quality_info.fixing_ratio = sum(l_fixed)/numel(l_fixed);
+%                     end
+                    
+                     % Get sat number per epoch
+                    this.generateNumSatPerEpochU2(ls)
+                    
+                    % save phase residuals
+                    [res_ph, sat, obs_id,~, res_time] = ls.getPhRes(1);
+                    obs_code_ph = reshape(cell2mat(ls.unique_obs_codes(obs_id))',4,length(obs_id))';
+                    prn_ph = cc.prn(sat);
+                    this.n_sat_ep = zeros(size(this.dt));
+                    [istime,idx_time] =  ismember(round(res_time.getRefTime(this.time.first.getMatlabTime)*1e2),round(this.time.getRefTime(this.time.first.getMatlabTime)*1e2));
+                    this.n_sat_ep(idx_time(istime)) = uint8(sum(~isnan(res_ph(istime,:)),2));
+                    [res_pr, sat, obs_id] = ls.getPrRes(1);
+                    obs_code_pr = reshape(cell2mat(ls.unique_obs_codes(obs_id))',4,length(obs_id))';
+                    prn_pr = cc.prn(sat);
+                    rec_coo = Coordinates.fromXYZ(this.getMedianPosXYZ, this.getTime.getCentralTime);
+
+                    this.sat.res.import(2, res_time, [res_ph res_pr], [prn_ph; prn_pr], [obs_code_ph; obs_code_pr], rec_coo);
+                    % save pr and ph outlier
+                    [out_ph, sat, obs_id,~, out_time] = ls.getPhOut(1);
+                    obs_code_ph = reshape(cell2mat(ls.unique_obs_codes(obs_id))',4,length(obs_id))';
+                    [~,idx_time] = ismember(round(out_time.getRefTime(this.time.first.getMatlabTime))  , round(this.time.getRefTime(this.time.first.getMatlabTime)));
+                    [~, ~, id_ph] = this.getPhases();
+                    prn_ph = cc.prn(sat);
+                    for s = 1 : length(sat)
+                        idx_o = this.go_id(id_ph) == sat(s) & strLineMatch([this.system(id_ph)' this.obs_code(id_ph,:)], obs_code_ph(s,:));
+                        %this.sat.outliers_ph_by_ph(idx_time,idx_o) = out_ph(:,s);
+                    end
+                    [out_pr, sat, obs_id, out_time] = ls.getPrOut(1);
+                    obs_code_pr = reshape(cell2mat(ls.unique_obs_codes(obs_id))',4,length(obs_id))';
+                    [~,idx_time] = ismember(round(out_time.getRefTime(this.time.first.getMatlabTime))  , round(this.time.getRefTime(this.time.first.getMatlabTime)));
+                    [~,  id_pr] = this.getPseudoRanges();
+                     prn_pr = cc.prn(sat);
+                    
+
+                    for s = 1 : length(sat)
+                        idx_o = this.go_id(id_pr) == sat(s) & strLineMatch([this.system(id_pr)' this.obs_code(id_pr,:)], obs_code_pr(s,:));
+                        %this.sat.outliers_pr_by_pr(idx_time,idx_o) = out_pr(:,s);
+                    end
+
+                    % -------------------- estimate additional coordinate set
+                    if state.flag_coo_rate
+                        this.add_coo = []; % Empty previously estimated coordinates
+                        for i = 1 : 3
+                            if state.coo_rates(i) ~= 0
+                                pos_idx = [ones(sum(this.time.getNominalTime(this.getRate) < this.out_start_time),1)];
+                                time_1 = this.out_start_time.getCopy;
+                                time_2 = this.out_start_time.getCopy;
+                                time_2.addSeconds(min(state.coo_rates(i),this.out_stop_time - time_2));
+                                for j = 0 : (ceil((this.out_stop_time - this.out_start_time)/state.coo_rates(i)) - 1)
+                                    pos_idx = [pos_idx; (length(unique(pos_idx))+1)*ones(sum(this.time.getNominalTime(this.getRate) >= time_1 & this.time.getNominalTime(this.getRate) < time_2),1)];
+                                    time_1.addSeconds(state.coo_rates(i));
+                                    time_2.addSeconds(min(state.coo_rates(i),this.out_stop_time - time_2) );
+                                end
+                                pos_idx = [pos_idx; (length(unique(pos_idx))+1)*ones(sum(this.time.getNominalTime(this.getRate) >= this.out_stop_time),1);];
+                                
+                                ls = Engine_U1(cc);
+                                id_sync = ls.setUpPPP(this, sys_list, id_sync_in,'',false, pos_idx, [state.rate_ztd_ppp state.rate_grad_ppp]);
+                                ls.remShortArc();
+                                ls.Astack2Nstack();
+                                
+                                time = this.time.getSubSet(id_sync_in);
+                                
+                                rate = time.getRate();
+                                
+                                %ls.setTimeRegularization(ls.PAR_REC_CLK, (state.areg_clk_ztd)^2 / 3600 * rate); % really small regularization
+                                ls.setTimeRegularization(ls.PAR_TROPO, (state.areg_ztd_ppp)^2 / 3600 * rate );% state.std_tropo / 3600 * rate  );
+                                if state.flag_grad_ppp
+                                    ls.setTimeRegularization(ls.PAR_TROPO_N, (state.dreg_ztd_ppp)^2 / 3600 * rate );%state.std_tropo / 3600 * rate );
+                                    ls.setTimeRegularization(ls.PAR_TROPO_E, (state.dreg_ztd_ppp)^2 / 3600 * rate );%state.std_tropo  / 3600 * rate );
+                                end
+                                log.addMessage(log.indent('Solving the system'));
+                                [x, res, s0]  = ls.solve();
+                                
+                                coo = [x(x(:,2) == 1,1) x(x(:,2) == 2,1) x(x(:,2) == 3,1)];
+                                
+                                time_coo = this.out_start_time.getCopy;
+                                time_coo.addSeconds([0 : state.coo_rates(i) :  (this.out_stop_time - this.out_start_time)]);
+                                time_coo.remEpoch(setdiff(unique(pos_idx), unique(pos_idx(ls.true_epoch)))); % remove epochs with no obs
+                                sub_coo = struct();
+                                tmp_time = time_coo.getCopy();
+                                tmp_time.addSeconds(tmp_time.getRate / 2);
+                                sub_coo.rate = state.coo_rates(i);
+                                sub_coo.coo = Coordinates.fromXYZ(repmat(this.xyz,size(coo,1),1)+ coo, time_coo);
+                                if isempty(this.add_coo)
+                                    this.add_coo = sub_coo;
+                                else
+                                    this.add_coo(end+1) = sub_coo;
+                                end
+                            end
+                            
+                        end
+                    end
+                    if Core.getCurrentSettings.isApplyClock()
+                        this.smoothAndApplyDt(0, false, false, 2);
+                    end
+                    %%%%% TEMP CODE %%%%%
+                    dt = this.dt;
+                    time_dt = this.time.getMJD;
+                    ztd = this.ztd;
+                    ge = this.tge;
+                    gn = this.tgn;
+                    xyz = this.xyz;
+                    ph_rst = find(this.getPhaseReset);
+
+                    bias = ls.x(ls.class_par == ls.PAR_REC_EB);
+                    obs_code_bias =  [ls.unique_obs_codes{ls.obs_codes_id_par((ls.class_par == ls.PAR_REC_EB))}];
+                    obs_code_bias = reshape(obs_code_bias,sum(ls.class_par == ls.PAR_REC_EB),length(obs_code_bias)/sum(ls.class_par == ls.PAR_REC_EB));
+
+
+                    fname = sprintf('/home/giuliot/Repositories/goGPS_MATLAB/source/reserved/dts/%sdt%d_%d.mat',this.parent.getMarkerName4Ch,     round(time_dt(1)), round(time_dt(end) - time_dt(1)));
+                    save(fname,'dt','time_dt','bias','obs_code_bias','ztd','ge','gn','xyz','ph_rst');
+                    %%%%%%%%%%%%%%%%%%%%%
+
+
+                    %this.pushResult();
+                end
+            end
+        end
+        
         function pushBackAmbiguities(this, x_l1, wl_amb_mat, amb_idx, go_id_ambs, true_epoch)
             % push back in the reciever the reconstructed ambiguites
             x_l1(fracFNI(x_l1) > 1e-5) = nan;
@@ -12395,7 +14094,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             % coarse estimation of amb
             this.coarseAmbEstimation();
             % apply dt
-            this.smoothAndApplyDt(0);
+            if Core.getCurrentSettings.isApplyClock()
+                this.smoothAndApplyDt(0);
+            end
             % remove grupo delay
             this.remGroupDelay();
             % estaimet WL
@@ -12829,6 +14530,33 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
 
         end
+        
+        function exportTimeBIPMFormat(this)
+            % Export dt in the BIPM published format
+            %
+            % SYNTAX
+            %   this.exportTimeBIPMformat()
+            for r = 1 : numel(this)
+                try
+                    mjd = this(r).time.getMJD;
+                    ph_rest = this(r).getPhaseReset();
+                    n_sat = this(r).n_sat_ep;
+                    n_sat(ph_rest) = - n_sat(ph_rest);
+                    dt_var = -ones(size(mjd));
+                    mjd_start = round(mjd(1));
+                    duration = round(mjd(end) - mjd(1));
+                    rinexname = lower(this(r).file.file_name_list{1}(1:4));
+                    fname = fullfile(this(r).state.getOutDir(), sprintf('%s%d_%d.ppp',rinexname,mjd_start,duration));
+                    fid = fopen(fname,'w');
+                    fprintf(fid,'%11.6f%15.3f%10.3f%5d\n',[mjd this.dt*1e9 dt_var n_sat]');
+                    fclose(fid);
+                    this(r).log.addStatusOk(sprintf('Receiver workspace %s: %s', rinexname, fname));
+
+                catch ex
+                    this(r).log.addError(sprintf('Saving receiver time solution %s in BIPM like format failed: %s', this(r).parent.getMarkerName4Ch, ex.message));
+                end
+            end
+        end
     end
     
     
@@ -13197,8 +14925,108 @@ classdef Receiver_Work_Space < Receiver_Commons
             for r = 1 : numel(rec)
                 rec(r).keepEpochs(id_sync(~isnan(id_sync(:, r)), r));
             end
-        end        
+        end
     end
+    
+    methods (Static)
+        function  [o_idx, cs_idx] = outlierCyscleSlipDetect(td_phr, wl, ol_thr, cs_thr)
+            o_idx = (abs(td_phr(1,:)) > ol_thr & abs(td_phr(2,:)) > ol_thr) |  (isnan(td_phr(1,:)) & abs(td_phr(2,:)) > ol_thr) |  (abs(td_phr(1,:)) > ol_thr & isnan(td_phr(2,:)));
+            cs_idx = abs(td_phr(1,:) ./ wl) > cs_thr & ~isnan(td_phr(2,:));
+        end
+        
+        function [res, dt_rec, dt_sat, d_iono, u_rs] = dtRobustAdjustement(d_ph, rec_id, go_id, wl_id, el, apr_std, is_ph)
+            
+            n_obs = length(d_ph);
+            u_r = unique(rec_id);
+            n_rec = length(u_r);
+            [~,rec_clk_id] = ismember(rec_id',u_r');
+            sat = numel(u_r) > 1;
+            u_s = unique(go_id);
+            n_sat = length(u_s);
+            rec = n_sat > 1;
+            if sat
+                [~,sat_clk_id] = ismember(go_id, u_s);
+                sat_clk_id = sat_clk_id' + length(u_r);
+            end
+            iono = true;
+            if iono
+                rs_id = round(rec_id*1000+go_id);
+                u_rs = unique(rs_id);
+                [~,iono_id] = ismember(rs_id, u_rs);
+                iono_id = iono_id' + max(sat_clk_id);
+            end
+            
+            iono_const = 40.3*10^16;
+            sign_iono = ones(size(is_ph'));
+            sign_iono(is_ph>0) = -1;
+            if rec
+                A = [ones(n_obs,1)];
+                A_idx = [rec_clk_id];
+            else
+                A = [];
+                A_idx = [];
+            end
+            if sat
+                A = [A ones(n_obs,1)];
+                A_idx = [A_idx  sat_clk_id];
+            end
+            if iono
+                A = [A sign_iono.*iono_const.*(wl_id'/Core_Utils.V_LIGHT).^2];
+                A_idx = [A_idx iono_id];
+            end
+            rows = repmat((1:n_obs)',1,size(A,2));
+            n_par = max(A_idx(:,end));
+            A = sparse(rows,A_idx,A,n_obs, n_par);
+            
+            vars_apr = apr_std'.^2 .* (sind(el')).^4;
+            % if sat && rec
+            %     A(:,n_rec+1) = [];
+            %     n_par = n_par -1;
+            % end
+            
+            W = sparse(diag(1./vars_apr));
+            N = A'*W*A ;
+            d_ph = d_ph';
+            B = A'*W*d_ph;
+            % G = [];
+            % if sat
+            %     G = [zeros(max(rec_clk_id),1) ; ones(max(sat_clk_id)-max(rec_clk_id),1)];
+            %     if iono
+            %         G = [G; zeros(length(u_rs),1)];
+            %     end
+            % end
+            % n_lagr = size(G,2);
+            % N = [[N G]; [G' zeros(n_lagr)]];
+            % B = [B;zeros(n_lagr,1)];
+            if iono
+                reg_d_iono = 1/(0.05^2);
+                n_iono = length(u_rs);
+                n_other = max(A_idx(:,end)) - n_iono;
+                R = sparse([[zeros(n_other) zeros(n_other, n_iono)]; [zeros(n_iono, n_other) reg_d_iono*eye(n_iono)]]);
+                N = N + R;%(1:(end-n_lagr),1:(end-n_lagr))
+            end
+            x = zeros(n_par,1);
+            dx = 9999*ones(999,1);
+            while max(abs(dx)) > 1e-3 %(1: (end-n_lagr))
+                dx = spinv(N,[],'qr') * B;
+                x = x +dx;%(1: (end-n_lagr))
+                res = d_ph - A*x;
+                res_n = res ./ sqrt(vars_apr);
+                res_n = res_n / mean(res_n);
+                rw =  ones(size(res_n));
+                rw(abs(res_n) > 2) =  2 ./ abs(res_n(abs(res_n) > 2));
+                RW = sparse(diag(1./vars_apr .*rw));
+                N =  A'*RW*A + R;
+                B = A'*RW*res;
+                %     N = [N G; G' zeros(n_lagr)];
+                %     B = [B;zeros(n_lagr,1)];
+            end
+            dt_rec = x(1:n_rec);
+            dt_sat = x((n_rec+1):(n_rec+n_sat));
+            d_iono = x((n_rec+n_sat+1):end);
+        end
+    end
+
     %% METHODS PLOTTING FUNCTIONS
     % ==================================================================================================================================================
     
