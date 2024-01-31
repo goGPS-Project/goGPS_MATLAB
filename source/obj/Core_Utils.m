@@ -337,49 +337,49 @@ classdef Core_Utils < handle
                 diff_data = nan(size(data));
                 % Add n_order rows to data
                 data = [repmat(data(1,:), n_order, 1); data];
-                for s = 1 : size(data, 2)
-                    % Get the original good data for column s
-                    tmp = data(1 + n_order : end, s);
-                    id_ok = ~isnan(tmp);
-                    if sum(id_ok) > 2
-                        lim = getFlagsLimits(id_ok);
-                        % Interpolate data beginning
-                        % interpolate the "left" of the first element of an arc
-                        % because diff "eat" the first value
-                        %if (length(id_ok) > (n_order + 1)) && any(id_ok(1))
-                        %    id_est = find(id_ok(lim(1,1):lim(1,2)));
-                        %    data(1 : n_order, s) = interp1(t_ref(id_est), tmp(id_est), 1 - n_order : 0, 'spline', 'extrap');
-                        %end
-                        
-                        lim_short = lim(lim(:,2) - lim(:,1) < 2 & lim(:,1) > 1, :);
-                        % short arcs cannot be differenciated efficiently
-                        for l = 1 : size(lim_short, 1)
-                            data(lim_short(l, 1), s) = data(lim_short(l, 1)+1, s);
-                        end
-                        
-                        % differenciate only limits larger than 2
-                        lim = lim(lim(:,2) - lim(:,1) > 1, :);
-                        for l = 1 : size(lim, 1)
-                            id_data = lim(l, 1) : lim(l, 2);
-                            id_est = 0 : (n_order - 1);
-                            
-                            % slower approach with interp1
-                            % data(lim(l, 1) + id_est, s) = interp1(t_ref(id_data), tmp(id_data), lim(l, 1) - 1 - fliplr(id_est), 'spline', 'extrap');
-                            
-                            % faster approach skipping a lot of checks
-                            % this is the internal implementation of interp1
-                            if strcmp(method, 'zeros')
-                                data(lim(l, 1) + id_est, s) = 0;
-                            else
-                                fun = griddedInterpolant(t_ref(id_data), tmp(id_data), method);
-                                data(lim(l, 1) + id_est, s) = fun(lim(l, 1) - 1 - fliplr(id_est));
-                            end
-                            
-                            diff_data(id_data, s) = diff(data(lim(l, 1) : (lim(l, 2) + n_order), s), n_order);
-                            % restore data for the next interval
-                            data(1 + n_order : end, s) = tmp;
-                        end
+            for s = 1 : size(data, 2)
+                % Get the original good data for column s
+                tmp = data(1 + n_order : end, s);
+                id_ok = ~isnan(tmp);
+                if sum(id_ok) > 2
+                    lim = getFlagsLimits(id_ok);
+                    % Interpolate data beginning
+                    % interpolate the "left" of the first element of an arc
+                    % because diff "eat" the first value
+                    %if (length(id_ok) > (n_order + 1)) && any(id_ok(1))
+                    %    id_est = find(id_ok(lim(1,1):lim(1,2)));
+                    %    data(1 : n_order, s) = interp1(t_ref(id_est), tmp(id_est), 1 - n_order : 0, 'spline', 'extrap');
+                    %end
+                    
+                    lim_short = lim(lim(:,2) - lim(:,1) < 2 & lim(:,1) > 1, :);
+                    % short arcs cannot be differenciated efficiently
+                    for l = 1 : size(lim_short, 1)
+                        data(lim_short(l, 1), s) = data(lim_short(l, 1)+1, s);
                     end
+                    
+                    % differenciate only limits larger than 2
+                    lim = lim(lim(:,2) - lim(:,1) > 1, :);
+                    for l = 1 : size(lim, 1)
+                        id_data = lim(l, 1) : lim(l, 2);
+                        id_est = 0 : (n_order - 1);
+                        
+                        % slower approach with interp1
+                        % data(lim(l, 1) + id_est, s) = interp1(t_ref(id_data), tmp(id_data), lim(l, 1) - 1 - fliplr(id_est), 'spline', 'extrap');
+                        
+                        % faster approach skipping a lot of checks
+                        % this is the internal implementation of interp1
+                        if strcmp(method, 'zeros')
+                            data(lim(l, 1) + id_est, s) = 0;
+                        else
+                            fun = griddedInterpolant(t_ref(id_data), tmp(id_data), method);
+                            data(lim(l, 1) + id_est, s) = fun(lim(l, 1) - 1 - fliplr(id_est));
+                        end
+                        
+                        diff_data(id_data, s) = diff(data(lim(l, 1) : (lim(l, 2) + n_order), s), n_order);
+                        % restore data for the next interval
+                        data(1 + n_order : end, s) = tmp;
+                    end
+                end
                 end
                 % diff_data = diff(data, n_order); % now it is done arc by arc
             end
@@ -656,8 +656,8 @@ classdef Core_Utils < handle
                 %interpolate along lat
                 val = valu.*(1-slat) + vald.*slat;
                 
-            else %space first % NOTE: consider speed up in case only one time is present, unnecessary operations done                
-                % lon first % NOTE: consider speed up in case only one time is present, unnecessary operations done
+            else %space first % NOTE: consider speed up in case only one time is present, unnecessary operations done
+                 % lon first % NOTE: consider speed up in case only one time is present, unnecessary operations done
                 % interpolate along lon
                 % before up
                 % after up
@@ -3769,7 +3769,7 @@ else
             r = [r(end-len+2:end) ; r(1:len)];
         end
         
-        function [s,n] = getSemivariogram1D(x,mode)
+        function [s,n] = getSemivariogram1D(x,mode, max_lag)
             % compute 1 d semivariogram
             %
             % SYNTAX:
@@ -3777,7 +3777,9 @@ else
             if nargin < 2
                 mode = 'mean';
             end
-            max_lag = length(x)-1;
+            if nargin < 3
+                max_lag = length(x)-1;
+            end
             s = nan(max_lag,1);
             n = zeros(max_lag,1);
             if strcmpi(mode,'mean')
@@ -4195,7 +4197,7 @@ else
                                     log.addMessage(sprintf('Executing \n  aria2c -c -i %s -d %s\n  File download list:', file_name, old_od));
                                     log.addMessage(log.indent(sprintf('%s', str)));
                                     try
-                                       if any(strfind(str, 'ftp://garner')) || any(strfind(str, 'ftp://nfs.kasi'))
+                                        if any(strfind(str, 'ftp://garner')) || any(strfind(str, 'ftp://nfs.kasi'))
                                             str_parallel = '1';
                                         elseif any(strfind(str, 'ftp://gssc.esa')) 
                                             str_parallel = '2';
@@ -4307,7 +4309,7 @@ else
                 if ~isempty(out_dir) && ~exist(out_dir, 'dir')
                     mkdir(out_dir);
                 end
-                   
+
                 if any(strfind(remote_location, 'cddis'))
                     % cddis download data even if the compression estension is not specified, but with the wrong extension name!
                     % I need to force the extension
@@ -4325,8 +4327,8 @@ else
                 try
                     if ~https_flag
                         txt = websave(fullfile(out_dir, filename), ['http://' remote_location '/' filename], options);
-                    else
-                        txt = websave(fullfile(out_dir, filename), ['https://' remote_location '/' filename], options);
+                        else
+                            txt = websave(fullfile(out_dir, filename), ['https://' remote_location '/' filename], options);
                     end
                 catch ex
                     if any(strfind(remote_location, 'cddis'))
@@ -4334,31 +4336,31 @@ else
                         % Remove Z extension
                         filename = filename(1:end-2);
                         compressed_name = '';
-                    end
-                    if instr(ex.message, '404')
-                        try
-                            compressed_name = [filename, '.gz'];
-                            if ~https_flag
-                                txt = websave(fullfile(out_dir, compressed_name), ['http://' remote_location '/' compressed_name], options);
-                            else
-                                txt = websave(fullfile(out_dir, compressed_name), ['https://' remote_location '/' compressed_name], options);
-                            end
-                        catch ex
-                            if instr(ex.message, '404')
-                                try
-                                    compressed_name = [filename, '.Z'];
-                                    if ~https_flag
-                                        txt = websave(fullfile(out_dir, compressed_name), ['http://' remote_location '/' compressed_name], options);
-                                    else
-                                        txt = websave(fullfile(out_dir, compressed_name), ['https://' remote_location '/' compressed_name], options);
+                        end
+                        if instr(ex.message, '404')
+                            try
+                                compressed_name = [filename, '.gz'];
+                                if ~https_flag
+                                    txt = websave(fullfile(out_dir, compressed_name), ['http://' remote_location '/' compressed_name], options);
+                                else
+                                    txt = websave(fullfile(out_dir, compressed_name), ['https://' remote_location '/' compressed_name], options);
+                                end
+                            catch ex
+                                if instr(ex.message, '404')
+                                    try
+                                        compressed_name = [filename, '.Z'];
+                                        if ~https_flag
+                                            txt = websave(fullfile(out_dir, compressed_name), ['http://' remote_location '/' compressed_name], options);
+                                        else
+                                            txt = websave(fullfile(out_dir, compressed_name), ['https://' remote_location '/' compressed_name], options);
+                                        end
+                                    catch
+                                        status = false;
                                     end
-                                catch
-                                    status = false;
                                 end
                             end
-                        end
-                    elseif instr(ex.message, '401')
-                        status = false;
+                        elseif instr(ex.message, '401')
+                            status = false;
                         log.addError('Unauthorized, please add credentials to credentials.txt');
                     end
                 end
@@ -5156,7 +5158,7 @@ else
                     amb_idx(c:end, s) = amb_idx(c:end, s) + 1;
                 end
             end
-            amb_idx = amb_idx .* uint32(obs ~= 0);
+            amb_idx = amb_idx .* uint32(obs ~= 0) .* uint32(~isnan(obs));
             amb_idx = Core_Utils.remEmptyAmbIdx(amb_idx);
         end
         
@@ -5440,12 +5442,40 @@ else
             y = y./diag(D);
             x = L'\y;
         end
+
+         function x = solveCholPivo(R,P,b)
+            % solve chol wiht pivoting
+            % NOTE : R'*R = P'*A*P.(sparse matrices)
+            %
+            % SYNTAX
+            %    x = Core_Utils.solveCholPivo(L,D,b)
+            %x = zeros(size(b));
+            
+            %R_red = R(:,1:size(R,1)); 
+%             pkeep_id = [true(size(R,1),1); false(size(R,2) - size(R,1),1)];
+%             keep_id = (P * pkeep_id)>0;
+%             bp = (P' *b);
+            
+            x = P * [(R(:,1:size(R,1)) \((R(:,1:size(R,1))'\b(1:size(R,1),:)))); zeros(size(R,2) - size(R,1),size(b,2))];
+        end
         
         function x = solveLDL(L,D,b,P,keep_id)
+             % solve system where normal matrix has beeen ldl decomposed
+            % NOTE : A = L*D*L' (sparse matrices)
+            %
+            % SYNTAX
+            %    x = Core_Utils.solveLDL(L,D,b)
+            d = diag(D);
+            if nargin< 5
+                keep_id = d > (length(d) * sqrt(eps(max(abs(d)))));
+            end
+            if nargin < 4
+                P = eye(size(L));
+            end
             x = zeros(size(b));
             
             L_red = L(keep_id,keep_id);
-            d = diag(D);
+            
             d_red = d(keep_id);
             
             id_est_amb = (P*keep_id)>0;
@@ -5453,6 +5483,45 @@ else
             P_red = P(id_est_amb,keep_id);
             
             x(id_est_amb,:) = P_red * (L_red' \((1./d_red).*(L_red\(P_red' *b(id_est_amb,:)))));
+        end
+
+        function [x, res]= huberizedLS(y,var,A, hub_thrs)
+             % SYNTAX:
+            %   [x,res] = Core_Utils.huberizedLS(y,var,A, hub_thrs)
+            %
+            % INPUT:
+            %   y  observatiosn
+            %   var  observatiosn variance
+            %   A  design matrix
+            %   hub_thrs huber threshold
+            %
+            % OUTPUT:
+            %   x estimqtion
+
+            if nargin< 4
+                hub_thrs = 2.5;
+            end
+            w = ones(size(y));
+            cycle_max = 25;
+            i = 1;
+            n_x = size(A,2);
+            x = -inf*ones(n_x,1);
+            x_old = inf*ones(n_x,1);
+            std = 0.1;
+            while abs(x - x_old) > 1e-4*std & i < cycle_max
+                x_old  =  x;
+                w_eff = sqrt(1./var.*w);
+                Aw = A .* repmat(w_eff,1,n_x);
+                yw = y.*w_eff;
+                x = Aw\yw;
+                res = (y - A*x)./sqrt(var);
+                w(:) = 1;
+                idx_rw = abs(res)>hub_thrs;
+                w(idx_rw) = (hub_thrs)./abs(res(idx_rw));
+
+                i = i + 1;
+            end
+            res = (y - A*x);
         end
         
         function sys_list = getPrefSys(sys_list)
@@ -5741,5 +5810,100 @@ else
             load handel;
             sound(y(1:16000),Fs);
         end
+
+        function [obs_set] = interrecsatdiff(rec1,rec2,flag,sys_c)
+            if nargin == 4
+                [obs_set1] = rec1.getObsSet(flag, sys_c);
+                [obs_set2] = rec2.getObsSet(flag, sys_c);
+            elseif nargin == 3
+                [obs_set1] = rec1.getObsSet(flag);
+                [obs_set2] = rec2.getObsSet(flag);
+            elseif nargin == 2
+                [obs_set1] = rec1.getObsSet('???');
+                [obs_set2] = rec2.getObsSet('???');
+            end
+            [synt_obs1] = rec1.getSyntTwin(obs_set1);
+            obs_set1.obs = zero2nan(obs_set1.obs) - zero2nan(synt_obs1);
+            [synt_obs2] = rec2.getSyntTwin(obs_set2);
+            obs_set2.obs = zero2nan(obs_set2.obs) - zero2nan(synt_obs2);
+
+
+            time_zero = obs_set1.time.getNominalTime(1).getEpoch(1).getMatlabTime();
+            time1 = obs_set1.time.getNominalTime(1).getRefTime(time_zero);
+            time2 = obs_set2.time.getNominalTime(1).getRefTime(time_zero);
+            [time_common, id1, id2] = intersect(round(time1),round(time2));
+            codes1 = obs_set1.go_id + 1000*Core_Utils.code4Char2Num(obs_set1.obs_code);
+            codes2 = obs_set2.go_id + 1000*Core_Utils.code4Char2Num(obs_set2.obs_code);
+            [codes_common, idc1, idc2] = intersect(round(codes1),round(codes2));
+
+            time_common = GPS_Time.fromRefTime(time_zero, time_common);
+            obs = zero2nan(obs_set1.obs(id1,idc1)) - zero2nan(obs_set2.obs(id2,idc2));
+            wl = obs_set1.wl(idc1);
+            prn = obs_set1.prn(idc1);
+            go_id = obs_set1.go_id(idc1);
+            obs_code = obs_set1.obs_code(idc1,:);
+            el = (zero2nan(obs_set1.el(id1,idc1)) + zero2nan(obs_set2.el(id2,idc2)))/2;
+            az = (zero2nan(obs_set1.az(id1,idc1)) + zero2nan(obs_set2.az(id2,idc2)))/2;
+            snr = (zero2nan(obs_set1.snr(id1,idc1)) + zero2nan(obs_set2.snr(id2,idc2)))/2;
+            if ~isempty(obs_set1.cycle_slip) &  ~isempty(obs_set2.cycle_slip)
+                cycle_slip = obs_set1.cycle_slip(id1,idc1) | obs_set2.cycle_slip(id2,idc2);
+            else
+                cycle_slip = [];
+            end
+            sigma = sqrt(obs_set1.sigma(idc1).^2 + obs_set2.sigma(idc2).^2);
+
+            obs_set = Observation_Set(time_common, obs, obs_code, wl, el, az, prn);
+            obs_set.sigma = sigma;
+            obs_set.cycle_slip = cycle_slip;
+
+
+        end
+
+        function plotDtDiff(rec1,rec2)
+            base_time = 58710;
+            dt1 = rec1.dt;
+            mjd1 = rec1.time.getMJD;
+            dt2 = rec2.dt;
+            mjd2 = rec2.time.getMJD;
+            base_time = min([mjd1;mjd2]);
+            ept1 = round((mjd1-base_time)/30*86400);
+            ept2 = round((mjd2-base_time)/30*86400);
+            [epgnss,i1,i2] = intersect(ept1,ept2);
+            dt1 = dt1(i1);
+            dt2 = dt2(i2);
+            mjdgnss = base_time+epgnss*30/86400;
+            dr = (dt2-dt1)*1e9;
+            % dr = gpsspace(:,2);
+            % mjdgnss = gpsspace(:,1);
+            % epgnss = round((mjdgnss-base_time)/30*86400);
+            figure; 
+            subplot(2,1,1);
+            plot(mjdgnss,dr )
+            xlabel('MJD')
+            ylabel('Difference [ns]')
+            % diff = -gpsspace(:,2)+fibre(:,2);
+            % diff(138951:end) = [];
+            tau=30;
+            n = 22;
+            z2 = nan(n,1);
+            assex = nan(n,1);
+            for i=1:n
+                m=2^(i-1);
+                z2(i)=sqrt(olavar(dr*(10^-9),m,tau));
+                assex(i)=m*tau;
+            end
+            subplot(2,1,2);
+            loglog(assex, z2,'o-r');
+            grid on
+            sgtitle([rec1.parent.getMarkerName4Ch '-'  rec2.parent.getMarkerName4Ch]) 
+        end
+
+        function x = costrainedLS(A,y,K,c)
+
+            X = null(K);
+            x = pinv(K)*c + X*((A*X)\y);
+
+        end
+
     end
 end
