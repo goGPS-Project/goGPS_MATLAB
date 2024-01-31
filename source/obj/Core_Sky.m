@@ -55,14 +55,19 @@ classdef Core_Sky < handle
     properties
         time_ref_coord         % GPS Times of ephemerides
         time_ref_clock         %
+        time_ref_bias         %
         
         coord                  % Ephemerides [times x num_sat x 3]
         coord_type             % 0: Center of Mass 1: Antenna Phase Center
         poly_type              % 0: Center of Mass 1: Antenna Phase Center
         clock                  % clocks of ephemerides [times x num_sat]
         
+        clock_rec              % clocks of receivers [times x num_rec]
+        clock_rec_lbl          % receivers labels [times x num_sat]
+        clock_jmp              % dtected clock jump -> to mark a cycle slip in the receiver
         coord_rate = 900;
         clock_rate = 900;
+        bias_rate = 86400;
         
         iono                   % 16 iono parameters
         
@@ -96,6 +101,7 @@ classdef Core_Sky < handle
         
         wsb                   % widelane satellite biases (only cnes orbits)
         wsb_date              % widelane satellite biases time
+        jmp_est               % jump estimation results
     end
     
     properties (Access = private)
@@ -499,28 +505,61 @@ classdef Core_Sky < handle
                 return
             end
             orb_time.toUnixTime();
-            
+
             [r_u_t , r_u_t_f ] = orb_time.getUnixTime();
-            
+
             dt = (this.clock_rate : this.clock_rate : (size(this.clock,1)-1)*this.clock_rate)';
-            
+
             u_t = r_u_t + uint32(fix(dt));
             u_t_f =  r_u_t_f  + rem(dt,1);
-            
+
             idx = u_t_f >= 1;
-            
+
             u_t(idx) = u_t(idx) + 1;
             u_t_f(idx) = u_t_f(idx) - 1;
-            
+
             idx = u_t_f < 0;
-            
+
             u_t(idx) = u_t(idx) - 1;
             u_t_f(idx) = 1 + u_t_f(idx);
-            
+
             orb_time.appendUnixTime(u_t , u_t_f);
-            
+
         end
-        
+
+        function orb_time = getBiasTime(this)
+            % DESCRIPTION:
+            % return the time of clock corrections in GPS_Time (unix time)
+            try
+                orb_time = this.time_ref_bias.getCopy();
+            catch
+                Core.getLogger.addError('Core_Sky does not contains satellite clocks!');
+                orb_time = [];
+                return
+            end
+            orb_time.toUnixTime();
+
+            [r_u_t , r_u_t_f ] = orb_time.getUnixTime();
+
+            dt = (this.bias_rate : this.bias_rate : (size(this.group_delays,3)-1)*this.bias_rate)';
+
+            u_t = r_u_t + uint32(fix(dt));
+            u_t_f =  r_u_t_f  + rem(dt,1);
+
+            idx = u_t_f >= 1;
+
+            u_t(idx) = u_t(idx) + 1;
+            u_t_f(idx) = u_t_f(idx) - 1;
+
+            idx = u_t_f < 0;
+
+            u_t(idx) = u_t(idx) - 1;
+            u_t_f(idx) = 1 + u_t_f(idx);
+
+            orb_time.appendUnixTime(u_t , u_t_f);
+
+        end
+
         function time = getFirstEpochClock(this)
             % return first epoch of clock
             if ~isempty(this.time_ref_clock)
@@ -1027,6 +1066,7 @@ classdef Core_Sky < handle
                         d_line = find(txt(lim(:,1)) == 'P')';
                     end
                     n_spe = diff(find([txt(lim(:, 1)) '*'] == '*')) - 1; % number of satellites per epoch
+                    n_spe(n_spe == 0) = [];
                     % Parse data considering 4 columns of valid observations with full size of 14chars (x4)
                     % All should be float values
                     data = reshape(sscanf(txt(bsxfun(@plus, repmat(lim(d_line,1) + 3, 1, 1 + 14*4), 1:(1 + 14*4)))', '%f'), 4, numel(d_line))';
@@ -1208,7 +1248,7 @@ classdef Core_Sky < handle
                 eoh = strfind(txt,'END OF HEADER');
                 eoh = find(lim(:,1) > eoh);
                 eoh = eoh(1) - 1;
-                if strcmp(fname(1:3),'grg') % if cnes orbit load wsb values
+                if strcmp(fname(1:3),'grg') %|| strcmp(fname(1:10),'GRG0OPSRAP') % if cnes orbit load wsb values
                     wl_line = txt(lim(1:eoh,1)) == 'W' & txt(lim(1:eoh,1)+1) == 'L'& txt(lim(1:eoh,1)+60) == 'C' & txt(lim(1:eoh,1)+61) == 'O' & txt(lim(1:eoh,1)+62) == 'M';
                     wsb_date = GPS_Time(cell2mat(textscan(txt(lim(find(wl_line,1,'first'),1) + [8:33]),'%f %f %f %f %f %f')));
                     wsb_prn = sscanf(txt(bsxfun(@plus, repmat(lim(wl_line, 1),1,3), 4:6))',' %f ');
@@ -1349,9 +1389,71 @@ classdef Core_Sky < handle
                         end
                     end
                 end
+                load_rec = false;
+                if load_rec
+                    recs_name_line = find(txt(lim(1:eoh,1)+65) == 'S' & txt(lim(1:eoh,1)+69) == 'N');
+                    recs_name = txt(repmat(lim(recs_name_line,1),1,4) + [0:3]);
+                    if ~isempty(recs_name)
+                    recs_id = Core_Utils.code4Char2Num(recs_name);
+                    if ~isempty(this.clock_rec_lbl)
+                        clock_rec_lbl_id = Core_Utils.code4Char2Num(this.clock_rec_lbl);
+                    else
+                        clock_rec_lbl_id = [];
+                    end
+
+                    [idx] = ismember(recs_id,clock_rec_lbl_id);
+                    clock_rec_lbl_id = [clock_rec_lbl_id; recs_id(~idx)];
+                    this.clock_rec_lbl = [this.clock_rec_lbl; recs_name(~idx,:)];
+                    this.clock_rec = [this.clock_rec zeros(size(this.clock_rec,1),sum(~idx))];
+                    this.clock_rec = [this.clock_rec; zeros(size(this.clock,1)-size(this.clock_rec,1),size(this.clock_rec,2))];
+
+
+                    recs_line = find(txt(lim(eoh+1:end,1)) == 'A' & txt(lim(eoh+1:end,1)+1) == 'R') + eoh;
+                    % clk rate
+                    clk_rate = [];
+                    % find first epoch
+                    string_time = txt(repmat(lim(recs_line(1),1),1,27) + [8:34]);
+                    % convert the times into a 6 col time
+                    date = cell2mat(textscan(string_time,'%4f %2f %2f %2f %2f %10.7f'));
+                    % import it as a GPS_Time obj
+                    file_first_ep = GPS_Time(date, [], true);
+                    % find sampling rate
+                    ant_ids = this.cc.getAntennaId;
+                    rec_list = txt(bsxfun(@plus, repmat(lim(recs_line,1),1,4), 3:6));
+                    rec_id_list = Core_Utils.code4Char2Num(rec_list);
+                    for i = 1 : length(clock_rec_lbl_id)
+                        rec_id = clock_rec_lbl_id(i);
+                        rec_line = recs_line(rec_id_list == rec_id);
+                        if not(isempty(rec_line)) && length(rec_line) > 1
+                            n_ep_rec = length(rec_line);
+                            string_time = txt(repmat(lim(rec_line,1),1,27) + repmat(8:34, n_ep_rec, 1))';
+                            % convert the times into a 6 col time
+                            %date = cell2mat(textscan(string_time,'%4f %2f %2f %2f %2f %10.7f'));
+                            % import it as a GPS_Time obj
+                            %sat_time = GPS_Time(date, [], true);
+                            rec_time = GPS_Time(string_time);
+
+                            c_ep_idx = round((rec_time - this.time_ref_clock) / this.clock_rate) +1; % epoch index
+                            if txt(1) == '3' % RINEX 3
+                                flag_clk_rin3 = true;
+                                this.clock_rec(c_ep_idx,i) = sscanf(txt(bsxfun(@plus, repmat(lim(rec_line, 1),1,21), 5+(38:58)))','%f');
+                            else
+                                flag_clk_rin3 = false;
+                                this.clock_rec(c_ep_idx,i) = sscanf(txt(bsxfun(@plus, repmat(lim(rec_line, 1),1,21), 38:58))','%f');
+                            end
+
+
+
+
+                        end
+
+
+                    end
+                    end
+                end
                 Core.getLogger.addMessage(sprintf('Parsing completed in %.2f seconds', toc(t0)), 100);
                 Core.getLogger.newLine(100);
-                
+
                 % Outlier detection
                 %d_clock = Core_Utils.diffAndPred(zero2nan(this.clock));
                 %d_clock = bsxfun(@minus, d_clock, median(d_clock, 'omitnan'));
@@ -1625,7 +1727,9 @@ classdef Core_Sky < handle
                     this.importCodeDCB([file_dir '/' fname_no_path(1:2) 'P2' fname_no_path(5:end) ext]);
                     this.importCodeDCB(fname{1});
                 else
-                    this.importSinexBias(fname{1});
+                    for i = 1 :length(fname)
+                        this.importSinexBias(fname{i});
+                    end
                 end
             end
         end
@@ -1674,29 +1778,49 @@ classdef Core_Sky < handle
             eoh = eoh(1) - 1;
             head_line = txt(lim(eoh,1):lim(eoh,2));
             svn_idx = strfind(head_line,'PRN') - 1;
+            bias_start_idx = strfind(head_line,'BIAS_START____') - 1;
             c1_idx = strfind(head_line,'OBS1') -1 ;
             val_idx = strfind(head_line,'__ESTIMATED_VALUE____') - 1;
             std_idx = strfind(head_line,'_STD_DEV___') - 1;
             std_idx = std_idx(1);
             % removing header lines from lim
             lim(1:eoh, :) = [];
-            
+
             % removing last two lines (check if it is a standard) from lim
             lim((end-1):end, :) = [];
-            
+
             % removing non satellites related lines from lim
             sta_lin = txt(lim(:,1)+13) > 57 | txt(lim(:,1)+13) < 48; % Satellites have numeric PRNs
             lim(sta_lin,:) = [];
-            
+
             % TODO -> remove bias of epoch different from the current one
             % find bias names presents
             fl = lim(:,1);
-            
+
             tmp = [txt(fl+svn_idx)' txt(fl+svn_idx+1)' txt(fl+svn_idx+2)' txt(fl+c1_idx)' txt(fl+c1_idx+1)' txt(fl+c1_idx+2)'];
-            idx = repmat(fl+val_idx,1,20) + repmat([0:19],length(fl),1);
+            idx = repmat(fl+val_idx,1,21) + repmat([0:20],length(fl),1);
             bias = sscanf(txt(idx)','%f');
             idx = repmat(fl+std_idx,1,11) + repmat([0:10],length(fl),1);
             bias_std = sscanf(txt(idx)','%f');
+            idx = repmat(fl+bias_start_idx,1,4) + repmat([0:3],length(fl),1);
+            year = sscanf([repmat(' ',1,length(fl)); txt(idx)'],'%f');
+            idx = repmat(fl+bias_start_idx,1,3) + repmat([5:7],length(fl),1);
+            doy = sscanf([repmat(' ',1,length(fl)); txt(idx)'],'%f');
+            idx = repmat(fl+bias_start_idx,1,5) + repmat([9:13],length(fl),1);
+            sod = sscanf([repmat(' ',1,length(fl)); txt(idx)'],'%f');
+            time_bias_start = GPS_Time.fromDoySod(year,doy,sod);
+            %%% assuming dayly files
+            if isempty(this.time_ref_bias)
+                this.time_ref_bias = time_bias_start.first.getCopy();
+                nd = 1;
+            else
+                nd = round((time_bias_start.first - this.time_ref_bias)/86400) +1;
+                if nd > size(this.group_delays,3)
+                    this.group_delays = cat(3,this.group_delays,zeros(size(this.group_delays,1),size(this.group_delays,2),nd - size(this.group_delays,2)));
+                    this.phase_delays = cat(3,this.phase_delays,zeros(size(this.phase_delays,1),size(this.phase_delays,2),nd - size(this.phase_delays,2)));
+                end
+            end
+
             % between C2C C2W the std are 0 -> unestimated
             % as a temporary solution substitute all the zero stds with the mean of all the read stds (excluding zeros)
             bad_ant_id = []; % list of missing antennas in the bias file
@@ -1723,12 +1847,12 @@ classdef Core_Sky < handle
                     for b = 1 : size(sat_bias_name,1)
                         bias_col   = strLineMatch(this.GROUP_DELAYS_FLAGS,[sys 'C' sat_bias_name(b,2:3)]);
                         if sat_bias_name(b,1) == 'C'
-                            this.group_delays(s, bias_col) =  sat_bias(b) * Core_Utils.V_LIGHT * 1e-9;
+                            this.group_delays(s, bias_col,nd) =  sat_bias(b) * Core_Utils.V_LIGHT * 1e-9;
                         else
-                            this.phase_delays(s, bias_col) =  sat_bias(b) * Core_Utils.V_LIGHT * 1e-9;
+                            this.phase_delays(s, bias_col,nd) =  sat_bias(b) * Core_Utils.V_LIGHT * 1e-9;
                         end
                     end
-                    
+
                 end
             end
             if ~isempty(bad_sat_str)
@@ -2357,9 +2481,41 @@ classdef Core_Sky < handle
                     dts(:,s) = dts_tmp(:);
                 end
             end
-            
+
         end
-        
+
+        function [cs] = getClockJmp(this, gps_time, sat_go_id)
+            % SYNTAX:
+            %   [dts] = getClockJmp(time, sat);
+            %
+            % INPUT:
+            %   time  = interpolation timespan GPS_Time
+            %   sat   = satellite PRN
+            %
+            % OUTPUT:
+            %   cs  = cycle slip to be marked
+            %
+            % DESCRIPTION:
+            %   get the epoch closer to clock jump to mark a cycle slip.
+            if nargin < 3
+                sat_go_id = this.cc.index;
+            end
+
+            cs = sparse(false(gps_time.length, numel(sat_go_id)));
+            mjd_in = gps_time.getMJD();
+            mjd_clk = this.getClockTime.getMJD();
+            if ~isempty(this.clock_jmp)
+                for s = 1 : numel(sat_go_id)
+                    for c = find(this.clock_jmp(:,sat_go_id(s)))'
+                        [~,idx_clst] = min(abs(mjd_in - mjd_clk(c)));
+                        cs(idx_clst,s) = true;
+                    end
+
+                end
+            end
+
+        end
+
         function computeSatPolyCoeff(this, order, n_obs)
             % SYNTAX:
             %   this.computeSatPolyCoeff(degree, n_obs);
@@ -3303,23 +3459,488 @@ classdef Core_Sky < handle
             for i = 1:size(XYZT,1)
                 fprintf(fid,'P%s%14.6f%14.6f%14.6f%14.6f\n',strrep(sprintf('%s%2i', cc.system(i), cc.prn(i)), ' ', '0'),XYZT(i,1),XYZT(i,2),XYZT(i,3),XYZT(i,4));
             end
-            
+
         end
-        
+
         function sys_c = getAvailableSys(this)
             % get the available system stored into the object
             % SYNTAX: sys_c = this.getAvailableSys()
-            
+
             % Select only the systems present in the file
             sys_c = this.cc.getAvailableSys();
         end
+
+        function referToUTCk(this,utckrec_name)
+            % refer to the orbit to UTC(k)
+            % SYNTAX:  this.referToUTCk(<utckrec_name>)
+
+            % first remove the mean of dterend good clock to account for
+            % missing data in the UTC(k) series
+
+            preferred_utc = [ 'USN7';'USN8';'USN9';'PTBB';'OP71';'OPMT';'IENG';'BRUX';'TWTF'];
+
+%             dclock_detrend = nan(size(this.clock,1),size(this.clock,2)+size(this.clock_rec,2));
+%             for i = 1 : size(this.clock,2)
+%                 dt = diff(detrend(zero2nan(this.clock(:,i)),2,'omitnan'));
+%                 if ~isempty(dt)
+%                     dclock_detrend(i,:) = dt;
+%                 end
+%             end
+%             for i = 1 : size(this.clock_rec,2)
+%                 dt = diff(detrend(zero2nan(this.clock_rec(:,i)),2,'omitnan'));
+%                 if ~isempty(dt)
+%                     dclock_detrend(size(this.clock,1)+i,:) = dt;
+%                 end
+%             end
+            dclock_detrend = diff([detrend(zero2nan(this.clock),2,'omitnan') ]); %detrend(zero2nan(this.clock_rec),2,'omitnan')
+            med = median(abs(dclock_detrend));
+            [med_srt,idx] = sort(med);
+            idx = idx(1:min(15,find(~isnan(med_srt),1,'last')));
+%             dt_med = cumsum([0;median(dclock_detrend(:,idx),2)]);
+%             this.clock = zero2nan(this.clock) - repmat(dt_med,1,size(this.clock,2));
+%             if ~isempty(this.clock_rec)
+%                 this.clock_rec = zero2nan(this.clock_rec) - repmat(dt_med,1,size(this.clock_rec,2));
+%             end
+
+            dt = this.clock - repmat(this.clock(:,idx(1)),1,size(this.clock,2));
+
+            mjd = this.getClockTime.getMJD;
+            mjd_st = round(mjd(1));
+            nd= round(mjd(end) - mjd(1));
+
+            jmp = zeros(nd-1,size(this.clock,2));
+
+
+            for i = 1 : (nd-1)
+                st_time = mjd + i - 2/24;
+                end_time =  mjd + i + 2/24;
+                idx_time = mjd >= st_time & mjd <= end_time;
+                A = [];
+                obs = [];
+                var = [];
+                
+
+
+
+
+
+
+
+            end
+
+
+
+%             dclock_detrend = diff([detrend(zero2nan(this.clock),2,'omitnan')]);
+%             med = median(abs(dclock_detrend));
+% 
+%             t = (1:size(this.clock))';
+%             [~,idx] = min(med);
+%             valid = ~isnan(this.clock_rec(:,idx));
+%             dt = interp1(t(valid),this.clock(valid,idx),t);
+%             %%%% do not interp at clock bnd
+% 
+%             this.clock = zero2nan(this.clock) - repmat(dt,1,size(this.clock,2));
+%             this.clock_rec = zero2nan(this.clock_rec) - repmat(dt,1,size(this.clock_rec,2));
+%             if nargin < 2 || sum(strLineMatch(this.clock_rec_lbl,utckrec_name)) == 0
+%                 for i = 1:size(preferred_utc,1)
+%                     idx = strLineMatch(this.clock_rec_lbl,preferred_utc(i,:));
+%                     if sum(idx) > 0
+%                         ddd = flagExpand(~isnan(this.clock_rec(:,idx)),20);
+%                         if sum(ddd) > 0.98*length(ddd)
+%                             utckrec_name = preferred_utc(i,:);
+%                         end
+%                     end
+%                 end
+%             end
+%             idx = strLineMatch(this.clock_rec_lbl,utckrec_name);
+%             t = (1:size(this.clock))';
+%             valid = ~isnan(this.clock_rec(:,idx));
+%             dt = interp1(t(valid),this.clock_rec(valid,idx),t);
+%             %%%% do not interp at clock bnd
+% 
+%             this.clock = zero2nan(this.clock) - repmat(dt,1,size(this.clock,2));
+%             this.clock_rec = zero2nan(this.clock_rec) - repmat(dt,1,size(this.clock_rec,2));
+        end
+
+        function changeRefDelay(this, sys_ch, obs_codes_zeros)
+            % change reference signal for a system
+            %
+            % SYNTAX
+            %     this.changeRefDelay(sys_ch, obs_codes_zeros) 
+
+            % get all observations with correction, if phase is corrected
+            % assume also code is, and vice versa
+            cc = Core.getConstellationCollector();
+            ss = cc.getSys(sys_ch);
+
+            go_ids = find(cc.system == sys_ch);
+            if ~isempty(go_ids)
+
+            idx_ph = sum(sum(this.group_delays(go_ids,:,:) ~= 0,3),1) > 0;
+            idx_pr = sum(sum(this.phase_delays(go_ids,:,:) ~= 0,3),1) > 0;
+            idx_bias = idx_pr | idx_ph;
+            n_bias = sum(idx_bias);
+            
+
+            band_bias = this.group_delays_flags(idx_bias,3);
+            obs_codes_bias_psrange = [repmat('C',n_bias,1) this.group_delays_flags(idx_bias,3:4)];
+            obs_codes_bias_phase = [repmat('L',n_bias,1) this.group_delays_flags(idx_bias,3:4)];
+            is_phase = obs_codes_zeros(1,1) == 'L';
+            idx_ref_o = zeros(size(obs_codes_zeros,1),1);
+            for i = 1 : size(obs_codes_zeros,1)
+                idx_ref_o(i) = find(Core_Utils.code4Char2Num([sys_ch 'C' obs_codes_zeros(i,2:3)]) == Core_Utils.code4Char2Num(this.group_delays_flags));
+            end
+
+            obs_codes_bias = [obs_codes_bias_psrange;obs_codes_bias_phase];
+
+            idx_ref = zeros(size(obs_codes_zeros,1),1);
+
+            for i = 1 : size(obs_codes_zeros,1)
+                idx_ref(i) = find(Core_Utils.code3Char2Num(obs_codes_zeros(i,:)) == Core_Utils.code3Char2Num(obs_codes_bias));
+            end
+            idx_ref = idx_ref +1;
+            wl_bias = nan(size(band_bias));
+            for i = 1 : numel(wl_bias)
+                wl_bias(i) = ss.L_VEC(find(ss.CODE_RIN3_2BAND == band_bias(i)));  
+            end
+
+            %% remove integer jumps in phase delays
+            % bid = find(idx_bias);
+            % for i = 1:length(bid)
+            %     for gi = go_ids
+            %         pb = squeeze(this.phase_delays(gi,bid(i),:));
+            %         if any(pb)
+            %             pb = pb - round(mean(pb)/wl_bias(i))*wl_bias(i);
+            %             db = diff(pb);
+            %             dbstep = round(db/wl_bias(i))*wl_bias(i);
+            %             pb = pb - cumsum([0; dbstep]);
+            %             this.phase_delays(gi,bid(i),:) = pb;
+            % 
+            % 
+            %         end
+            %     end
+            % end
+
+
+
+
+            % building a representative 
+            %A = [ones(2*n_bias,1) eye(2*n_bias) [wl_bias.^2; zeros(n_bias,1)] [zeros(n_bias,1); wl_bias.^2]];
+            A = [ones(2*n_bias,1) eye(2*n_bias) [wl_bias.^2; -wl_bias.^2]];
+            X = null(A);
+            T = X*inv(X(idx_ref,:));
+            for j = 1 : size(this.group_delays,3)
+                t_start = this.time_ref_clock.getCopy().addSeconds((j-1)*this.bias_rate);
+                t_stop  = this.time_ref_clock.getCopy().addSeconds((j)*this.bias_rate);
+                idx_time = this.getClockTime >= t_start & this.getClockTime < t_stop;
+                for i = 1 : length(go_ids)
+                    if is_phase
+                        vec = this.phase_delays(go_ids(i),idx_ref_o,j)';
+                    else
+                        vec = this.group_delays(go_ids(i),idx_ref_o,j)';
+                    end
+                    corr = T*vec;
+                    this.clock(idx_time,go_ids(i)) = this.clock(idx_time,go_ids(i)) + corr(1)/Core_Utils.V_LIGHT;
+                    this.group_delays(go_ids(i),idx_bias,j) = this.group_delays(go_ids(i),idx_bias,j) - corr(2:(n_bias+1))';
+                    this.phase_delays(go_ids(i),idx_bias,j) = this.phase_delays(go_ids(i),idx_bias,j) - corr((n_bias+2):(2*n_bias+1))';
+                end
+            end
+            end
+        end
+
+
+        function markJmpAndRepair(this)
+            % detect and try to repair clock jumps 
+            %
+            % SYNTAX
+            %   this.markJmpAndRepair()
+
+            warning off
+            mjd = this.getClockTime.getMJD;
+            mjd_st = round(mjd(1));
+            nd= round(mjd(end) - mjd(1));
+            roundnext = @(x) round(x)+sign(x - round(x));
+
+            % %%%% remove gross jumps in the scale 
+            dclock_detrend = diff([detrend(zero2nan(this.clock),2,'omitnan') ]); %detrend(zero2nan(this.clock_rec),2,'omitnan')
+            med = median(abs(dclock_detrend),'omitnan');
+            [med_srt,idx] = sort(med);
+            idx = idx(1:min(15,find(~isnan(med_srt),1,'last')));
+            dt_hub_avr = zeros(size(dclock_detrend,1),1);
+            for i = 1:length(dt_hub_avr)
+                idx_good = ~isnan(dclock_detrend(i,:));
+                dt_hub_avr(i) = Core_Utils.huberizedLS(dclock_detrend(i,idx_good)',(med(idx_good)'*1.5).^2,ones(sum(idx_good),1),1.5);
+
+            end
+          %dt_hub_avr(abs(dt_hub_avr) < )
+            dt_med = cumsum([0;dt_hub_avr]);
+            this.clock = zero2nan(this.clock) - repmat(dt_med,1,size(this.clock,2));
+            % %%%%%
+
+            this.clock = zero2nan(this.clock);
+
+            jmp_est = zeros(nd-1,size(this.clock,2));
+            frac_part = zeros(nd-1,size(this.clock,2));
+            nl_wls  = zeros(1,size(this.clock,2));
+            not_conn = true(nd-1,size(this.clock,2));
+            cc = Core.getConstellationCollector();
+
+            clock_corr = zeros(size(this.clock));
+            for sys_ch = this.getAvailableSys()
+                idx_system = find(cc.system == sys_ch);
+                nl_wl = Core_Utils.V_LIGHT / (sum(cc.getSys(sys_ch).F_VEC(1:2)));
+                nl_wls(idx_system) = nl_wl;
+                % reduce day boundary jump
+                jmp_tot = 0;
+                for i = 1 : (nd-1)
+                    st_time = mjd_st + i - 0.5/24;
+                    end_time =  mjd_st + i + 0.5/24;
+                    idx_time = mjd >= st_time & mjd <= end_time;
+
+                    mjd_tmp = mjd(idx_time);
+                    n_ep = length(mjd_tmp);
+                    mjd_tmp = mjd_tmp - ceil(mjd_tmp(1));
+                    idx_aft = mjd_tmp > -0.1/86400;
+                    clk_tmp = this.clock(idx_time,idx_system);
+                    jmp = nan(length(idx_system),1);
+                    jmp_std = nan(length(idx_system),1);
+                    A = [ones(n_ep,1) (1:n_ep)' [(1:n_ep)'].^2 idx_aft];
+                    for s = 1 :length(jmp)
+                        inn = ~isnan(clk_tmp(:,s));
+                        if sum(inn) > 0
+                            [x ,res]= Core_Utils.huberizedLS(clk_tmp(inn,s),ones(sum(inn),1),A(inn,:),2.5);
+                            jmp(s) = x(end);
+                            jmp_std(s) = sqrt(huberMean(res.^2)/(length(res)-4));
+                        end
+                    end
+                    inn = ~isnan(jmp);
+                    jmp_std = jmp_std / (mean(jmp_std(inn))/3);
+                    jmp_std = jmp_std.^2;
+                    sys_jmp = Core_Utils.huberizedLS(jmp(inn),jmp_std(inn),ones(sum(inn),1),2.5);
+                    jmp_tot = jmp_tot - sys_jmp;
+                    idx_aft_jmp = mjd > (mjd_st + i - 1e-3/86400);
+                    clock_corr(idx_aft_jmp,idx_system)  = clock_corr(idx_aft_jmp,idx_system) - sys_jmp;
+                end
+                clock_corr(:,idx_system) = (clock_corr(:,idx_system) - jmp_tot/2);
+            end
+
+            
+            this.clock = this.clock + clock_corr;
+
+            for sys_ch = this.getAvailableSys()
+                idx_system = find(cc.system == sys_ch);
+                nl_wl = Core_Utils.V_LIGHT / (sum(cc.getSys(sys_ch).F_VEC(1:2)));
+                nl_wls(idx_system) = nl_wl;
+
+%             end
+% 
+%             idx_system = find(true(size(cc.system)));
+            for i = 1 : (nd-1)
+                st_time = mjd_st + i - 0.25/24;
+                end_time =  mjd_st + i + 0.25/24;
+                idx_time = mjd >= st_time & mjd <= end_time;
+                mjd_tmp = mjd(idx_time);
+                n_ep = length(mjd_tmp);
+                mjd_tmp = mjd_tmp - ceil(mjd_tmp(1));
+                idx_aft = mjd_tmp > -0.1/86400;
+                clk_tmp = this.clock(idx_time,idx_system);
+                med = mean(abs(diff([detrend(zero2nan(clk_tmp),2,'omitnan') ])));
+                [med_srt,idx] = sort(med);
+                clk_tmp = clk_tmp - repmat(clk_tmp(:,idx(1)),1,size(clk_tmp,2));
+                A = [ones(n_ep,1) mjd_tmp mjd_tmp.^2 idx_aft.*nl_wl];
+                for j = 1 : length(idx_system)
+                    %A(A(:,end)~=0,end) = nl_wls(j);
+                    obs = clk_tmp(:,j)*Core_Utils.V_LIGHT;
+                    idx_ok =  find(~isnan(obs));
+                    w = ones(size(obs));
+                    for k = 1 :10
+                        x = (A(idx_ok,:).*repmat(w(idx_ok),1,size(A,2))) \ (obs(idx_ok).* w(idx_ok));
+                        res = obs(idx_ok) - A(idx_ok,:)*x;
+                        std = median(abs(res))*1.5; %1.5 coeffcient to pass from median to mean (empirically estimated)
+                        idx_rw = abs(res) > 2.5 * std;
+                        w(:) = 1;
+                        w(idx_ok(idx_rw)) = 2.5*std./abs(res(idx_rw));
+                    end
+                    std_clk = median(abs(diff(diff(obs(idx_ok)))));
+                    improv_ratio = mean(abs(detrend(obs - roundnext(x(end))*A(:,end),2,2)))/mean(abs(detrend(obs - round(x(end))*A(:,end),2)));
+                    frac_part(i,idx_system(j)) = x(end);
+                    if abs(x(end)) < 10  %% if it is bigger code would have detected connecting might give prob
+                        if std_clk < 0.01  % stable clock
+
+                            jmp_est(i,idx_system(j)) = round(x(end));
+                            if abs(fracFNI(x(end))) < 0.15 & (~(round(x(end))<0.001) | improv_ratio > 2)
+                                not_conn(i,idx_system(j)) = false;
+                            end
+
+
+                        else
+                            if abs(x(end)) > 1
+                                jmp_est(i,idx_system(j)) = round(x(end));
+                            end
+                            if abs(fracFNI(x(end))) < 0.15 & improv_ratio > 2
+                                not_conn(i,idx_system(j)) = false;
+                            end
+
+                        end
+                    end
+
+
+
+                end
+
+
+
+
+            end
+
+            end
+            this.clock_jmp = false(size(this.clock));
+            clock_corr = zeros(size(this.clock));
+
+            % [goGPS_path] = which('goGPS');
+            % [goGPS_dir] = fileparts(goGPS_path);
+            % fname = [goGPS_dir '\reserved\ephjmp\' sprintf('jmpdet%d.mat',mjd_st+1)];
+            % save(fname,"not_conn","jmp_est","mjd_st");
+            this.jmp_est = struct("not_conn",[],"jmp_est",[],"mjd_st",[]);
+            this.jmp_est.not_conn = not_conn;
+            this.jmp_est.jmp_est = jmp_est;
+            this.jmp_est.mjd_st = mjd_st;
+
+
+            for i = 1 : (nd-1)
+                st_time = mjd_st + i;
+                idx_time = mjd >= st_time-0.1/86400;
+                idx_ep = mjd > st_time-0.1/86400 &  mjd < st_time+0.1/86400;
+                for j = 1 : size(this.clock,2)
+                    if not_conn(i,j) %|| cc.system(j) == 'E'
+                        this.clock_jmp(idx_ep,j) = true;
+                    end
+                    if jmp_est(i,j) ~= 0
+                        clock_corr(idx_time,j) = clock_corr(idx_time,j) - jmp_est(i,j);
+                    end
+                end
+            end
+            clock_corr = (clock_corr - repmat(round(mean(clock_corr)),size(clock_corr,1),1)).*repmat(nl_wls,size(clock_corr,1),1);
+            this.clock = this.clock + clock_corr/Core_Utils.V_LIGHT;
+
+            clock_corr(:) = 0;
+            for sys_ch = this.getAvailableSys()
+                idx_system = find(cc.system == sys_ch);
+                nl_wl = Core_Utils.V_LIGHT / (sum(cc.getSys(sys_ch).F_VEC(1:2)));
+                nl_wls(idx_system) = nl_wl;
+                % reduce day boundary jump
+                jmp_tot = 0;
+                for i = 1 : (nd-1)
+                    st_time = mjd_st + i - 0.5/24;
+                    end_time =  mjd_st + i + 0.5/24;
+                    idx_time = mjd >= st_time & mjd <= end_time;
+
+                    mjd_tmp = mjd(idx_time);
+                    n_ep = length(mjd_tmp);
+                    mjd_tmp = mjd_tmp - ceil(mjd_tmp(1));
+                    idx_aft = mjd_tmp > -0.1/86400;
+                    clk_tmp = this.clock(idx_time,idx_system);
+                    jmp = nan(length(idx_system),1);
+                    jmp_std = nan(length(idx_system),1);
+                    A = [ones(n_ep,1) (1:n_ep)' [(1:n_ep)'].^2 idx_aft];
+                    for s = 1 :length(jmp)
+                        inn = ~isnan(clk_tmp(:,s));
+                        if sum(inn) > 0
+                            [x ,res]= Core_Utils.huberizedLS(clk_tmp(inn,s),ones(sum(inn),1),A(inn,:),2.5);
+                            jmp(s) = x(end);
+                            jmp_std(s) = sqrt(huberMean(res.^2)/(length(res)-4));
+                        end
+                    end
+                    inn = ~isnan(jmp);
+                    jmp_std = jmp_std / (mean(jmp_std(inn))/3);
+                    jmp_std = jmp_std.^2;
+                    sys_jmp = Core_Utils.huberizedLS(jmp(inn),jmp_std(inn),ones(sum(inn),1),2.5);
+                    jmp_tot = jmp_tot - sys_jmp;
+                    idx_aft_jmp = mjd > (mjd_st + i - 1e-3/86400);
+                    clock_corr(idx_aft_jmp,idx_system)  = clock_corr(idx_aft_jmp,idx_system) - sys_jmp;
+                end
+                clock_corr(:,idx_system) = (clock_corr(:,idx_system) - jmp_tot/2);
+            end
+
+            
+            this.clock = this.clock + clock_corr;
+            %this.clock = nan2zero(this.clock);
+
+
+            warning on
+
+        end
+
+        function loadJmpAndCorrect(this)
+            % Load the detected and corrected jump
+
+            state = Core.getCurrentSettings();
+             mjd = this.getClockTime.getMJD;
+            mjd_st = round(mjd(1));
+            nd= round(mjd(end) - mjd(1));
+            jmp_est = zeros(nd-1,size(this.clock,2));
+            gal_bias = zeros(nd-1,1);
+            not_conn = true(nd-1,size(this.clock,2));
+
+            nl_wls  = zeros(1,size(this.clock,2));
+            cc = Core.getConstellationCollector();
+            for sys_ch = this.getAvailableSys()
+                idx_system = find(cc.system == sys_ch);
+                nl_wl = Core_Utils.V_LIGHT / (sum(cc.getSys(sys_ch).F_VEC(1:2)));
+                nl_wls(idx_system) = nl_wl;
+            end
+            for i = 1 : (nd-1)
+
+                [goGPS_path] = which('goGPS');
+                [goGPS_dir] = fileparts(goGPS_path);
+                fname = [goGPS_dir '\reserved\ephjmp\' sprintf('jmpcorr%s%d.mat',state.jmp_sat_io_id,mjd_st+i)];
+                jmp_det = load(fname);
+                goid_sat = zeros(size(jmp_det.prn_out));
+                for s = 1: length(goid_sat)
+                    gidt = find(cc.system == jmp_det.system_out(s) & cc.prn == jmp_det.prn_out(s));
+                    if ~isempty(gidt)
+                        goid_sat(s)  = gidt;
+                    end
+                end
+
+                jmp_est(i,goid_sat(goid_sat~=0)) = jmp_det.jmp_est_out(goid_sat~=0);
+                not_conn(i,goid_sat(goid_sat~=0)) = jmp_det.not_conn_out(goid_sat~=0);
+                gal_bias(i) = jmp_det.gal_bias_out;
+
+                
+
+
+            end
+            this.clock_jmp = false(size(this.clock));
+            clock_corr = zeros(size(this.clock));
+            gal_corr = zeros(size(this.clock,1),1);
+
+            for i = 1 : (nd-1)
+                st_time = mjd_st + i;
+                idx_time = mjd >= st_time-0.1/86400;
+                idx_ep = mjd > st_time-0.1/86400 &  mjd < st_time+0.1/86400;
+                for j = 1 : size(this.clock,2)
+                    if not_conn(i,j) %|| cc.system(j) == 'E'
+                        this.clock_jmp(idx_ep,j) = true;
+                    end
+                    if jmp_est(i,j) ~= 0
+                        clock_corr(idx_time,j) = clock_corr(idx_time,j) - jmp_est(i,j);
+                    end
+                    gal_corr(idx_time) = gal_corr(idx_time) - gal_corr(i);
+                end
+            end
+            clock_corr = (clock_corr - repmat(round(mean(clock_corr)),size(clock_corr,1),1)).*repmat(nl_wls,size(clock_corr,1),1);
+            this.clock = this.clock + clock_corr/Core_Utils.V_LIGHT;
+            this.clock(:,cc.system == 'E') = this.clock(:,cc.system == 'E') + repmat(gal_corr,1,sum(cc.system == 'E'))/Core_Utils.V_LIGHT;
+        end
+
     end
-    
+
     % ==================================================================================================================================================
     %% STATIC FUNCTIONS used as utilities
     % ==================================================================================================================================================
     methods (Static, Access = public)
-        
+
         function [az, el, sat_coo] = getAzEl(coo, time, sat)
             % Get the azimuth and elevation of a satellite "sat" e.g. G21
             %
