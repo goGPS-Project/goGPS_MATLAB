@@ -52,6 +52,7 @@ classdef File_Name_Processor < handle
     properties (Constant)
         GPS_WEEK = '${WWWW}';
         GPS_WD = '${WWWWD}';
+        GPS_W_DOY = '${GPSWYYYYDOY}';
         GPS_DOW = '${D}';
         GPS_3H = '${3H}';
         GPS_6H = '${6H}';
@@ -117,7 +118,7 @@ classdef File_Name_Processor < handle
                 file_name_out = strrep(file_name_out, this.GPS_YYYY, year);
                 file_name_out = strrep(file_name_out, this.GPS_YYDOY, [year(3:4) doy]);
             end
-            if any(file_name_out == '$') && ~isempty(regexp(file_name_out, '\$\{(WWWW)|(WD)|(DOW)|(3H)|(6H)|(HH)|(QQ)|(5M)|(mm)|(ss)\}', 'once'))
+            if any(file_name_out == '$') && ~isempty(regexp(file_name_out, '\$\{(GPSWDOY)|(WWWW)|(WD)|(DOW)|(3H)|(6H)|(HH)|(QQ)|(5M)|(mm)|(ss)\}', 'once'))
                 [gps_week, gps_sow, gps_dow] = date.getGpsWeek();
                 file_name_out = strrep(file_name_out, this.GPS_WEEK, sprintf('%04d', gps_week(1)));
                 if any(file_name_out == '$')
@@ -125,6 +126,9 @@ classdef File_Name_Processor < handle
                 end
                 if any(file_name_out == '$')
                     file_name_out = strrep(file_name_out, this.GPS_WD, sprintf('%04d%01d', gps_week(1), gps_dow(1)));
+                    date_tmp = GPS_Time.fromWeekDow(gps_week(1), 0);
+                    [gpswyear, gpswdoy] = date_tmp.getDOY();
+                    file_name_out = strrep(file_name_out, this.GPS_W_DOY, sprintf('%04d%03d', gpswyear,gpswdoy));
                     file_name_out = strrep(file_name_out, this.GPS_3H, sprintf('%02d', fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(3*3600))*3));
                     file_name_out = strrep(file_name_out, this.GPS_6H, sprintf('%02d', fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(6*3600))*6));
                     file_name_out = strrep(file_name_out, this.GPS_HH, sprintf('%02d', fix((gps_sow(1) - double(gps_dow(1)) * 86400)/(3600))));
@@ -173,9 +177,9 @@ classdef File_Name_Processor < handle
                 step_sec = 3 * 3600;
             elseif ~isempty(strfind(file_name, this.GPS_6H))
                 step_sec = 6 * 3600;
-            elseif ~isempty((strfind(file_name, this.GPS_DOW))) || ~isempty(strfind(file_name, this.GPS_DD)) || ~isempty(strfind(file_name, this.GPS_WD)) || ~isempty(strfind(file_name, this.GPS_DOY)) || ~isempty(strfind(file_name, this.GPS_1D)) || ~isempty(strfind(file_name, this.GPS_YYDOY))
+            elseif ~isempty((strfind(file_name, this.GPS_DOW))) || ~isempty(strfind(file_name, this.GPS_DD)) || ~isempty(strfind(file_name, this.GPS_WD)) || ~isempty(strfind(file_name, this.GPS_DOY)) || ~isempty(strfind(file_name, this.GPS_1D)) || ~isempty(strfind(file_name, this.GPS_YYDOY)) 
                 step_sec = 24 * 3600;
-            elseif ~isempty(strfind(file_name, this.GPS_WEEK))
+            elseif ~isempty(strfind(file_name, this.GPS_WEEK)) || ~isempty(strfind(file_name, this.GPS_W_DOY))    
                 step_sec = 24 * 3600 * 7;
             elseif ~isempty(strfind(file_name, this.GPS_FIRST_DOY_TRIMESTER))
                 step_sec = 24 * 3600 * 91;
@@ -551,6 +555,8 @@ classdef File_Name_Processor < handle
             str_cell = Ini_Manager.toIniStringComment('Special Keywords that can be used in file names:', str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s    4 char GPS week', File_Name_Processor.GPS_WEEK), str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s 4+1 char GPS week + day of the week', File_Name_Processor.GPS_WD), str_cell);
+            str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s    3 char DOY correspondignt to GPS week', File_Name_Processor.GPS_W_DOY), str_cell);
+            
             str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s       1 char day of the week', File_Name_Processor.GPS_DOW), str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s      2 char GPS hour (00, 03, 06, 09, 12, 15, 18, 21)', File_Name_Processor.GPS_3H), str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf(' - %s      2 char GPS hour (00, 06, 12, 18)', File_Name_Processor.GPS_6H), str_cell);
