@@ -64,6 +64,7 @@ classdef LS_Parametrization < handle
         % sat paramterization
         SING_SAT = 1;
         MULTI_SAT = 2;
+        PER_SYS = 4;
         ALL_SAT = 3;
         
         % track parametrization
@@ -94,12 +95,14 @@ classdef LS_Parametrization < handle
         rec_eb_lin = [LS_Parametrization.CONST      LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.RULE];
         rec_ebfr = [LS_Parametrization.SPLINE_CUB LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT LS_Parametrization.SING_BAND];
 
+        rec_ebsb = [LS_Parametrization.SPLINE_ZERO LS_Parametrization.SING_REC LS_Parametrization.PER_SYS LS_Parametrization.ALL_FREQ];
+
         sat_eb =   [LS_Parametrization.CONST      LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.SING_TRACK];
         sat_ppb =  [LS_Parametrization.STEP_CONST LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.RULE];
         sat_ebfr = [LS_Parametrization.SPLINE_CUB LS_Parametrization.ALL_REC LS_Parametrization.SING_SAT LS_Parametrization.SING_BAND];
         
         amb  = [LS_Parametrization.STEP_CONST LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.SING_TRACK];
-        ss_pr_eb  = [LS_Parametrization.CONST LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.SING_TRACK];
+        ss_pr_eb  = [LS_Parametrization.CONST LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.RULE];
 
         rec_clk = [LS_Parametrization.EP_WISE LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT  LS_Parametrization.ALL_FREQ];
         sat_clk = [LS_Parametrization.EP_WISE LS_Parametrization.ALL_REC  LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
@@ -116,11 +119,11 @@ classdef LS_Parametrization < handle
         tropo_v = [LS_Parametrization.CONST      LS_Parametrization.ALL_REC  LS_Parametrization.ALL_SAT  LS_Parametrization.ALL_FREQ];
         tropo_z = [LS_Parametrization.SPLINE_CUB LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT  LS_Parametrization.ALL_FREQ];
 
-              
-        iono =    [LS_Parametrization.EP_WISE    LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
         
+        iono =    [LS_Parametrization.EP_WISE    LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
+        iono_ph =    [LS_Parametrization.EP_WISE    LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
+        iono_pr =    [LS_Parametrization.EP_WISE    LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
         geom =    [LS_Parametrization.EP_WISE    LS_Parametrization.SING_REC LS_Parametrization.SING_SAT LS_Parametrization.ALL_FREQ];
-              
         ant_mp =  [LS_Parametrization.CONST      LS_Parametrization.SING_REC LS_Parametrization.ALL_SAT  LS_Parametrization.SING_FREQ];
         
         % options to keep track of spline rate, rule based distinction,
@@ -132,15 +135,18 @@ classdef LS_Parametrization < handle
         rec_ppb_opt;
         rec_ebfr_opt = struct('spline_rate',3600);
 
+        rec_ebsb_opt = struct('spline_rate',86400);
+
         sat_eb_opt = struct('rule',1);
         sat_ppb_opt;
         sat_ebfr_opt = struct('rule',1,'spline_rate',3600);
+
+        ss_pr_eb_opt = struct('rule',1);
 
 
         rec_eb_opt_lin = struct('rule',1);
 
         amb_opt;
-        ss_pr_eb_opt;
         rec_clk_opt;
         tropo_opt;
         tropo_n_opt;
@@ -153,6 +159,8 @@ classdef LS_Parametrization < handle
         sat_clk_ph_opt;
         ant_mp_opt;
         iono_opt;
+        iono_pr_opt;
+        iono_ph_opt;
         geom_opt;
         tropo_s_opt= struct('spline_rate',900);
         tropo_z_opt= struct('spline_rate',1800);
@@ -170,6 +178,7 @@ classdef LS_Parametrization < handle
             %this.sat_eb_opt.rule = {['PSRANGE:' num2str(LS_Parametrization.SING_TRACK)],['PHASE:' num2str(LS_Parametrization.NONE)]};
             this.sat_ppb_opt.rule = {['PHASE:' num2str(LS_Parametrization.ALL_FREQ)],['PSRANGE:' num2str(LS_Parametrization.NONE)]};
             this.rec_ppb_opt.rule = {['PHASE:' num2str(LS_Parametrization.ALL_FREQ)],['PSRANGE:' num2str(LS_Parametrization.NONE)]};
+            this.ss_pr_eb_opt.rule = {['PHASE:' num2str(LS_Parametrization.NONE)],['PSRANGE:' num2str(LS_Parametrization.SING_TRACK)]};
             this.rec_eb_opt_lin.rule = {['PHASE&GLONASS:' num2str(LS_Parametrization.SING_FREQ)]};
         end
         
@@ -236,6 +245,8 @@ classdef LS_Parametrization < handle
                     this.rec_ebfr_opt.spline_rate = rate;
                 case Engine_U2.PAR_SAT_EBFR
                     this.sat_ebfr_opt.spline_rate = rate;
+                case Engine_U2.PAR_SAT_EBSB
+                    this.sat_ebsb_opt.spline_rate = rate;
             end
         end
         
@@ -404,6 +415,15 @@ classdef LS_Parametrization < handle
                 case Engine_U2.PAR_SS_PR_EB
                     parametriz = this.ss_pr_eb;
                     option = this.ss_pr_eb_opt;
+                case Engine_U2.PAR_IONO_PH
+                    parametriz = this.iono_ph;
+                    option = this.iono_ph_opt;
+                case Engine_U2.PAR_IONO_PR
+                    parametriz = this.iono_pr;
+                    option = this.iono_pr_opt;
+                case Engine_U2.PAR_REC_SB
+                    parametriz = this.rec_ebsb;
+                    option = this.rec_ebsb_opt;
             end
             name = Engine_U2.CLASS_NAME(par_class);
             
