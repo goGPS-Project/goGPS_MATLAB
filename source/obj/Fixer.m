@@ -150,9 +150,7 @@ classdef Fixer < handle
                         if all(serialize(Qahat-Qahat' < 3e-6)) && ~all(serialize(Qahat-Qahat' < 1e-8))
                             Qahat = (Qahat + Qahat') ./ 2;
                         end
-                        % Add minimum of regularization
-                        reg_factor = median(eig(Qahat))*1e-8;
-                        Qahat = Qahat + reg_factor*eye(size(Qahat));
+                    
                         [tmp_amb_fixed, sq_norm, success_rate,~,~,nfx,mu] = LAMBDA(amb_float(amb_ok), Qahat, 5, 'P0', 0.995, 'mu', this.mu);
                         is_fixed = true;
                         l_fixed   = amb_ok;
@@ -318,12 +316,16 @@ classdef Fixer < handle
             
             
         end
-        function [amb_fixed ,l_fixed, VCV_not_fixed] = mp_bootstrap(amb_float,VCV)
+        function [amb_fixed ,l_fixed, VCV_not_fixed,cond_frac] = mp_bootstrap(amb_float,VCV, frac_thr)
             % compute the bootstrap solution not ordering ambiguites by
             % formal accuracy but by most probabl integer
             %
             % SYNTAX
             %   amb_fixed = mp_bootstrap(amb_float,L)
+
+            if nargin < 3
+                frac_thr = 14;
+            end
             n_a = length(amb_float);
             rounded = round(amb_float);
             sigma_float = sqrt(diag(VCV));
@@ -335,32 +337,42 @@ classdef Fixer < handle
                 idx = idx_one(idx_tmp);
                 
             end
-            amb_fixed = amb_float;
-            fixed_lid = false(n_a,1);
+            amb_fixed = nan(size(amb_float));
             i = 1;
-            while   i <= n_a && pmf(idx) > 0.95
-                    amb_fixed(idx) = round(amb_float(idx));
-                    other_amb_lid = 1:n_a ~= idx;
-                    amb_float(other_amb_lid) = amb_float(other_amb_lid) - VCV(other_amb_lid,idx)* 1/sigma_float(idx)^2 * (amb_float(idx) - amb_fixed(idx) ); % reduce the other amb for the fixed ones
-                    VCV(other_amb_lid,other_amb_lid) = VCV(other_amb_lid,other_amb_lid) - VCV(other_amb_lid,idx) .* 1/sigma_float(idx)^2 * VCV(idx,other_amb_lid);  % reduce the vcv for the fixed ones
-                    sigma_float = max(diag(VCV),1e-6);
-                    sigma_float(fixed_lid) = 100; % this might happen beacuse we are reducing for ambiugities already fixed
-                    sigma_float = sqrt(sigma_float);
-                    fixed_lid(idx) = true;
-                    nfixed_id = find(~fixed_lid);
+            cond_frac = nan(length(amb_float),2);
+            p_cum = max_pmf;
+            nnfa = n_a; % number of not fixed ambiguity
+            red2org = 1:nnfa;
+            while   i <= n_a && p_cum > 0.95
+                    
+                    amb_fixed(red2org(idx)) = round(amb_float(idx)); % fix most probable amb
+                    cond_frac(red2org(idx),1) = amb_float(idx);
+                    cond_frac(red2org(idx),2) = sigma_float(idx);
+                    
+                    other_amb_lid = 1:nnfa ~= idx;
+                    amb_float = amb_float(other_amb_lid) - VCV(other_amb_lid,idx)* 1/sigma_float(idx)^2 * (amb_float(idx) - amb_fixed(red2org(idx)) ); % reduce the other amb for the fixed ones
+                    VCV = VCV(other_amb_lid,other_amb_lid) - VCV(other_amb_lid,idx) .* 1/sigma_float(idx)^2 * VCV(idx,other_amb_lid);  % reduce the vcv for the fixed ones
+                    red2org(idx) = [];
+                    nnfa = nnfa - 1;
+                    if i < n_a
+                    sigma_float = sqrt(diag(VCV)); %sqrt(max(diag(VCV),1e-6));
                     pmf = Fixer.oneDimPMF(amb_float, sigma_float); % recompute the probability mass function
-                    [max_pmf, mx_id] = max(pmf(nfixed_id)); % find the new most probable
+                    pmf(abs(fracFNI(amb_float)) > frac_thr) = 0;
+                    [max_pmf, idx] = max(pmf); % find the new most probable
                     if max_pmf == 1
-                        idx_one = find(pmf(nfixed_id) == 1);
-                        [~,idx_tmp] = min(abs(amb_float(nfixed_id(idx_one)) - round(amb_float(nfixed_id(idx_one)))));
-                        mx_id = idx_one(idx_tmp);
+                        idx_one = find(pmf == 1);
+                        [~,idx_tmp] = min(abs(amb_float(idx_one) - round(amb_float(idx_one))));
+                        idx = idx_one(idx_tmp);
                         
                     end
-                    idx = nfixed_id(mx_id);
+                    end
+                    p_cum = p_cum * max_pmf;
                     i = i +1;
             end
-            VCV_not_fixed = VCV(~fixed_lid,~fixed_lid);
-            l_fixed = fixed_lid;
+            VCV_not_fixed = VCV;
+            amb_fixed(red2org) = amb_float;
+            l_fixed = true(n_a,1);
+            l_fixed(red2org) = false;
         end
         
         function pmf = oneDimPMF(amb_float, sigma_float)
@@ -368,6 +380,123 @@ classdef Fixer < handle
             % eq: 23.19 handbook of GNSS
             rounded = round(amb_float);
             pmf = normcdf((1 - 2*(amb_float -rounded))./(2*sigma_float)) + normcdf((1 + 2*(amb_float -rounded))./(2*sigma_float)) - 1;
+        end
+
+        function [D,master_ambs,is_d_fixable] = singleDiffAmb(Naa,sys_amb,sat_amb,time_amb, mode,is_fixable)
+            % get single diff mqtrix for receiver stand alone 
+            % mode :
+            %   1 all sysmes togehethe phase jump
+            %   2 systems separated phase jump
+            %   3 all sysmes togehethe data holes
+            %   4 systems separated data holes
+
+            if mode == 1 | mode == 3
+                sys_amb(:) = 'A';
+            end
+
+            if nargin < 6
+                is_fixable = true(size(sat_amb));
+            end
+            u_sys = unique(sys_amb);
+            phase_resets = cell(length(u_sys),1);
+            amb_idxs = cell(length(u_sys),1); 
+            for s  = 1:length(u_sys)
+                sys_ch = u_sys(s);
+                idx_sys = find(  sys_amb == sys_ch);
+                time_amb_s = time_amb(idx_sys,:);
+                sat_amb_s = sat_amb(idx_sys);
+                max_time = max(time_amb_s(:,2));
+                min_time = min(time_amb_s(:,1));
+
+                n_ep = max_time - min_time;
+                amb_idx = zeros(n_ep,max(sat_amb_s));
+                for i = 1 : length(sat_amb_s)
+                    amb_idx(time_amb_s(i,1):time_amb_s(i,2),sat_amb_s(i)) = i;
+                end
+                amb_idxs{s} = amb_idx;
+                if mode == 1 | mode == 2
+                damb_idx = diff(int32(amb_idx));
+                phase_resets{s} = find([false; sum(damb_idx < 0, 2) == sum((amb_idx(1 : end - 1, :)) > 0, 2) | sum(damb_idx > 0, 2) == sum((amb_idx(2 : end, :)) > 0,2)]);
+                elseif mode == 3 | mode == 4
+                    phase_resets{s} = find(sum(~isnan(amb_idx),2) == 0); % just empty epochs
+                end
+                phase_resets{s}([diff(phase_resets{s}); 10] == 1) = []; % remove siubsequest phasejumps
+            end 
+
+%             ophase_resets = phase_resets;
+%             phase_resets{:} = [];
+%             int_phase
+
+            master_ambs = [];
+            cnld = 0;
+            D = zeros(size(Naa));
+            is_d_fixable = false(size(Naa,1),1);
+            for s  = 1:length(u_sys)
+                sys_ch = u_sys(s);
+                idx_sys = find(  sys_amb == sys_ch);
+                max_time = max(time_amb(idx_sys,2));
+                min_time = min(time_amb(idx_sys,1));
+                amb_idx = amb_idxs{s};
+
+                n_ep = max_time - min_time;
+                phase_reset = phase_resets{s}; 
+                phase_reset = [0;phase_reset;n_ep+1];
+
+
+                D_sys = zeros(length(sat_amb),length(sat_amb));
+
+                pdamb = 0;
+                not_fixable = false;
+                for i = 1 : length(phase_reset)-1
+
+                    idx_ep = 1:n_ep>=phase_reset(i) & 1:n_ep<phase_reset(i+1);
+                    % %% unique was slow optimization 
+                    % min_ambs = min(zero2nan(amb_idx(idx_ep,:)),[],'omitnan');
+                    % max_ambs = max(amb_idx(idx_ep,:));
+                    % idx_amb = [];
+                    % for l = 1 : length(min_ambs)
+                    %     if ~isnan(min_ambs(l))
+                    %         idx_amb = [idx_amb (min_ambs(l):max_ambs(l))];
+                    %     end
+                    % 
+                    % end
+                    idx_amb = unique(noZero(amb_idx(idx_ep,:)));
+                    if ~isempty(idx_amb)
+                        [~,idx_master_amb_si] =  sort(diag(Naa(idx_sys(idx_amb),idx_sys(idx_amb))));
+                        idx_master_amb = idx_master_amb_si(is_fixable(idx_amb));
+                        if ~isempty(idx_master_amb)
+                            idx_master_amb = idx_master_amb(end);
+                        else
+                            idx_master_amb = idx_master_amb_si(end);
+                            not_fixable = true;
+                        end
+                        master_amb = idx_amb(idx_master_amb);
+                        idx_amb(idx_amb == master_amb) =[];
+                        D_sys(sub2ind(size(D_sys),pdamb+(1:length(idx_amb)),idx_sys(idx_amb)')) = 1;
+                        D_sys(sub2ind(size(D_sys),pdamb+(1:length(idx_amb)),repmat(idx_sys(master_amb),1,length(idx_amb)))) = -1;
+                        master_ambs = [master_ambs; idx_sys(master_amb)];
+                        pdamb = pdamb + length(idx_amb);
+                    end
+                end
+                D_sys(sum(abs(D_sys),2) < 1e-3,:) = [];
+                if not_fixable
+                    is_d_fixable_sys = false(size(D_sys,1),1);
+                else
+                    is_d_fixable_sys = (D_sys(:,idx_sys)*is_fixable(idx_sys)) > -0.99;
+                end
+                D(cnld +(1:size(D_sys,1)),:) = D_sys;
+                is_d_fixable(cnld +(1:size(D_sys,1))) = is_d_fixable_sys;
+                cnld = cnld + size(D_sys,1);
+                
+
+            end
+            D(cnld+1:end,:) = [];
+
+
+
+
+
+
         end
         
     end
