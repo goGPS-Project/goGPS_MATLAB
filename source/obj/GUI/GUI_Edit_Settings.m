@@ -1508,6 +1508,7 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 'BackgroundColor', color_bg);                        
             this.check_boxes{end+1} = Core_UI.insertCheckBox(mnp_vbox, 'Trackings combination',  'flag_combine_trk', @this.onCheckBoxChange, color_bg);
             this.check_boxes{end+1} = Core_UI.insertCheckBox(mnp_vbox, 'Sat clock re-alignment',  'flag_clock_align', @this.onCheckBoxChange, color_bg);
+            this.check_boxes{end+1} = Core_UI.insertCheckBox(mnp_vbox, 'Apply dt to observations',  'flag_apply_clock', @this.onCheckBoxChange, color_bg);
             ttip = 'Align satellite clocks among each file';
             if verLessThan('matlab','9.5')
                 this.check_boxes{end}.TooltipString = ttip;
