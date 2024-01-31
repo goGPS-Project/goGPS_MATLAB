@@ -59,6 +59,7 @@ classdef Observation_Set < handle
         go_id    % go_ids of the observations
         sigma    % teoretical precision of the measurements [m]
         iono_free%
+        rec_id   %
     end
     
     methods
@@ -311,7 +312,7 @@ classdef Observation_Set < handle
             if nargin < 2
                 idx = 1:length(this.wl);
             end
-            obs_cy = this.obs(:,idx) ./ repmat(this.wl(idx), size(this.obs,1),1);
+            obs_cy = this.obs(:,idx) ./ repmat(serialize(this.wl(idx))', size(this.obs,1),1);
         end
         
         function amb_mat = getRoundedAmb(this, idx)
@@ -518,7 +519,7 @@ classdef Observation_Set < handle
             end
         end
         
-        function remShortArc(this, min_arc_len)
+        function remShortArc(this, min_arc_len,sanitize)
             % Remove short arcs
             %
             % SYNTAX:
@@ -526,14 +527,17 @@ classdef Observation_Set < handle
             if nargin < 2
                 min_arc_len = 2;
             end
+            if nargin < 3
+                sanitize = true;
+            end
             cs = full(this.cycle_slip);
-            cs(this.obs == 0) = true;
+            cs(this.obs == 0 | isnan(this.obs)) = true;
             n_ep = size(this.obs,1);
             id_rm = false(size(this.obs));
             for i = 1 : size(this.obs, 2)
                 % remove single arcs
                 for j = 2:(n_ep)
-                    if cs(j, i) && cs(j-1, i) 
+                    if cs(j, i) && cs(j-1, i)   
                         id_rm(j-1, i) = true;
                     end
                 end
@@ -541,7 +545,7 @@ classdef Observation_Set < handle
                     id_rm(j, i) = true;
                 end
                 % remove arcs less than desidered
-                [lim] = getFlagsLimits(this.obs(:, i)~=0 & ~this.cycle_slip(:, i));
+                [lim] = getFlagsLimits(this.obs(:, i) ~= 0 & ~this.cycle_slip(:, i));
                 if ~isempty(lim)
                     single_arcs = find((lim(:,2) - lim(:,1)) < (min_arc_len - 1));
                     for s = 1 : numel(single_arcs)
@@ -550,8 +554,8 @@ classdef Observation_Set < handle
                 end
 
             end
-            id_rm(this.obs == 0) = false; %do not remove observation that are not there
-            this.remObs(id_rm);
+            id_rm(this.obs == 0 | isnan(this.obs)) = false; %do not remove observation that are not there
+            this.remObs(id_rm,sanitize);
         end
         
         function is_empty = isEmpty(this)
