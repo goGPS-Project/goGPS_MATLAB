@@ -71,8 +71,8 @@ classdef BeiDou_SS < Satellite_System
         PRN = (1 : 60)';  % Satellites id numbers as defined in the constellation
 
         % CODE2DATA ftp://igs.org/pub/data/format/rinex303.pdf
-        CODE_RIN3_ATTRIB  = {'XIQ F' 'XPDZLS F' 'XPD F' 'XIQZPD F', 'XPD F', 'ZPD F'}; % last letter of the observation code
-        CODE_RIN3_DEFAULT_ATTRIB  = {'Q' 'P' 'X' 'X' 'X' 'Z'}; % last letter of the observation code
+        CODE_RIN3_ATTRIB  = {'XIQ F' 'XPDZLS' 'XPD' 'XIQZPD F', 'ZPD' 'XIQZPD F'}; % last letter of the observation code
+        CODE_RIN3_DEFAULT_ATTRIB  = {'I' 'D' 'D' 'I' 'D' 'I'}; % last letter of the observation code
         CODE_RIN3_2BAND  = '215786';                % id for the freq as stored in F_VEC
         IONO_FREE_PREF  = ['27';'26';'67'];  % to be evaluated which combination is really better
     end
