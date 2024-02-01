@@ -4,4 +4,5 @@ function [L,D] = ldldecom_m(Qahat)
  % NOTE: to be used in matlab
  [L,D] = ldl(flipud(fliplr(Qahat)),'upper'); L = fliplr(flipud(L));
  D = flipud(diag(D));
+ D =D';
 end
