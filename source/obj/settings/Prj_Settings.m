@@ -140,7 +140,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
         SELECTED_ORBIT_CENTER= {'default'}
         SELECTED_IONO_CENTER= {'default'}
         PREFERRED_IONO = {'final', 'rapid', 'predicted1', 'predicted2', 'broadcast'}
-        SELECTED_BIAS_CENTER= {'none'}
+        SELECTED_BIAS_CENTER= {'default'}
         
         PREFERRED_VMF_RES = {'1x1', '2.5x2', '5x5'}
         PREFERRED_VMF_SOURCE = {'operational', 'era-interim', 'forecast'}
@@ -232,7 +232,8 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                                                         
         FLAG_SMOOTH_TROPO_OUT = true;                   % smooth the output parameters at bounadries
         FLAG_SEPARATE_COO_AT_BOUNDARY = false;          % estaimtes a separte coordinat for the boundaries data
-         
+        
+        FLAG_APPLY_CLOCK = true;                        % apply clock to observations
         FLAG_CLOCK_ALIGN = false;                       % Flag to enable satellite clock alignment (solve jumps among files)
         FLAG_SOLID_EARTH = true;                        % Flag to enable solid eearth tide corrections
         FLAG_POLE_TIDE = true;                          % Falg to enable pole earth tide corrections
@@ -1331,6 +1332,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 this.flag_amb_pass = state.getData('flag_amb_pass');
                 
                 this.flag_clock_align = state.getData('flag_clock_align');
+                this.flag_apply_clock = state.getData('flag_apply_clock');
                 this.flag_solid_earth = state.getData('flag_solid_earth');
                 this.flag_pole_tide = state.getData('flag_pole_tide');
                 this.flag_phase_wind = state.getData('flag_phase_wind');
@@ -1688,6 +1690,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 this.flag_amb_pass = state.flag_amb_pass;
                 
                 this.flag_clock_align = state.flag_clock_align;
+                this.flag_apply_clock = state.flag_apply_clock;
                 this.flag_solid_earth = state.flag_solid_earth;
                 this.flag_pole_tide = state.flag_pole_tide;
                 this.flag_phase_wind = state.flag_phase_wind;
@@ -1999,6 +2002,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             str = [str sprintf(' NET Enable ambiguity fixing:                      %s\n\n', this.NET_AMB_FIX_SMODE{this.net_amb_fix_approach})];
             str = [str sprintf(' Pass ambiguity:                                   %d\n', this.flag_amb_pass)];
             str = [str sprintf(' Enable satellite clock re-alignment:              %d\n', this.flag_clock_align)];
+            str = [str sprintf(' Apply clock to observations:                      %d\n', this.flag_apply_clock)];
             str = [str sprintf(' Enable solide earth tides corrections:            %d\n', this.flag_solid_earth)];
             str = [str sprintf(' Enable pole tide corrections:                     %d\n', this.flag_pole_tide)];
             str = [str sprintf(' Enable phase wind up corrections:                 %d\n', this.flag_phase_wind)];
@@ -2584,6 +2588,10 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             str_cell = Ini_Manager.toIniStringComment('Enable corrections', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Enable re-alignment of satellite clocks (to compensate for discontinuities at the limits of validity)', str_cell);
             str_cell = Ini_Manager.toIniString('flag_clock_align', this.flag_clock_align, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Apply clock to observations', str_cell);
+            
+            str_cell = Ini_Manager.toIniString('flag_apply_clock', this.flag_apply_clock, str_cell);
+
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);            
             str_cell = Ini_Manager.toIniStringComment('Enable solid earth tide corrections', str_cell);
             str_cell = Ini_Manager.toIniString('flag_solid_earth', this.flag_solid_earth, str_cell);
@@ -3471,6 +3479,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             
             % Corrections
             this.flag_clock_align = Prj_Settings.FLAG_CLOCK_ALIGN;
+            this.flag_apply_clock = Prj_Settings.FLAG_APPLY_CLOCK;
             this.flag_solid_earth = 1;
             this.flag_pole_tide = 1;
             this.flag_phase_wind = 1;
@@ -3606,6 +3615,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             
             % Corrections
             this.flag_clock_align = Prj_Settings.FLAG_CLOCK_ALIGN;
+            this.flag_apply_clock = Prj_Settings.flag_apply_clock;
             this.flag_solid_earth = 1;
             this.flag_pole_tide = 1;
             this.flag_phase_wind = 1;
@@ -3750,6 +3760,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 
             this.checkNumericField('iono_management');
             this.checkLogicalField('flag_clock_align');
+            this.checkLogicalField('flag_apply_clock');
             this.checkLogicalField('flag_solid_earth');
             this.checkLogicalField('flag_pole_tide');
             this.checkLogicalField('flag_phase_wind');
@@ -6093,6 +6104,14 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   is_clock_align = isClockAlign(this)
             is_clock_align = this.flag_clock_align;
+        end
+
+        function is_apply_clock = isApplyClock(this)
+            % Check whether the application of dt to observations is requested
+            %
+            % SYNTAX
+            %   is_apply_clock = isApplyClock(this)
+            is_apply_clock = this.flag_apply_clock;
         end
                 
         function is_solid_earth = isSolidEarth(this)
