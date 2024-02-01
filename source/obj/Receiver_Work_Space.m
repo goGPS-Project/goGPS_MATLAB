@@ -5835,20 +5835,19 @@ classdef Receiver_Work_Space < Receiver_Commons
             wl = this.wl(id_ph);
             
             ph = bsxfun(@times, zero2nan(ph), wl)';
-            end
+        end
         
-        function [obs_set, has_smap] = getObsSet(this, flag, sys_c, prn)
+        function [obs_set,idx] = getObsSet(this, flag, sys_c, prn)
             % get observation set corrspondiung to the requested
             % observation
             %
             % SYNTAX:
-            %     this.getObsSet(flag, flag_smap, sys_c, prn)
-            has_smap = false;
-            if nargin == 5 && ~isempty(prn)
+            %     this.getObsSet(flag, sys_c, prn)
+            if nargin == 4
                 [obs, idx, snr, cs] = this.getObs(flag, sys_c, prn);
-            elseif nargin == 4 && ~isempty(sys_c)
+            elseif nargin == 3
                 [obs, idx, snr, cs] = this.getObs(flag, sys_c);
-            elseif nargin <= 3
+            elseif nargin == 2
                 [obs, idx, snr, cs] = this.getObs(flag);
             end
             idx2 = idx(this.obs_code(idx,1) == 'L');
