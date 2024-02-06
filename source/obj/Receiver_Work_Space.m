@@ -5330,13 +5330,12 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function [obs_set, has_smap] = getObsSet(this, flag, sys_c, prn)
+        function [obs_set] = getObsSet(this, flag, sys_c, prn)
             % get observation set corrspondiung to the requested
             % observation
             %
             % SYNTAX:
-            %     this.getObsSet(flag, flag_smap, sys_c, prn)
-            has_smap = false;
+            %     this.getObsSet(flag, sys_c, prn)
             if nargin == 5 && ~isempty(prn)
                 [obs, idx, snr, cs] = this.getObs(flag, sys_c, prn);
             elseif nargin == 4 && ~isempty(sys_c)
@@ -8512,7 +8511,7 @@ classdef Receiver_Work_Space < Receiver_Commons
         
         function solidEarthTide(this,sgn)
             %  add or subtract ocean loading from observations
-            et_corr = this.computeSolidTideCorr();
+            et_corr = this.computeSolidTideCorrIERS();
             cc = Core.getState.getConstellationCollector;
             
             for s = 1 : cc.getMaxNumSat()
@@ -8558,8 +8557,44 @@ classdef Receiver_Work_Space < Receiver_Commons
             end
         end
         
-        function solid_earth_corr = computeSolidTideCorr(this, sat)
-            
+        function solid_earth_corr = computeSolidTideCorrIERS(this, sat)
+            % Computation of the solid Earth tide displacement terms 
+            % and project the correction to each satellite
+            %
+            % INPUT
+            %
+            % OUTPUT
+            %   solid_earth_corr = solid Earth tide correction terms (along the satellite-receiver line-of-sight)
+            %
+            % SYNTAX
+            %   [solid_earth_corr] = this.computeSolidTideCorrIERS();
+            %
+            cc = Core.getState.getConstellationCollector;
+            if nargin < 2
+                sat  = 1 : cc.getMaxNumSat();
+            end
+            solid_earth_corr = zeros(this.time.length, length(sat));
+            x_sta = this.getXR();
+
+            % interpolate sun moon and satellites
+            time = this.time.getCopy;
+            cs = Core.getCoreSky;
+            [x_sun, x_moon]  = cs.sunMoonInterpolate(time);
+            dx_tide = Solid_Earth_Tides.dehantTideInelIERS(x_sta, time, x_sun, x_moon)';
+
+            % displacement along the receiver-satellite line-of-sight
+            [XS] = this.getXSLoc();
+            for i  = 1 : length(sat)
+                s = sat(i);
+                sat_idx = this.sat.avail_index(:,s) ~= 0;
+                XSs = permute(XS(sat_idx,s,:),[1 3 2]);
+                LOSu = rowNormalize(XSs);
+                solid_earth_corr(sat_idx,i) = sum(conj(dx_tide(sat_idx,:)).*LOSu,2);
+            end
+        end
+
+        function solid_earth_corr = computeSolidTideCorr(this, sat)            
+            % Computation of the solid Earth tide displacement terms. (Do NOT USE)
             % SYNTAX
             %   [stidecorr] = this.getSolidTideCorr();
             %
@@ -8568,8 +8603,9 @@ classdef Receiver_Work_Space < Receiver_Commons
             % OUTPUT
             %   stidecorr = solid Earth tide correction terms (along the satellite-receiver line-of-sight)
             %
-            %
-            %   Computation of the solid Earth tide displacement terms.
+            % NOTE
+            %   This version is missing many corrections
+
             cc = Core.getState.getConstellationCollector;
             if nargin < 2
                 sat  = 1 : cc.getMaxNumSat();
@@ -8605,8 +8641,8 @@ classdef Receiver_Work_Space < Receiver_Commons
             
             % gravitational parameters
             GE = Galileo_SS.ORBITAL_P.GM; %Earth
-            GS = GE*332946.0; %Sun
-            GM = GE*0.01230002; %Moon
+            GS = GE*332946.0482; %Sun
+            GM = GE*0.0123000371; %Moon
             
             % Earth equatorial radius
             R = 6378136.6;
@@ -8633,7 +8669,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             r_moon3 = (GM.*R^5)./(GE.*X_moon_n.^4).*(H3*XR_u.*(2.5.*Vmoon.^3 - 1.5.*Vmoon) +   L3*(7.5*Vmoon.^2 - 1.5).*(X_moon_u - Vmoon.*XR_u));
             r = r + r_sun3 + r_moon3;
             
-            % from "conventional tide free" to "mean tide"
+            % from "conventional tide free" to "mean tide" (wrong)
             %radial = (-0.1206 + 0.0001*p)*p;
             %north  = (-0.0252 + 0.0001*p)*sin(2*phiC);
             %r = r + repmat([radial*c + north*b]',time.length,1);
@@ -8658,12 +8694,12 @@ classdef Receiver_Work_Space < Receiver_Commons
                 this.sat.solid_earth_corr = zeros(size(this.sat.avail_index));
             end
             if nargin < 2
-                this.sat.solid_earth_corr = this.computeSolidTideCorr();
+                this.sat.solid_earth_corr = this.computeSolidTideCorrIERS();
                 %                 for s = 1 : size(this.sat.avail_index,2)
                 %                     this.updateSolidEarthCorr(s);
                 %                 end
             else
-                this.sat.solid_earth_corr(:,sat) = this.computeSolidTideCorr(sat);% + this.computeOceanLoading(sat) + this.getPoleTideCorr(sat);
+                this.sat.solid_earth_corr(:,sat) = this.computeSolidTideCorrIERS(sat);% + this.computeOceanLoading(sat) + this.getPoleTideCorr(sat);
             end
         end
         
