@@ -882,6 +882,7 @@ classdef File_Rinex < Exportable
                 this.file_name_list = this.file_name_list(id);
                 this.ext = this.ext(id);
                 this.marker_name = this.marker_name(id);
+                this.antenna = this.antenna(id);
                 this.eoh = this.eoh(id);
                 this.first_epoch = this.first_epoch.getEpoch(id(this.is_valid_list));
                 this.last_epoch  = this.last_epoch.getEpoch(id(this.is_valid_list));
@@ -910,6 +911,34 @@ classdef File_Rinex < Exportable
             end
         end
        
+        function listAntennas(rin_list)
+            % List all the markers / antenna
+            %
+            % SYNTAX:
+            %   rin_list.listAntennas();
+            fprintf('\nFile list\n--------------------------------------------------------------------------------------\n')
+            for r = 1 : numel(rin_list)
+                for i = 1 : numel(rin_list(r).file_name_list)
+                    if rin_list(r).is_valid_list(i)
+                        fprintf('%3d) %s %s %s->%s ant: %s\n', i, ...
+                            rin_list(r).marker_name{i}, ...
+                            iif(rin_list(r).is_valid_list(i), '[ok]', '[!!]'), ...
+                            rin_list(r).first_epoch.getEpoch(sum(rin_list(r).is_valid_list(1:i))).toString('yyyy/mm/dd HH:MM:SS'), ...
+                            rin_list(r).last_epoch.getEpoch(sum(rin_list(r).is_valid_list(1:i))).toString('yyyy/mm/dd HH:MM:SS'), ...
+                            rin_list(r).antenna{i});
+                    else
+                        fprintf('%3d) %s %s %s->%s ant: %s\n', i, ...
+                            rin_list(r).marker_name{i}, ...
+                            iif(rin_list(r).is_valid_list(i), '[ok]', '[!!]'), ...
+                            ('----/--/-- --:--:--'), ...
+                            ('----/--/-- --:--:--'), ...
+                            rin_list(r).antenna{i});
+                    end
+                end
+                fprintf('--------------------------------------------------------------------------------------\n')
+            end
+        end
+               
         function printMissingFiles(rin_list, flag_download)
             % Show all the files that seems to be missing for the
             % processing

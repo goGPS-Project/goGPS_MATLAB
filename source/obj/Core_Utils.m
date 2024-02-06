@@ -5221,6 +5221,7 @@ else
                         state.setToShortNET();
                     case 3 % NET no iono
                         state.setToMediumNET();
+                        state.rate_ztd_net = 3600;
                     case 4 % NET iono-free
                         state.setToLongNET();
                 end

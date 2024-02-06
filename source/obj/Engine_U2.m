@@ -1928,17 +1928,7 @@ classdef Engine_U2 < handle
                 end
             end
         end
-        
-        function hemisphereRegularization(this, law)
-            % tykhonv regualrization on the hemisphere
-            %
-            % this.spatialRegularization(this, law)
-            % TBD
-        end
-        
-        function reduceForNuisanceParameters(this, param_id)
-            % reduce for the parameter
-        end
+                
         
         function solve(this, fix)
             % %solve the least squares
