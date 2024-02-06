@@ -2506,7 +2506,7 @@ classdef Coordinates < Exportable & handle
         end
         
         function coo_list = fromCrdFile(file_name)
-            % Import from a breva crd file XYZ to a Coordinate object
+            % Import from a app crd file XYZ to a Coordinate object
             %
             % SYNTAX
             %   coo_list = Coordinates.fromCrdFile(file_name);
