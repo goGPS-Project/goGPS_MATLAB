@@ -49,9 +49,9 @@ function [ scan, error ] = read_asc( denum, fn, dontSave )
         if m.isKey(url)
             scan = m(url);
         else
-            [breva_path] = Core.getInstallDir;
-            [breva_dir] = fileparts(breva_path);
-            log.addMessage(log.indent(sprintf('Reading %s...', fullfile(breva_dir, 'reserved', 'JPL', fn))));
+            [app_path] = Core.getInstallDir;
+            [app_dir] = fileparts(app_path);
+            log.addMessage(log.indent(sprintf('Reading %s...', fullfile(app_dir, 'reserved', 'JPL', fn))));
             % If someone needs to run goGPS from offline for the first time
             % it can download ftp://ssd.jpl.nasa.gov/pub/eph/planets/ascii/de436/ascp01950.436
             % and ascp02050.436, and put them into "./reserved/JPL/"

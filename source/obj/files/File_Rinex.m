@@ -293,9 +293,8 @@ classdef File_Rinex < Exportable
                                             elseif line(76) == 'Y' || (numel(line) >= 79 && line(79) == 'V') %  SYS / # / OBS TYPES || # / TYPES OF OBSERV
                                                 if line(1) ~= ' '
                                                     cur_trk_sys = line(1);
-                                                end
-                                                if isempty(cur_trk_sys)
-                                                    cur_trk_sys = 'G';
+                                                else
+                                                    cur_trk_sys = ' ';
                                                 end
                                                 trcks = strsplit(line(8:60),' ');
                                                 for t = trcks

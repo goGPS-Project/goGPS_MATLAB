@@ -206,9 +206,9 @@ classdef Antenna < handle
                 this.n_freq = 0;
             end
 
-            id_fstart = find(txt(lim(:,1) + 61) == 'T' &txt(lim(:,1) + 74) == 'E' ); % find lines containg START OF FREQUENCY
+            id_fstart = find(txt(lim(:,1) + 61) == 'T' & txt(lim(:,1) + 74) == 'E' ); % find lines containg START OF FREQUENCY
             id_pco = find(txt(lim(:,1) + 60) == 'N'); % find lines containg  NORTH / EAST / UP
-            id_fstop = find(txt(lim(:,1) + 61) == 'N'&txt(lim(:,1) + 72) == 'E' ); % find lines containg END OF FREQUENCY
+            id_fstop = find(txt(lim(:,1) + 61) == 'N' & txt(lim(:,1) + 72) == 'E' ); % find lines containg END OF FREQUENCY
             
             if this.n_freq ~= numel(id_fstart) || this.n_freq ~= numel(id_pco) || this.n_freq ~= numel(id_fstop)
                 % Frequencies are currupted, no scanning is admissible for this antenna
