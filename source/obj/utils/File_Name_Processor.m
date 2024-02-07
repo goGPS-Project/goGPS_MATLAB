@@ -635,7 +635,7 @@ classdef File_Name_Processor < handle
                         end
                     end
                 else
-if isstring(path)
+                    if isstring(path)
                         path = char(path);
                     end
                     if ischar(path)

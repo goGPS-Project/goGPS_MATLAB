@@ -161,8 +161,6 @@ classdef Command_Interpreter < handle
         PAR_S_ENUBSL    % Baseline ENU positions
         PAR_S_PUPBSL    % Baseline EN U positions (Planar Up)
         PAR_S_XYZ       % XYZ positions
-        PAR_S_RFL       % Reflector height
-        PAR_S_RFLD      % Reflector distance
         PAR_N_OBS       % Parameter select n_obs
         PAR_S_MAP       % positions on map GoogleMaps background
         PAR_S_MAPG      % positions on map GoogleMaps background
@@ -221,7 +219,6 @@ classdef Command_Interpreter < handle
         PAR_E_TROPO_CSV % Tropo export Parameter csv format
         PAR_E_TROPO_HN  % Tropo export Parameter hn format
 
-        PAR_E_RFL_MAT   % Reflector height within a coordinate (mat format)
         PAR_E_COO_MAT   % Coordinates in goGPS mat format
         PAR_E_COO_TXT   % Coordinates in goGPS coo format
         PAR_E_COO_CRD   % Coordinates in goGPS crd format
@@ -589,20 +586,6 @@ classdef Command_Interpreter < handle
             this.PAR_S_XYZ.class = '';
             this.PAR_S_XYZ.limits = [];
             this.PAR_S_XYZ.accepted_values = [];
-
-            this.PAR_S_RFL.name = 'Reflector height';
-            this.PAR_S_RFL.descr = 'RFL                Reflector height [m]';
-            this.PAR_S_RFL.par = '(RFL)|(rfl)';
-            this.PAR_S_RFL.class = '';
-            this.PAR_S_RFL.limits = [];
-            this.PAR_S_RFL.accepted_values = [];
-
-            this.PAR_S_RFLD.name = 'Reflector distance';
-            this.PAR_S_RFLD.descr = 'RFLD                Reflector distance from antenna [m]';
-            this.PAR_S_RFLD.par = '(RFLD)|(rfld)';
-            this.PAR_S_RFLD.class = '';
-            this.PAR_S_RFLD.limits = [];
-            this.PAR_S_RFLD.accepted_values = [];
 
             this.PAR_S_MAP.name = 'Map of Receiver locations';
             this.PAR_S_MAP.descr = 'MAP                Map of station coordinates (Google Maps Background)';
@@ -1004,13 +987,6 @@ classdef Command_Interpreter < handle
             this.PAR_E_COO_TXT.limits = [];
             this.PAR_E_COO_TXT.accepted_values = {};
             
-            this.PAR_E_RFL_MAT.name = 'Stored reflector heights within COO MAT format';
-            this.PAR_E_RFL_MAT.descr = 'RFL_MAT            Reflector height .mat file (one for all the coordinates)';
-            this.PAR_E_RFL_MAT.par = '(rfl_mat)|(RFL_MAT)';
-            this.PAR_E_RFL_MAT.class = '';
-            this.PAR_E_RFL_MAT.limits = [];
-            this.PAR_E_RFL_MAT.accepted_values = {};
-            
             this.PAR_E_XYZ_TXT.name = 'Coordinates XYZ in plain text format';
             this.PAR_E_XYZ_TXT.descr = 'XYZ_TXT            Coordinates XYZ in plain text format';
             this.PAR_E_XYZ_TXT.par = '(xyz_txt)|(XYZ_TXT)';
@@ -1157,7 +1133,7 @@ classdef Command_Interpreter < handle
             this.CMD_SHOW.rec = 'T';
             this.CMD_SHOW.par = [this.PAR_SS this.PAR_EXPORT this.PAR_NOW this.PAR_CLOSE this.PAR_S_MAP this.PAR_S_MAPL this.PAR_S_MAPG this.PAR_S_MAPDTM this.PAR_S_MAPRG this.PAR_S_MAPRDTM, ...
                 this.PAR_S_RNX_LIM this.PAR_S_DA this.PAR_S_COO_STAT this.PAR_S_ENU this.PAR_S_PUP this.PAR_S_ENUBSL this.PAR_CTYPE this.PAR_N_OBS, ...
-                this.PAR_S_PUPBSL this.PAR_S_XYZ this.PAR_S_RFL this.PAR_S_RFLD this.PAR_S_CKW this.PAR_S_CK, ...
+                this.PAR_S_PUPBSL this.PAR_S_XYZ this.PAR_S_CKW this.PAR_S_CK, ...
                 this.PAR_S_SKY this.PAR_S_SNR this.PAR_S_SNRI, ...
                 this.PAR_S_OSTAT this.PAR_S_PSTAT this.PAR_S_OCS this.PAR_S_OCSP this.PAR_S_RES_PR this.PAR_S_RES_PH this.PAR_S_RES_PR_STAT this.PAR_S_RES_PH_STAT this.PAR_S_RES_PR_SKY this.PAR_S_RES_PH_SKY, ...
                 this.PAR_S_RES_PR_SKYP this.PAR_S_RES_PH_SKYP this.PAR_S_PTH this.PAR_S_NSAT this.PAR_S_NSATSS this.PAR_S_NSATSSS this.PAR_S_DOP this.PAR_S_ZTD this.PAR_S_ZTD_VSH this.PAR_S_ZHD this.PAR_S_ZWD, ...
@@ -1186,7 +1162,7 @@ classdef Command_Interpreter < handle
             this.CMD_IMPORT.name = {'IMPORT', 'import'};
             this.CMD_IMPORT.descr = 'Import';
             this.CMD_IMPORT.rec = 'T';
-            this.CMD_IMPORT.par = [this.PAR_E_COO_MAT this.PAR_E_RFL_MAT];
+            this.CMD_IMPORT.par = [this.PAR_E_COO_MAT];
             
             this.CMD_PUSHOUT.name = {'PUSHOUT', 'pushout'};
             this.CMD_PUSHOUT.descr = ['Push results in output' new_line 'when used it disables automatic push'];
@@ -3796,11 +3772,7 @@ classdef Command_Interpreter < handle
                     is_force = this.getMatchingFlag(tok, '(--force)|(-f)');
                     rec(id_trg).importMatCoo('',[], is_force);
                     flag_crd = flag_crd + 1;
-                end
-                if ~isempty(regexp(tok{t}, ['^(' this.PAR_E_RFL_MAT.par ')*$'], 'once'))
-                    rec(id_trg).importMatCooRfl();
-                    flag_crd = flag_crd + 1;
-                end
+                end                
             end
             if ~found_trg
                 if ~do_not_complain

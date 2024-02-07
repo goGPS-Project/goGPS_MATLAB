@@ -2878,8 +2878,8 @@ classdef Core_Utils < handle
                     l = 1;
                     while l <= size(lim,1)
                         if lim(l,3) < min_line_len
-                        lim(l,:) = [];
-else
+                            lim(l,:) = [];
+                        else
                             l = l + 1;
                         end
                     end
