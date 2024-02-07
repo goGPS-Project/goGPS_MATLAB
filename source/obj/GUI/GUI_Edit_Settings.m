@@ -901,11 +901,8 @@ classdef GUI_Edit_Settings < GUI_Unique_Win
                 'String', 'Get missing BLQ', ...
                 'Callback', @this.openGetChalmerString);
             box_gh.Widths = [-1 120];
-            
-            [~, this.edit_texts{end+1}, this.flag_list{end + 1}] = Core_UI.insertDirBox(vbox, 'Sky mask dir', 'mask_dir', @this.onEditChange, [25 160 -1 25]);
-            this.edit_texts{end}.TooltipString = 'Folder containing mask files in tiff format';
-                        
-            vbox.Heights = [Core_UI.LINE_HEIGHT Core_UI.LINE_HEIGHT -1 5 Core_UI.LINE_HEIGHT Core_UI.LINE_HEIGHT];
+                                    
+            vbox.Heights = [Core_UI.LINE_HEIGHT Core_UI.LINE_HEIGHT -1 5 Core_UI.LINE_HEIGHT];
         end
         
         function rf = crd2RefFrame(this)

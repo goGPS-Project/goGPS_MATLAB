@@ -34,7 +34,7 @@
 % - 'longitudes': longitudes
 %
 % SYNTAX:
-%   [im_h, latitudes, longitudes, img_bg] = addMap(Name, Value, ...);
+%   [im_h, longitudes, latitudes, img_bg] = addMap(Name, Value, ...);
 %   Where Name-Value pairs can be any of the INPUT parameters specified above.
 %
 % EXAMPLE:
@@ -82,7 +82,7 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-function [im_h, latitudes, longitudes, img_bg] = addMap(varargin)    
+function [im_h, longitudes, latitudes, img_bg] = addMap(varargin)    
 
     % Check for 'demo' call
     if nargin == 1 && strcmpi(varargin{1}, 'demo')
