@@ -47,6 +47,7 @@ classdef Remote_Resource_Manager < Ini_Manager
     properties (Access = private)
         local_storage = '';
         credentials; 
+        version = 0;
     end
     
     % =========================================================================
@@ -82,6 +83,11 @@ classdef Remote_Resource_Manager < Ini_Manager
             end            
             
             this.readFile();
+            this.version = this.getData('RESOURCE_FILE', 'version');
+            if ~any(this.version)
+                this.version = 0.1;
+            end
+
             credentials_path = [Core.getInstallDir filesep 'credentials.txt'];
             if exist(credentials_path, 'file') == 0
                 Core.getLogger.addError('The "credentials.txt" file is missing.\nIt will be created as empty from "credentials.example.txt" in goGPS folder');
@@ -96,6 +102,37 @@ classdef Remote_Resource_Manager < Ini_Manager
             else
                 this.credentials = Ini_Manager(credentials_path);            
                 this.credentials.readFile();
+            end
+        end
+
+        function reloaded = update(this, file_name, force_read)
+            % Update the object when needed:
+            %  - file_name changed
+            %  - force flag == 1
+            %  - INI not yet read
+            %
+            % SYNTAX
+            %   this.update(file_name, force_read)
+            if nargin == 2
+                force_read = 0;
+            end
+            if nargin < 3
+                file_name = this.getFileName;
+                force_read = 1;
+            end
+            reloaded = update@Ini_Manager(this, file_name, force_read);            
+            this.version = this.getData('RESOURCE_FILE', 'version');
+            if ~any(this.version)
+                this.version = 0.1;
+            end
+        end
+
+        function status = readFile(this)
+            status = readFile@Ini_Manager(this);
+
+            this.version = this.getData('RESOURCE_FILE', 'version');
+            if ~any(this.version)
+                this.version = 0.1;
             end
         end
     end
@@ -147,7 +184,11 @@ classdef Remote_Resource_Manager < Ini_Manager
         end
     end
     
-    methods        
+    methods   
+        function version = getVersion(this)
+            version = this.version;
+        end
+
         function [ip, port, user, passwd] = getServerIp(this, name)
             % Return the ip of a server given the server name
             %
@@ -168,18 +209,26 @@ classdef Remote_Resource_Manager < Ini_Manager
             %
             % SYNTAX:
             %   f_struct = this.getFileLoc(file_name)
-            f_struct.filename = this.getData(['f_' file_name],'filename');
-            f_struct.const = this.getData(['f_' file_name],'sys');
-            locations = this.getData(['f_' file_name],'location');
-            if ~iscell(locations)
-                locations = {locations};
+            if this.version >= 1
+                file_path = this.getData(['f_' file_name],'file_path');
+                f_struct = struct('filename', '', 'const', [], 'loc_number', 1, 'loc001', '');
+                if ~isempty(file_path)
+                    [f_struct.loc001, f_struct.filename ext] = fileparts(file_path);
+                    f_struct.filename = [f_struct.filename, ext];
+                    f_struct.loc001 = [f_struct.loc001 '/'];
+                end
+            else
+                f_struct.filename = this.getData(['f_' file_name],'filename');
+                f_struct.const = this.getData(['f_' file_name],'sys');
+                locations = this.getData(['f_' file_name],'location');
+                if ~iscell(locations)
+                    locations = {locations};
+                end
+                f_struct.loc_number = length(locations);
+                for i = 1 : f_struct.loc_number
+                    f_struct.(['loc' sprintf('%03d',i)]) = this.getData('LOCATION',locations{i});
+                end
             end
-            f_struct.loc_number = length(locations);
-            for i = 1 : f_struct.loc_number
-                f_struct.(['loc' sprintf('%03d',i)]) = this.getData('LOCATION',locations{i});
-            end
-            
-            
         end
                
         function [file_structure, latency] = getFileStr(this, center_name, resource_name)
@@ -313,11 +362,14 @@ classdef Remote_Resource_Manager < Ini_Manager
                     center{c} = tmp{c};
                 else
                     if type == 1
-                        center{c} = [upper(center{c}) ' - ' this.getData(['ic_' center{c}], 'description')];
+                        % center{c} = [upper(center{c}) ' - ' this.getData(['ic_' center{c}], 'description')];
+                        center{c} = [this.getData(['ic_' center{c}], 'description')];
                     elseif type == 2
-                        center{c} = [upper(center{c}) ' - ' this.getData(['bc_' center{c}], 'description')];
+                        % center{c} = [upper(center{c}) ' - ' this.getData(['bc_' center{c}], 'description')];
+                        center{c} = [this.getData(['bc_' center{c}], 'description')];
                     else
-                        center{c} = [upper(center{c}) ' - ' this.getData(['oc_' center{c}], 'description')];
+                        % center{c} = [upper(center{c}) ' - ' this.getData(['oc_' center{c}], 'description')];
+                        center{c} = [this.getData(['oc_' center{c}], 'description')];
                     end
                 end
                 center_ss{c} = regexp(tmp{c}, '.*(?=@)', 'match', 'once');
@@ -460,6 +512,8 @@ classdef Remote_Resource_Manager < Ini_Manager
                 flag_frub = [true true true];
             elseif state.mapping_function == 5
                 flag_frub = [true true true];
+            else
+                flag_frub = [false false false];            
             end
         end
         
@@ -482,30 +536,45 @@ classdef Remote_Resource_Manager < Ini_Manager
         end
         
         function remote_path = resourceToString(this, resource)
-            if strcmp(resource, 'null')
+            if isempty(resource) || strcmp(resource, 'null') || strcmp(resource, 'none')
                 remote_path = 'none';
+                return
             else
                 try
-                    file_name = this.getData(['f_', resource], 'filename');
-                    location = this.getData(['f_', resource], 'location');
-                    if iscell(location)
-                        location = location{1};
-                    end
-                    if isempty(location)
-                        location = '';
-                        server = cell(2,1);
+                    if this.getVersion < 1
+                        file_name = this.getData(['f_', resource], 'filename');
+                        location = this.getData(['f_', resource], 'location');
+                        if iscell(location)
+                            location = location{1};
+                        end
+                        if isempty(location)
+                            location = '';
+                            server = cell(2,1);
+                        else
+                            location = this.getData('LOCATION', location);
+                            % remove the server
+                            server = regexp(location, '(?<=\?\{)[a-z\_A-Z]*(?=\})', 'match');
+                            if isempty(server)
+                                server = cell(2,1);
+                            else
+                                location = regexp(location, '(?<=(\?\{[a-z_A-Z]*\})).*', 'match');
+                            end
+                            server = this.getData('SERVER', server{1});
+                        end
                     else
-                        location = this.getData('LOCATION', location);
+                        file_path = this.getData(['f_', resource], 'file_path');
                         % remove the server
-                        server = regexp(location, '(?<=\?\{)[a-z\_A-Z]*(?=\})', 'match');
+                        server = regexp(file_path, '(?<=\?\{)[a-z\_A-Z]*(?=\})', 'match');
                         if isempty(server)
                             server = cell(2,1);
                         else
-                            location = regexp(location, '(?<=(\?\{[a-z_A-Z]*\})).*', 'match');
+                            file_path = regexp(file_path, '(?<=(\?\{[a-z_A-Z]*\})).*', 'match', 'once');
                         end
                         server = this.getData('SERVER', server{1});
+                        location{1} = '';
+                        file_name = file_path;
                     end
-                    % The protocol could be improved woth more values
+                    % The protocol could be improved with more values
                     if iscell(server) && numel(server) == 2 && ~isempty(server{2})
                         switch server{2}
                             case '21'
