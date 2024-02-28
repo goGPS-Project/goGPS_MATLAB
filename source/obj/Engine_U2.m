@@ -715,7 +715,7 @@ classdef Engine_U2 < handle
             
             
             
-            this.time_par = zeros(n_obs,2,'uint32');
+            this.time_par = zeros(n_obs,2,'double');
             this.param_par = zeros(n_obs,4,'uint8'); % time of the parameter
             this.rec_par = zeros(n_obs,1,'int16'); % receiver of the parameters
             this.sat_par = zeros(n_obs,1,'int8');  % receiver of the parameters
@@ -813,7 +813,7 @@ classdef Engine_U2 < handle
                         ch_set{c} = uint8(sig_p_id(Core_Utils.code2Char2Num([this.unique_obs_codes_sys_c' this.unique_obs_codes_band']) == u_bnd(c)));
                     end
                 elseif parametriz(4) == ls_parametrization.FREQ_CONST
-                    u_wl_const = unique(sig2wl*100+sig2const_num)
+                    u_wl_const = unique(sig2wl*100+sig2const_num);
                     n_ch_set = length(u_wl_const);
                     ch_set = {};
                     for c = 1 : n_ch_set
@@ -1113,7 +1113,7 @@ classdef Engine_U2 < handle
                                         u_e_tmp = unique([ep_id ep_id+1 ep_id+2 ep_id+3]');
                                         time_par_tmp = [u_e_tmp*opt.spline_rate  (u_e_tmp+1)*opt.spline_rate];
                                         ep_pgr_id = zeros(sum(obs_lid),length(cols_tmp));
-                                        for i_o = cols_tmp;
+                                        for i_o = cols_tmp
                                             [~,ep_pgr_id(:,i_o+1)] = ismember(ep_id+i_o,u_e_tmp);
                                         end
                                         % ----- expand colum of the A matrix
@@ -1132,7 +1132,7 @@ classdef Engine_U2 < handle
                                     this.A_idx(obs_lid, i_col + cols_tmp) = cumulative_idx + ep_pgr_id;
                                     %[u_new_par] = unique(cumulative_idx + ep_pgr_id(:));
                                     
-                                    this.time_par(cumulative_idx+(1:n_prg_id),:) =  uint32(time_par_tmp);% time of the parameter
+                                    this.time_par(cumulative_idx+(1:n_prg_id),:) =  double(time_par_tmp);% time of the parameter
                                     this.param_par(cumulative_idx+(1:n_prg_id),:) = repmat(uint8(parametriz),n_prg_id,1);% time of the parameter
                                     this.rec_par(cumulative_idx+(1:n_prg_id)) = r_id*ones(n_prg_id,1,'int8');  % receiver of the parameters
                                     this.sat_par(cumulative_idx+(1:n_prg_id)) = s_id*ones(n_prg_id,1,'int8');  % receiver of the parameters
@@ -1268,7 +1268,7 @@ classdef Engine_U2 < handle
                             idx_ph = idx_valid_rec_ph_ch(this.satellite_obs(idx_valid_rec_ph_ch) == sat);
                             
                             if any(idx_ph)
-                                [~,idx_time] = ismember(this.ref_time_obs(idx_ph),time_res);
+                                [~,idx_time] = ismember(round(this.ref_time_obs(idx_ph),5),round(time_res,5));
                                 ph_pres(idx_time, s,f) = true;
                                 ph_id(idx_time, s,c) = find(idx_ph);
                             end
@@ -1287,7 +1287,7 @@ classdef Engine_U2 < handle
                             idx_pr = idx_valid_rec_pr_ch(this.satellite_obs(idx_valid_rec_pr_ch) == sat);
                             
                             if any(idx_pr)
-                                [~,idx_time] =ismember(this.ref_time_obs(idx_pr),time_res);
+                                [~,idx_time] = ismember(round(this.ref_time_obs(idx_pr),5),round(time_res,5));
                                 pr_pres(idx_time, s,f) = true;
                                 pr_id(idx_time, s,c) = find(idx_pr);
                             end
@@ -1404,7 +1404,6 @@ classdef Engine_U2 < handle
                         end
                     end
                 end
-
             end
 
             % disabled
@@ -1511,8 +1510,6 @@ classdef Engine_U2 < handle
                     end
                 end
             end
-
-
 
 
             % remove one clock per epoch
@@ -2802,7 +2799,7 @@ classdef Engine_U2 < handle
                 end
                 idx_res = idx_sat(this.obs_codes_id_obs(idx_sat) == obs_id(i));
                 if any(idx_res)
-                    [~,idx_time] = ismember(this.ref_time_obs(idx_res) - min_time_res, time_res);
+                    [~,idx_time] = ismember(round(this.ref_time_obs(idx_res) - min_time_res,5), round(time_res,5));
                     res_ph(idx_time, i) = this.res(idx_res);
                     res_id(idx_time, i) = idx_res;
                 end
@@ -2851,7 +2848,7 @@ classdef Engine_U2 < handle
                 end
                 idx_out = idx_sat(this.obs_codes_id_obs(idx_sat) == obs_id(i));
                 if any(idx_out)
-                    [~,idx_time] = ismember(this.ref_time_obs(idx_out) - min_time_res, time_res);
+                    [~,idx_time] = ismember(round(this.ref_time_obs(idx_out) - min_time_res,5), round(time_res,5));
                     out_ph(idx_time, i) = this.outlier_obs(idx_out);
                     res_id(idx_time, i) = find(idx_out);
                 end
@@ -2931,8 +2928,8 @@ classdef Engine_U2 < handle
                 end
                 idx_res = idx_sat(this.obs_codes_id_obs(idx_sat) == obs_id(i));
                 if any(idx_res)
-                    [~,idx_time] =  ismember(this.ref_time_obs(idx_res) - min_time_res, time_res);
-                    res_pr(idx_time,i) = this.res(idx_res);
+                    [~, idx_time] =  ismember(round(this.ref_time_obs(idx_res) - min_time_res, 5), round(time_res,5));
+                    res_pr(idx_time, i) = this.res(idx_res);
                     res_id(idx_time, i) = idx_res;                    
                 end
             end
@@ -2970,7 +2967,7 @@ classdef Engine_U2 < handle
                 end
                 idx_out = idx_sat(this.obs_codes_id_obs(idx_sat) == obs_id(i));
                 if any(idx_out)
-                    [~,idx_time] =  ismember(this.ref_time_obs(idx_out) - min_time_res, time_res);
+                    [~,idx_time] =  ismember(round(this.ref_time_obs(idx_out) - min_time_res, 5), round(time_res,5));
                     out_pr(idx_time,i) = this.outlier_obs(idx_out);
                 end
             end
@@ -3000,7 +2997,7 @@ classdef Engine_U2 < handle
                 end
                 idx_res = idx_sat(this.obs_codes_id_obs(idx_sat) == obs_id);
                 if any(idx_res)
-                    [~,idx_time] =  ismember(this.ref_time_obs(idx_res) - min_time_res,time_res);
+                    [~,idx_time] =  ismember(round(this.ref_time_obs(idx_out) - min_time_res, 5), round(time_res,5));
                     this.outlier_obs(idx_res) = flag(idx_time,i);
                 end
             end
@@ -3028,7 +3025,7 @@ classdef Engine_U2 < handle
                 end
                 idx_res = idx_sat(this.obs_codes_id_obs(idx_sat) == obs_id);
                 if any(idx_res)
-                    [~,idx_time] =  ismember(this.ref_time_obs(idx_res) - min_time_res,time_res);
+                    [~,idx_time] =  ismember(round(this.ref_time_obs(idx_out) - min_time_res, 5), round(time_res,5));
                     this.outlier_obs(idx_res) = flag(idx_time,i);
                 end
             end
@@ -3127,7 +3124,7 @@ classdef Engine_U2 < handle
             this.bondParamsGenerateIdx(ls_param);
         end
         
-        function setUpNET(this, sta_list, flag, param_selction, parametrization, time_lim)
+        function setUpNET(this, sta_list, flag, param_selction, parametrization, time_lim, flag_smap)
             % set up single point adjustment
             %
             % SYNTAX:
@@ -3243,7 +3240,7 @@ classdef Engine_U2 < handle
             this.time_min = this.time_obs.minimum();
             rate = this.time_obs.getRate();
             this.obs_rate = rate;
-            this.ref_time_obs = this.time_obs.getNominalTime(rate).getRefTime(this.time_min.getMatlabTime);
+            this.ref_time_obs = round(this.time_obs.getNominalTime(rate).getRefTime(this.time_min.getMatlabTime()),5); % clean numerical errors high rate cannot be so high rate
         end
         
         function s0 = getSigma0Ph(this)
@@ -3353,13 +3350,13 @@ classdef Engine_U2 < handle
                                 %                                 end
                                 %                                     amb_mat(time_s_r_c+1,n_p) = n_pa;
                                 %                                     n_pa = n_pa+1;
-                                css = unique([this.cycle_slips{cur_mast(s,c)}{this.unique_sat_goid(s)}{c}.getNominalTime(rate).getRefTime(min_time_mat); this.cycle_slips{r}{this.unique_sat_goid(s)}{c}.getNominalTime(rate).getRefTime(min_time_mat)]); % avoid near rank def
+                                css = unique(round([this.cycle_slips{cur_mast(s,c)}{this.unique_sat_goid(s)}{c}.getNominalTime(rate).getRefTime(min_time_mat); this.cycle_slips{r}{this.unique_sat_goid(s)}{c}.getNominalTime(rate).getRefTime(min_time_mat)], 5)); % avoid near rank def
                                 css = GPS_Time(min_time_mat, css);
                                 if ~isempty(css)
                                     for cs = 1 : css.length
-                                        cse1 = css.getNominalTime(rate).getEpoch(cs).getRefTime(min_time_mat)/rate;
+                                        cse1 = round(css.getNominalTime(rate).getEpoch(cs).getRefTime(min_time_mat)/rate, 5);
                                         if cs ~= css.length
-                                            cse2 = css.getNominalTime(rate).getEpoch(cs+1).getRefTime(min_time_mat)/rate;
+                                            cse2 = round(css.getNominalTime(rate).getEpoch(cs+1).getRefTime(min_time_mat)/rate, 5);
                                         else
                                             cse2 = max(time_r_s_c)+1;
                                         end

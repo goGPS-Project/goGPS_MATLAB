@@ -8949,8 +8949,8 @@ classdef Coordinates < Exportable & handle
                     end
                     
                     % Suppose regularly sampled data, fill missing epochs with nan
-                    time = (data(:,1) - data(1))*86400;
-                    rate = round(median(diff(time)));
+                    time = round((data(:,1) - data(1))*86400,4);
+                    rate = round(median(diff(time)),4);
                     if isnan(rate)
                         rate = 8640.0;
                     end

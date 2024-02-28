@@ -204,20 +204,20 @@ classdef App_Settings < Settings_Interface
             
             ini = Ini_Manager(file_name);
             
-            try this.log_default_mode = ini.getData('LOG', 'default_mode'); catch, keyboard, end
-            try this.log_color_mode = ini.getData('LOG', 'color_mode'); catch, keyboard, end
+            try this.log_default_mode = ini.getData('LOG', 'default_mode'); catch, log = Core.getLogger; log.addWarning(sprintf('LOG default_mode not found in app_settings')); end
+            try this.log_color_mode = ini.getData('LOG', 'color_mode'); catch, log = Core.getLogger; log.addWarning(sprintf('LOG color_mode not found in app_settings')); end
             
-            try this.gui_default_mode = ini.getData('GUI', 'default_mode'); catch, keyboard, end
-            try this.gui_default_export_mode = ini.getData('GUI', 'default_export_mode'); catch, keyboard, end
+            try this.gui_default_mode = ini.getData('GUI', 'default_mode'); catch, log = Core.getLogger; log.addWarning(sprintf('GUI default_mode not found in app_settings')); end
+            try this.gui_default_export_mode = ini.getData('GUI', 'default_export_mode'); catch, log = Core.getLogger; log.addWarning(sprintf('GUI default_export_mode not found in app_settings')); end
             
-            try this.flag_export_transparent = ini.getData('EXPORT', 'flag_export_transparent'); catch, keyboard, end
+            try this.flag_export_transparent = ini.getData('EXPORT', 'flag_export_transparent'); catch, log = Core.getLogger; log.addWarning(sprintf('EXPORT flag_export_transparent not found in app_settings')); end
             
-            try this.flag_deployed_slaves = logical(ini.getData('PARALLELISM', 'use_deployed_slaves')); catch, keyboard, end
+            try this.flag_deployed_slaves = logical(ini.getData('PARALLELISM', 'use_deployed_slaves')); catch, log = Core.getLogger; log.addWarning(sprintf('PARALLELISM use_deployed_slaves not found in app_settings')); end
             if isempty(this.flag_deployed_slaves)
                 this.flag_deployed_slaves = false;
             end
             
-            try this.bin_path = ini.getData('PARALLELISM', 'bin_path'); catch, keyboard, end
+            try this.bin_path = ini.getData('PARALLELISM', 'bin_path'); catch, log = Core.getLogger; log.addWarning(sprintf('PARALLELISM bin_path not found in app_settings')); end
 
             this.check(); % check after import            
         end

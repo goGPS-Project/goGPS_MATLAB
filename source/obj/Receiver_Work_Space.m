@@ -12082,8 +12082,8 @@ classdef Receiver_Work_Space < Receiver_Commons
                     coo = this.getPos;
                     coo.setPPPOk;
                     coo.xyz = xyz;
-                    coo.info.n_epo = uint32(coo.info.n_epo(1) * ones(size(xyz,1),1));
-                    coo.info.n_obs = uint32(coo.info.n_obs(1) * ones(size(xyz,1),1));
+                    coo.info.n_epo = uint32(coo.info.n_epo(1) * ones(size(xyz,1),1, 'uint32'));
+                    coo.info.n_obs = uint32(coo.info.n_obs(1) * ones(size(xyz,1),1, 'uint32'));
                     coo.info.s0 = single(s0 * ones(size(xyz,1),1));
                     coo.info.s0_ip = single(coo.info.s0_ip(1) * ones(size(xyz,1),1));
                     coo.info.flag = uint8(coo.info.flag(1)) * ones(size(xyz,1),1,'uint8');

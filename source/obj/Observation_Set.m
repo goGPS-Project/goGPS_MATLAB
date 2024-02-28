@@ -290,8 +290,9 @@ classdef Observation_Set < handle
                 % this is actually a different function, with 3 parameters time_st is usually a single epoch
                 % here is not, Giulio create this for Engine_U2, not very clean,
                 % It should be revised
-                [~, idx] = intersect(round(time_rec * rate), round(time_obs * rate));
+                [~, idx] = intersect(round(time_rec / rate), round(time_obs / rate));
             end
+            idx = round(idx);
         end
         
         function has_phase = hasPhase(this)

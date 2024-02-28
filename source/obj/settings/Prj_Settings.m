@@ -157,7 +157,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
 
         % ANTENNA
         ATX_DIR = [Prj_Settings.DEFAULT_DIR_IN 'antenna' filesep 'ATX' filesep]; % Location of the antex files
-        ATX_NAME = 'I20.ATX';    % Name antex file
+        ATX_NAME = 'igs20.atx';    % Name antex file
         
         % OUT PATH
         OUT_DIR = Prj_Settings.DEFAULT_DIR_OUT; % Directory containing the output of the project
@@ -5048,14 +5048,14 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
                 bias_full_name = '';
             else
                 file_name = fnp.checkPath(strcat(this.bias_dir, filesep, this.bias_name), this.getHomeDir());
+                step_sec = min(3*3600, fnp.getStepSec(file_name)); %supposing a polynomial of degree 12 and SP3 orbit data every 15 min (at worst)
                 
                 if (~isempty(strfind(file_name, fnp.GPS_WD)) || ~isempty(strfind(file_name, fnp.GPS_WEEK)))
-                    date_start = date_start.getCopy;
-                    date_stop = date_stop.getCopy;
+                    date_start = date_start.getCopy; date_start.addIntSeconds(-step_sec); % Get navigational files with 6 hours of margin
+                    date_stop = date_stop.getCopy; date_stop.addIntSeconds(+step_sec); % Get navigational files with 6 hours of margin
                 end
                 state = Core.getState();
                 [buf_lft, ~] = state.getBuffer();
-                date_start.addIntSeconds(buf_lft + state.getSessionDuration / 2);
                 bias_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
             end
         end

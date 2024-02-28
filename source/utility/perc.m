@@ -43,9 +43,19 @@ function perc_val = perc(data, p)
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
     data(isnan(data)) = [];
+if size(data,1) == 1 || size(data,2) == 1
     data = sort(data(:));
+else
+        for c = 1:size(data,2)
+            data(:,c) = sort(data(:,c));
+        end
+    end
     if numel(data) > 0
-        perc_val = data(max(round(numel(data) * p),1));
+        for c = 1:size(data,2)
+            for v = 1:numel(p)
+                perc_val(c,v) = data(min(max(round(size(data,1) * p(v)),1), size(data,1)),c);
+end
+        end
     else
         perc_val = 0;
     end

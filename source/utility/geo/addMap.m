@@ -92,6 +92,7 @@ function [im_h, longitudes, latitudes, img_bg] = addMap(varargin)
 
     % Default values
     ax = [];
+    im_h = [];
     provider = 'ArcGIS';
     zoom_lev = [];
     img_only = false;
