@@ -2764,39 +2764,6 @@ classdef Core_Utils < handle
                 Core.getLogger.addWarning(sprintf('Malformed VMF file "%s"', vmf_file));
             end
         end
-        
-        function fh_list = showMultiPathModel(mp_file, mp_type)
-            % Show MultiPath Maps for each receiver workspace
-            % (polar plot Zernike interpolated)
-            %
-            % INPUT:
-            %   mp_file     file containing the ant_mp struct
-            %   mp_type     type of MP to display
-            %                 case 1 % Zernike map
-            %                 case 2 % Zernike map + gridded residuals
-            %                 case 3 % Simple Gridding of size [stk_grid_step]
-            %                 case 4 % Congruent cells gridding of size [stk_grid_step]
-            %                 case 5 % Simple Gridding of size [1x1]
-            %                 case 6 % c1_map Congruent cells gridding of size [1x1]
-            %
-            % SYNTAX 
-            %   fh_list = Core_Utils.showMultiPathModelFromFile(mp_file, mp_type)
-            
-            tmp_rec = GNSS_Station;
-            try
-                if isstruct(mp_file)
-                    ant_mp = mp_file;
-                else
-                    load(mp_file, 'ant_mp');
-                end
-                ant_mp;
-            catch
-                Core.getLogger.addError('MP file not found, or corrupted');
-                return
-                fh_list = [];
-            end
-            fh_list = tmp_rec.showMultiPathModel(mp_type, ant_mp);
-        end
 
         function setFigureName(fh, fig_name)
             % Set the name of the figure
@@ -2911,8 +2878,8 @@ classdef Core_Utils < handle
                     l = 1;
                     while l <= size(lim,1)
                         if lim(l,3) < min_line_len
-                        lim(l,:) = [];
-else
+                            lim(l,:) = [];
+                        else
                             l = l + 1;
                         end
                     end
@@ -4403,8 +4370,8 @@ else
                     end
                 else
                     try
-                        [breva_dir] = Core.getInstallDir();
-                        [ok_status, result] = system(['"' breva_dir '\utility\thirdParty\7z1602-extra\7za.exe" -y x "' full_file_path '" -o"'  out_dir '"']); %#ok<ASGLU>
+                        [app_dir] = Core.getInstallDir();
+                        [ok_status, result] = system(['"' app_dir '\utility\thirdParty\7z1602-extra\7za.exe" -y x "' full_file_path '" -o"'  out_dir '"']); %#ok<ASGLU>
                         if (ok_status == 0)
                             ok_status = true;
                             delete(full_file_path);
@@ -4433,9 +4400,9 @@ else
             else
                 log = Logger.getInstance;
                 try
-                    [breva_path] = Core.getInstallDir();
-                    [breva_dir] = fileparts(breva_path);
-                    [ok_status, result] = system(['"' breva_dir '\utility\thirdParty\7z1602-extra\7za.exe" a "' full_file_path '.gz" "' full_file_path '"']); %#ok<ASGLU>
+                    [app_path] = Core.getInstallDir();
+                    [app_dir] = fileparts(app_path);
+                    [ok_status, result] = system(['"' app_dir '\utility\thirdParty\7z1602-extra\7za.exe" a "' full_file_path '.gz" "' full_file_path '"']); %#ok<ASGLU>
                     if (ok_status == 0)
                         ok_status = true;
                         log.addStatusOk(sprintf('File "%s" compressed successfully', full_file_path));
@@ -5256,6 +5223,7 @@ else
                         state.setToShortNET();
                     case 3 % NET no iono
                         state.setToMediumNET();
+                        state.rate_ztd_net = 3600;
                     case 4 % NET iono-free
                         state.setToLongNET();
                 end

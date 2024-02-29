@@ -838,7 +838,7 @@ classdef File_Wizard < handle
             
             %connect to the CRX server
             try
-                tic; ftp_server = Core_Utils.ftpTimeout(aiub_ip,3); toc
+                ftp_server = Core_Utils.ftpTimeout(aiub_ip,3);
                 if isempty(ftp_server)
                     log.addMessage(log.indent(sprintf(['FTP connection to the AIUB server (ftp://' aiub_ip '). Timeout...'])));
                     return

@@ -83,7 +83,6 @@ classdef Engine_U2 < handle
         PAR_IONO_PH = 32;
         PAR_REC_SB = 33; % system bias (originated by product)
         
-        
         CLASS_NAME = {'PAR_REC_X', ...
             'PAR_REC_Y', ...
             'PAR_REC_Z', ...
@@ -147,10 +146,9 @@ classdef Engine_U2 < handle
             'Sat Clock Ph', ...
             'Sat Clock PR', ...
             'Geometry', ...
-            'Sat PR bias', ...
-            'Iono PR' ...
-            'Iono PH' ...            
-            'Rec system bias'};
+            'SS PR EB'};
+
+        % Change the mode of GLONASS fixing, Teunissen code vs Giulio
         FLAG_GLONASS_GIULIO = false;
     end
     
@@ -2053,17 +2051,7 @@ classdef Engine_U2 < handle
                 end
             end
         end
-        
-        function hemisphereRegularization(this, law)
-            % tykhonv regualrization on the hemisphere
-            %
-            % this.spatialRegularization(this, law)
-            % TBD
-        end
-        
-        function reduceForNuisanceParameters(this, param_id)
-            % reduce for the parameter
-        end
+                
         
         function solve(this, fix)
             % %solve the least squares

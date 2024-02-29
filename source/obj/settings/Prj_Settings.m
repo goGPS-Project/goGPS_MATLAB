@@ -244,11 +244,7 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
         FLAG_HOI = false;                               % Flag to enable High Order Ionospherich effects and bendigs
         FLAG_REC_PCV = true;                            % Flag to enable receiver pcv corrections
         FLAG_APR_IONO = true;                           % Flag to enable apriori ionospheric effect corrections
-        
-        FLAG_REC_MP = 0;                                % Flag to enable receiver multipath corrections
-        FLAG_MP_IGNORE_TRK = true;                      % Flag to specify if multipath management have to ignore trackings
-                                                        % and combine the data of multiple trackings all together (reccomanded)
-        
+                
         FLAG_COO_RATE = false;
         COO_RATES = [ 0 0 0];
         
@@ -588,22 +584,6 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
           'Per binned frequency',...
           'Per frequency and constellation',...
           'Per Rinex Band'}
-        % Multipath management
-        FLAG_REC_MP_SMODE = {'0: No multipath management', ...
-          '1: Zernike interpolated maps', ...
-          '2: Zernike + congruent stacking', ...
-          '3: Smoothed map with cells', ...
-          '4: Smoothed map with congruent cells', ...
-          '5: Stacking map with cells', ...
-          '6: Stacking map with congruent cells'}
-        FLAG_REC_MP_LABEL = {'none', ...
-          'Zernike interpolated maps',...
-          '(1) + congruent stacking', ...
-          'Smoothed map with cells', ...
-          'Smoothed map with congruent cells', ...
-          'Stacking map with cells', ...
-          'Stacking map with congruent cells'}
-        FLAG_REC_MP_UI2INI = [0 1 2 3 4 5 6];
                   
         % id to string of tropospheric models
         ZD_SMODE = {'1: Saastamoinen model' ...
@@ -5716,14 +5696,6 @@ classdef Prj_Settings < Settings_Interface & Command_Settings
             % SYNTAX
             %   this.setMaskDir()
             this.mask_dir = mask_dir;
-        end
-        
-        function setMPDir(this, mp_dir)
-            % Set the path of the multipath file dir
-            %
-            % SYNTAX
-            %   this.setMPDir()
-            this.mp_dir = mp_dir;
         end
         
         function setOutDir(this, out_dir)

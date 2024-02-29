@@ -2506,7 +2506,7 @@ classdef Coordinates < Exportable & handle
         end
         
         function coo_list = fromCrdFile(file_name)
-            % Import from a breva crd file XYZ to a Coordinate object
+            % Import from a app crd file XYZ to a Coordinate object
             %
             % SYNTAX
             %   coo_list = Coordinates.fromCrdFile(file_name);
@@ -4629,7 +4629,7 @@ classdef Coordinates < Exportable & handle
                             else
                                 img_ggl = [];
                                 ax = setAxis(fh);
-                                [img_h, lon_ggl, lat_ggl, img_ggl] = addMap('ax', ax, 'alpha', 0.95, 'lon_lim', dlon_ext, 'lat_lim', dlat_ext, 'm_map', true);
+                                [~, lon_ggl, lat_ggl, img_ggl] = addMap('ax', ax, 'alpha', 0.95, 'lon_lim', dlon_ext, 'lat_lim', dlat_ext, 'm_map', true);
                                 
                                 if contour_lines && max(diff(nwse([3 1])), diff(nwse([2 4]))) < 1 % Add contour
                                     [dtm, lat_dtm, lon_dtm] = Core.getRefDTM(nwse, 'ortho', dtm_resolution);
