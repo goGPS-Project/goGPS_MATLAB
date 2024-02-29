@@ -90,6 +90,9 @@ classdef Core_Sky < handle
         %    IRNSS   -> Iono free linear combination
         %    SABS    -> Iono free linear combination
         group_delays_times           % 77x1 GPS_Time
+
+        group_delays_flags = Core_Sky.GROUP_DELAYS_FLAGS;
+        carrier_phases_flags = Core_Sky.CARRIER_PHASES_FLAGS;
         
         tracking_bias
         
@@ -312,26 +315,53 @@ classdef Core_Sky < handle
                     %     end
                     % end
                 end
-                
+
                 if not(flag_eph_only)
                     % Interp clock
                     this.fillClockGaps(10, 'spline'); % try to save small interval of missing clocks
-                    
+
                     % load erp
                     Core.getLogger.addMarkedMessage('Importing Earth Rotation Parameters');
                     this.importERP(Core.getState.getErpFileName(start_date, stop_date),start_date);
-                    
+
                     % load biases
                     Core.getLogger.addMarkedMessage('Importing code biases');
                     this.importBiases(Core.getState.getBiasFileName(start_date, stop_date));
+                    % C1P should be the same as C1W if empty copy , same
+                    % for L2
+                    if ~any(any(squeeze(this.group_delays(:,strLineMatch(this.group_delays_flags,'GC1P'),:))))
+                        this.group_delays(:,strLineMatch(this.group_delays_flags,'GC1P'),:) = this.group_delays(:,strLineMatch(this.group_delays_flags,'GC1W'),:);
+
+                    end
+                    if ~any(any(squeeze(this.group_delays(:,strLineMatch(this.group_delays_flags,'GC2P'),:))))
+                        this.group_delays(:,strLineMatch(this.group_delays_flags,'GC2P'),:) = this.group_delays(:,strLineMatch(this.group_delays_flags,'GC2W'),:);
+
+                    end
                 end
             end
+               % 
+               state = Core.getCurrentSettings;
+               if state.isClockAlign
+                   if sum(this.cc.system == 'G') > 0
+                       this.changeRefDelay('G',['L1W';'L2W']);
+                   end
+                   if sum(this.cc.system == 'E') > 0
+                       this.changeRefDelay('E',['L1C';'L5Q']);
+                   end
+                   this.markJmpAndRepair();
+               end
+               
+
+               % if state.day_boundary_mng == 1
+               %     this.markJmpAndRepair();
+               % elseif state.day_boundary_mng == 2
+               %     this.loadJmpAndCorrect();
+               % end
         end
-        
+
         function clearOrbit(this, gps_date)
             % clear the object of the data older than gps_date
-            % SYNTAX: 
-            %   this.clearOrbit(gps_date)
+            % SYNTAX: this.clearOrbit(gps_date)
             if nargin > 1
                 this.clearCoord(gps_date);
                 this.clearClock(gps_date);
@@ -1323,69 +1353,6 @@ classdef Core_Sky < handle
                         else
                             flag_clk_rin3 = false;
                             this.clock(c_ep_idx,i) = sscanf(txt(bsxfun(@plus, repmat(lim(sat_line, 1),1,21), 38:58))','%f');
-                        end
-                        if size(c_ep_idx, 1) ~= size(this.clock, 1) && Core.getState.isClockAlign()
-                            % the clock is not empty and re-alignment have been requested
-                            buf_size = 200;
-                            % check left
-                            id_left = max(1, c_ep_idx(1) - buf_size) : max(1, c_ep_idx(1) - 1);
-                            id_left(this.clock(id_left, i) == 0) = [];
-                            if numel(id_left) > 3
-                                % realign on left
-                                % compute id of the new clock set to be used for re-alignment
-                                id_right = c_ep_idx(1) : c_ep_idx(find(c_ep_idx < (c_ep_idx(1) + buf_size), 1, 'last'));
-                                id_right(this.clock(id_right, i) == 0) = [];
-                                
-                                % DEBUG: inspect re-alignment
-                                %figure(1000); clf; ax = axes;
-                                %plot(ax, this.time_ref_clock.getMatlabTime + ((id_left(1) : id_right(end)) - 1) / 2880, Core_Utils.V_LIGHT * diff(this.clock(id_left(1):id_right(end)+1,i))); hold on;
-                                %setTimeTicks
-                                
-                                if numel(id_right) > 3
-                                    prediction_from_left = interp1(id_left, this.clock(id_left,i), c_ep_idx(1) + [-1 : 0], 'linear', 'extrap');
-                                    prediction_from_right = interp1(id_right, this.clock(id_right,i), c_ep_idx(1) + [-1 : 0], 'linear', 'extrap');
-                                    % figure(1000); clf; plot(id_left, this.clock(id_left,i), '.'); hold on; plot(id_right, this.clock(id_right,i), 'o');
-                                    time_shift = mean(prediction_from_right - prediction_from_left);
-                                    % Determine the treshold for jump detection
-                                    % when the "jump" is lower than 5 times the std of the local change rate do not correct for it:
-                                    thr = 1 * std([diff(zero2nan(this.clock(id_left(1) : id_left(end), i))); ...
-                                        diff(zero2nan(this.clock(id_right(1) : id_right(end),i)))], 'omitnan');
-                                    if abs(time_shift) > thr
-                                        this.clock(c_ep_idx,i) = this.clock(c_ep_idx,i) - time_shift;
-                                        %    plot([id_left id_right], this.clock([id_left id_right],i), 's')
-                                        %else
-                                        %    plot([id_left id_right], this.clock([id_left id_right],i), '^k')
-                                    end
-                                end
-                                
-                                % DEBUG: inspect re-alignment
-                                %plot(ax, this.time_ref_clock.getMatlabTime + ((id_left(1) : id_right(end)) - 1) / 2880, Core_Utils.V_LIGHT * diff(this.clock(id_left(1):id_right(end)+1,i))); hold on;
-                                %xlim(this.time_ref_clock.getMatlabTime + ([id_left(1) , id_right(end)] - 1) / 2880);
-                                %ylabel('clock drift [m]');
-                                %legend('clock error drift', 'clock error drift - re-aligned')
-                                %fh = gcf; Core_UI.addBeautifyMenu(fh); Core_UI.beautifyFig(fh, 'light');
-                            end
-                            % check right
-                            id_left = max(1, c_ep_idx(end) - buf_size + 1) : max(1, c_ep_idx(end));
-                            id_left(this.clock(id_left, i) == 0) = [];
-                            if numel(id_left) > 3
-                                % realign on right
-                                % compute id of the new clock set to be used for re-alignment
-                                id_right = min(size(this.clock,1), (c_ep_idx(end) + 1)) : min(size(this.clock,1), (c_ep_idx(end) + buf_size));
-                                id_right(this.clock(id_right, i) == 0) = [];
-                                if numel(id_right) > 3
-                                    prediction_from_left = interp1(id_left, this.clock(id_left,i), c_ep_idx(end) + [0 : 1], 'linear', 'extrap');
-                                    prediction_from_right = interp1(id_right, this.clock(id_right,i), c_ep_idx(end) + [0 : 1], 'linear', 'extrap');
-                                    time_shift = mean(prediction_from_right - prediction_from_left);
-                                    % Determine the treshold for jump detection
-                                    % when the "jump" is lower than 5 times the std of the local change rate do not correct for it:
-                                    thr = 1 * std([diff(zero2nan(this.clock(id_left(1) : id_left(end), i))); ...
-                                        diff(zero2nan(this.clock(id_right(1) : id_right(end),i)))], 'omitnan');
-                                    if abs(time_shift) > thr
-                                        this.clock((c_ep_idx(end) + 1): end,i) = this.clock((c_ep_idx(end) + 1) : end, i) - time_shift;
-                                    end
-                                end
-                            end
                         end
                     end
                 end

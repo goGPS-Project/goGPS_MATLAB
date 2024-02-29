@@ -121,6 +121,7 @@ classdef Command_Interpreter < handle
         PAR_SNRTHR      % Parameter select snrthr
         PAR_SS          % Parameter select constellation
         PAR_OTYPE       % Parameter select observation type (i.e. CPLSD)
+        PAR_OBSCODESYS
         PAR_BAND        % Parameter of the band to be used in the adjustment
         PAR_CTYPE       % Parameter coordinate type
                 
@@ -144,6 +145,7 @@ classdef Command_Interpreter < handle
         PAR_M_BSL        % Modifier to NETLOOP to compute a solutions by baseline
         PAR_M_REPRO      % Modifier to NETLOOP to compute solutions only if previous ones were not good
         PAR_M_UNCOMBINED % Parameter to force the usage if the new uncombined engine
+        PAR_M_TIMING
         
         PAR_M_NWB       % Do not use melbourne-wubbena (bad code)
         

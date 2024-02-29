@@ -8384,7 +8384,7 @@ classdef Receiver_Work_Space < Receiver_Commons
                 sat_idx = (this.go_id == i) & (this.obs_code(:,1) == 'C');
                 if nargin == 1 % obs based
                     c_obs = this.obs(sat_idx,:);
-                    c_l_obs = colFirstNonZero(c_obs); % all best obs one each line %% CONSIDER USING ONLY 1 FREQUENCY FOR mm CONSISTENCY
+                    c_l_obs = colFirstNonZero(nan2zero(c_obs)); % all best obs one each line %% CONSIDER USING ONLY 1 FREQUENCY FOR mm CONSISTENCY
                     % tmp = this.getSyntObs(i);
                     % c_l_obs(isnan(c_l_obs)) = tmp(isnan(c_l_obs));
                     this.updateTOT(c_l_obs, i); % update time of travel
@@ -14933,97 +14933,7 @@ classdef Receiver_Work_Space < Receiver_Commons
             cs_idx = abs(td_phr(1,:) ./ wl) > cs_thr & ~isnan(td_phr(2,:));
         end
         
-        function [res, dt_rec, dt_sat, d_iono, u_rs] = dtRobustAdjustement(d_ph, rec_id, go_id, wl_id, el, apr_std, is_ph)
-            
-            n_obs = length(d_ph);
-            u_r = unique(rec_id);
-            n_rec = length(u_r);
-            [~,rec_clk_id] = ismember(rec_id',u_r');
-            sat = numel(u_r) > 1;
-            u_s = unique(go_id);
-            n_sat = length(u_s);
-            rec = n_sat > 1;
-            if sat
-                [~,sat_clk_id] = ismember(go_id, u_s);
-                sat_clk_id = sat_clk_id' + length(u_r);
-            end
-            iono = true;
-            if iono
-                rs_id = round(rec_id*1000+go_id);
-                u_rs = unique(rs_id);
-                [~,iono_id] = ismember(rs_id, u_rs);
-                iono_id = iono_id' + max(sat_clk_id);
-            end
-            
-            iono_const = 40.3*10^16;
-            sign_iono = ones(size(is_ph'));
-            sign_iono(is_ph>0) = -1;
-            if rec
-                A = [ones(n_obs,1)];
-                A_idx = [rec_clk_id];
-            else
-                A = [];
-                A_idx = [];
-            end
-            if sat
-                A = [A ones(n_obs,1)];
-                A_idx = [A_idx  sat_clk_id];
-            end
-            if iono
-                A = [A sign_iono.*iono_const.*(wl_id'/Core_Utils.V_LIGHT).^2];
-                A_idx = [A_idx iono_id];
-            end
-            rows = repmat((1:n_obs)',1,size(A,2));
-            n_par = max(A_idx(:,end));
-            A = sparse(rows,A_idx,A,n_obs, n_par);
-            
-            vars_apr = apr_std'.^2 .* (sind(el')).^4;
-            % if sat && rec
-            %     A(:,n_rec+1) = [];
-            %     n_par = n_par -1;
-            % end
-            
-            W = sparse(diag(1./vars_apr));
-            N = A'*W*A ;
-            d_ph = d_ph';
-            B = A'*W*d_ph;
-            % G = [];
-            % if sat
-            %     G = [zeros(max(rec_clk_id),1) ; ones(max(sat_clk_id)-max(rec_clk_id),1)];
-            %     if iono
-            %         G = [G; zeros(length(u_rs),1)];
-            %     end
-            % end
-            % n_lagr = size(G,2);
-            % N = [[N G]; [G' zeros(n_lagr)]];
-            % B = [B;zeros(n_lagr,1)];
-            if iono
-                reg_d_iono = 1/(0.05^2);
-                n_iono = length(u_rs);
-                n_other = max(A_idx(:,end)) - n_iono;
-                R = sparse([[zeros(n_other) zeros(n_other, n_iono)]; [zeros(n_iono, n_other) reg_d_iono*eye(n_iono)]]);
-                N = N + R;%(1:(end-n_lagr),1:(end-n_lagr))
-            end
-            x = zeros(n_par,1);
-            dx = 9999*ones(999,1);
-            while max(abs(dx)) > 1e-3 %(1: (end-n_lagr))
-                dx = spinv(N,[],'qr') * B;
-                x = x +dx;%(1: (end-n_lagr))
-                res = d_ph - A*x;
-                res_n = res ./ sqrt(vars_apr);
-                res_n = res_n / mean(res_n);
-                rw =  ones(size(res_n));
-                rw(abs(res_n) > 2) =  2 ./ abs(res_n(abs(res_n) > 2));
-                RW = sparse(diag(1./vars_apr .*rw));
-                N =  A'*RW*A + R;
-                B = A'*RW*res;
-                %     N = [N G; G' zeros(n_lagr)];
-                %     B = [B;zeros(n_lagr,1)];
-            end
-            dt_rec = x(1:n_rec);
-            dt_sat = x((n_rec+1):(n_rec+n_sat));
-            d_iono = x((n_rec+n_sat+1):end);
-        end
+        
     end
 
     %% METHODS PLOTTING FUNCTIONS
@@ -15915,11 +15825,6 @@ classdef Receiver_Work_Space < Receiver_Commons
     end
     
     methods (Static)
-        function  [o_idx, cs_idx] = outlierCyscleSlipDetect(td_phr, wl, ol_thr, cs_thr)
-            o_idx = (abs(td_phr(1,:)) > ol_thr & abs(td_phr(2,:)) > ol_thr) |  (isnan(td_phr(1,:)) & abs(td_phr(2,:)) > ol_thr) |  (abs(td_phr(1,:)) > ol_thr & isnan(td_phr(2,:)));
-            cs_idx = abs(td_phr(1,:) ./ wl) > cs_thr & ~isnan(td_phr(2,:));
-        end
-        
         
         
         function detectOutlierMarkCycleSlipMultiReceiver(rec_work_list)
