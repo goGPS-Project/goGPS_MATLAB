@@ -73,7 +73,7 @@ for i = 1 : size(vI,1)
     jump_ids = find(abs(diff(medfilt_mat(tmp,min(jump_detection_win, length(tmp)-(mod(length(tmp)+1,2)))))) > jump_detection_thr);
     sub_segment = [[1; jump_ids + 1] [jump_ids; length(tmp)]];
     % DEBUG: plot(sub_segment(:,1), tmp(sub_segment(:,1)) - median(tmp),'o', sub_segment(:,2),tmp(sub_segment(:,2)) - median(tmp),'*');
-    for s = 1 : size(sub_segment)
+    for s = 1 : size(sub_segment,1)
         if ((sub_segment(s,2) - sub_segment(s,1) + 1) >= min_arc)
             sub_tmp = tmp(sub_segment(s,1):sub_segment(s,2));
             data_m((vI(i,1) + sub_segment(s,1) - 1):(vI(i,1) + sub_segment(s,2) - 1)) = median(sub_tmp(not(isnan(sub_tmp))));
